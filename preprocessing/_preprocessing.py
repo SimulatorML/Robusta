@@ -5,6 +5,8 @@ from sklearn.base import BaseEstimator, TransformerMixin
 
 from sklearn import impute
 
+from typing import Iterable
+
 
 
 
@@ -98,7 +100,13 @@ class ColumnSelector(BaseEstimator, TransformerMixin):
             This estimator.
 
         '''
-        if not np.any(self.columns): self.columns = X.columns
+        if isinstance(self.columns, Iterable):
+            self.columns = list(self.columns)
+            # check if not all columns in X.columns
+            diff = set(self.columns) - set(X.columns)
+            assert not diff, 'Not all columns are in X: \n{}'.format(diff)
+        else:
+            self.columns = X.columns
         return self
 
 
