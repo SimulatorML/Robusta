@@ -24,8 +24,8 @@ def dist_mnh(x, y):
     # Manhattan distance
     dlon, dlat = _dlon_dlat(x, y)
     return abs(dlon) + abs(dlat)
-    
-    
+
+
 def dist_rad(x, y):
     # Radian distance
     dlon, dlat = _dlon_dlat(x, y)
@@ -36,7 +36,7 @@ def dist_rad(x, y):
 
 
 def _dlon_dlat(x, y):
-    lat_x, long_x, lat_y, long_y = map(radians, [*x,*y])  
+    lat_x, long_x, lat_y, long_y = map(radians, [*x,*y])
     dlon, dlat = long_y-long_x, lat_y-lat_x
     return dlon, dlat
 
@@ -46,8 +46,8 @@ File distances
 
 Parameters
 ----------
-x : 
-y : 
+x :
+y :
 
 Result
 ------
@@ -98,7 +98,7 @@ Other
 '''
 def corr_cat(x, y, vc_x=None, vc_y=None):
     '''
-    Categorical correlation 
+    Categorical correlation
     using Weighted Jaccard Index
     https://en.wikipedia.org/wiki/Jaccard_index
 
@@ -116,7 +116,7 @@ def corr_cat(x, y, vc_x=None, vc_y=None):
     renamer = dict(zip([x.name, y.name], xy_cols))
     xy = pd.concat([x, y], axis=1)
     xy = xy.rename(columns=renamer)
-    
+
     vc_x = xy.x.value_counts() if vc_x is None else vc_x
     vc_y = xy.y.value_counts() if vc_y is None else vc_y
 
