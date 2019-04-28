@@ -1,7 +1,8 @@
 import pandas as pd
 import numpy as np
 
-from sklearn.base import BaseEstimator, TransformerMixin, clone
+from sklearn.base import TransformerMixin, clone
+from sklearn.utils.metaestimators import _BaseComposition
 
 from ..preprocessing import Identity, ColumnSelector
 
@@ -11,7 +12,7 @@ __all__ = ['ColumnTransformer'] # 'make_column_transformer'
 
 
 
-class ColumnTransformer(BaseEstimator, TransformerMixin):
+class ColumnTransformer(_BaseComposition, TransformerMixin):
     '''Applies transformers to columns of an array or pandas DataFrame.
 
     This estimator allows different columns or column subsets of the input
@@ -59,6 +60,17 @@ class ColumnTransformer(BaseEstimator, TransformerMixin):
     def __init__(self, transformers, remainder='drop'):
         self.transformers = transformers
         self.remainder = remainder
+
+
+    @property
+    def _transformers(self):
+        """
+        Internal list of transformer only containing the name and
+        transformers, dropping the columns. This is for the implementation
+        of get_params via BaseComposition._get_params which expects lists
+        of tuples of len 2.
+        """
+        return [(name, trans) for name, trans, _ in self.transformers]
 
 
     def fit(self, X, y=None):
@@ -136,3 +148,34 @@ class ColumnTransformer(BaseEstimator, TransformerMixin):
 
         Xt = pd.concat(Xt_list, axis=1)
         return Xt
+
+
+    def get_params(self, deep=True):
+        """Get parameters for this estimator.
+
+        Parameters
+        ----------
+        deep : boolean, optional
+            If True, will return the parameters for this estimator and
+            contained subobjects that are estimators.
+        Returns
+        -------
+        params : mapping of string to any
+            Parameter names mapped to their values.
+
+        """
+        return self._get_params('_transformers', deep=deep)
+
+
+    def set_params(self, **kwargs):
+        """Set the parameters of this estimator.
+
+        Valid parameter keys can be listed with ``get_params()``.
+
+        Returns
+        -------
+        self
+
+        """
+        self._set_params('_transformers', **kwargs)
+        return self

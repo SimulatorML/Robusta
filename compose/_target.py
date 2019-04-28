@@ -1,13 +1,15 @@
 import pandas as pd
 import numpy as np
 
-
-__all__ = ['TargetTransformer']
-
+from sklearn.base import BaseEstimator, RegressorMixin, clone
 
 
+__all__ = ['TransformedTargetRegressor']
 
-class TargetTransformer(BaseEstimator, RegressorMixin):
+
+
+
+class TransformedTargetRegressor(BaseEstimator, RegressorMixin):
     """Meta-estimator to regress on a transformed target.
     Useful for applying a non-linear transformation in regression problems. This
     transformation can be given as a Transformer such as the QuantileTransformer
@@ -67,9 +69,13 @@ class TargetTransformer(BaseEstimator, RegressorMixin):
         self : object
 
         """
+        self.y_name = y.name
+
+        self.regressor_ = clone(self.regressor)
         self.regressor_.fit(X, y.apply(self.func))
 
         return self
+
 
     def predict(self, X):
         """Predict using the base regressor, applying inverse.
@@ -89,6 +95,8 @@ class TargetTransformer(BaseEstimator, RegressorMixin):
             Target values.
 
         """
-        y_pred = self.regressor_.predict(X).apply(self.inverse_func)
+        y_pred = self.regressor_.predict(X)
+        y_pred = pd.Series(y_pred, name=self.y_name, index=X.index)
+        y_pred = y_pred.apply(self.inverse_func)
 
         return y_pred

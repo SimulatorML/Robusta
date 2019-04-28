@@ -1,7 +1,8 @@
 import pandas as pd
 import numpy as np
 
-from sklearn.base import BaseEstimator, TransformerMixin, clone
+from sklearn.base import TransformerMixin, clone
+from sklearn.utils.metaestimators import _BaseComposition
 
 
 __all__ = ['FeatureUnion']
@@ -9,7 +10,7 @@ __all__ = ['FeatureUnion']
 
 
 
-class FeatureUnion(BaseEstimator, TransformerMixin):
+class FeatureUnion(_BaseComposition, TransformerMixin):
     '''Concatenates results of multiple transformer objects.
 
     This estimator applies a list of transformer objects in parallel to the
@@ -87,22 +88,32 @@ class FeatureUnion(BaseEstimator, TransformerMixin):
         return Xt
 
 
-    def fit_transform(self, X, y=None):
-        """Fit all transformers, transform the data and concatenate results.
+    def get_params(self, deep=True):
+        """Get parameters for this estimator.
 
         Parameters
         ----------
-        X : DataFrame of shape [n_samples, n_features]
-            Input data, of which specified subsets are used to fit the transformers.
+        deep : boolean, optional
+            If True, will return the parameters for this estimator and
+            contained subobjects that are estimators.
+        Returns
+        -------
+        params : mapping of string to any
+            Parameter names mapped to their values.
 
-        y : array-like, shape (n_samples, ...), optional
-            Targets for supervised learning.
+        """
+        return self._get_params('transformers', deep=deep)
+
+
+    def set_params(self, **kwargs):
+        """Set the parameters of this estimator.
+
+        Valid parameter keys can be listed with ``get_params()``.
 
         Returns
         -------
-        Xt : DataFrame, shape (n_samples, sum_n_components)
-            hstack of results of transformers. sum_n_components is the
-            sum of n_components (output dimension) over transformers.
+        self
 
         """
-        return self.fit(X, y).transform(X)
+        self._set_params('transformers', **kwargs)
+        return self
