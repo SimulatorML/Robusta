@@ -6,8 +6,10 @@ from sklearn.utils.metaestimators import _BaseComposition
 
 from ..preprocessing import Identity, ColumnSelector
 
+from ._pipeline import _name_estimators
 
-__all__ = ['ColumnTransformer'] # 'make_column_transformer'
+
+__all__ = ['ColumnTransformer', 'make_column_transformer']
 
 
 
@@ -23,14 +25,14 @@ class ColumnTransformer(_BaseComposition, TransformerMixin):
 
     Parameters
     ----------
-    transformers : list
+    transformer_list : list
         List of (string, transformer, columns) tuples (implementing fit/transform).
 
-    remainder : {'drop', 'pass'} or estimator, default 'drop'
+    remainder : {'drop', 'passthrough'} or estimator, default 'drop'
         By default, only the specified columns in `transformers` are
         transformed and combined in the output, and the non-specified
         columns are dropped. (default of ``'drop'``).
-        By specifying ``remainder='pass'``, all remaining columns that
+        By specifying ``remainder='passthrough'``, all remaining columns that
         were not specified in `transformers` will be automatically passed
         through. This subset of columns is concatenated with the output of
         the transformers.
@@ -44,6 +46,7 @@ class ColumnTransformer(_BaseComposition, TransformerMixin):
         The collection of fitted transformers as tuples of (name, fitted_transformer,
         column). fitted_transformer can be an estimator, ‘drop’, or ‘pass’.
         In case there were no columns selected, this will be the unfitted transformer.
+
         If there are remaining columns, the final element is a tuple of the form:
         (‘remainder’, transformer, remaining_columns_) corresponding to the remainder
         parameter. If there are remaining columns, then
@@ -57,8 +60,8 @@ class ColumnTransformer(_BaseComposition, TransformerMixin):
         List of remining columns.
 
     '''
-    def __init__(self, transformers, remainder='drop'):
-        self.transformers = transformers
+    def __init__(self, transformer_list, remainder='drop', **kwargs):
+        self.transformer_list = transformer_list
         self.remainder = remainder
 
 
@@ -94,7 +97,7 @@ class ColumnTransformer(_BaseComposition, TransformerMixin):
         self.named_transformers_ = {}
         self.remaining_columns_ = set(X.columns)
 
-        for name, transformer, cols in self.transformers:
+        for name, transformer, cols in self.transformer_list:
             # Clone & fit
             fitted_transformer = clone(transformer).fit(X[cols], y)
             self.named_transformers_[name] = fitted_transformer
@@ -112,7 +115,7 @@ class ColumnTransformer(_BaseComposition, TransformerMixin):
             if hasattr(self.remainder, 'fit') and hasattr(self.remainder, 'transform'):
                 fitted_transformer = clone(self.remainder).fit(X[cols], y)
 
-            elif self.remainder is 'pass':
+            elif self.remainder is 'passthrough':
                 fitted_transformer = Identity().fit(X[cols], y)
 
             elif self.remainder is 'drop':
@@ -179,3 +182,82 @@ class ColumnTransformer(_BaseComposition, TransformerMixin):
         """
         self._set_params('_transformers', **kwargs)
         return self
+
+
+
+
+def _get_transformer_list(estimators):
+    """
+    Construct (name, trans, column) tuples from list
+    """
+    message = ('`make_column_transformer` expects (transformer, columns)')
+
+    transformers, columns = zip(*estimators)
+
+    names, _ = zip(*_name_estimators(transformers))
+
+    transformer_list = list(zip(names, transformers, columns))
+    return transformer_list
+
+
+
+
+def make_column_transformer(*transformers, **kwargs):
+    """Construct a ColumnTransformer from the given transformers.
+
+    This is a shorthand for the ColumnTransformer constructor; it does not
+    require, and does not permit, naming the transformers. Instead, they will
+    be given names automatically based on their types. It also does not allow
+    weighting with ``transformer_weights``.
+
+    Parameters
+    ----------
+    *transformers : tuples of transformers and column selections
+
+    remainder : {'drop', 'passthrough'} or estimator, default 'drop'
+        By default, only the specified columns in `transformers` are
+        transformed and combined in the output, and the non-specified
+        columns are dropped. (default of ``'drop'``).
+
+        By specifying ``remainder='passthrough'``, all remaining columns that
+        were not specified in `transformers` will be automatically passed
+        through. This subset of columns is concatenated with the output of
+        the transformers.
+
+        By setting ``remainder`` to be an estimator, the remaining
+        non-specified columns will use the ``remainder`` estimator. The
+        estimator must support `fit` and `transform`.
+
+    sparse_threshold : float, default = 0.3
+
+        If the transformed output consists of a mix of sparse and dense data,
+        it will be stacked as a sparse matrix if the density is lower than this
+        value. Use ``sparse_threshold=0`` to always return dense.
+        When the transformed output consists of all sparse or all dense data,
+        the stacked result will be sparse or dense, respectively, and this
+        keyword will be ignored.
+
+    n_jobs : int or None, optional (default=None)
+        Number of jobs to run in parallel.
+        ``None`` means 1 unless in a :obj:`joblib.parallel_backend` context.
+        ``-1`` means using all processors. See :term:`Glossary <n_jobs>`
+        for more details.
+
+    Returns
+    -------
+    ct : ColumnTransformer
+
+    """
+    # transformer_weights keyword is not passed through because the user
+    # would need to know the automatically generated names of the transformers
+    n_jobs = kwargs.pop('n_jobs', None)
+    remainder = kwargs.pop('remainder', 'drop')
+    sparse_threshold = kwargs.pop('sparse_threshold', 0.3)
+
+    if kwargs:
+        raise TypeError('Unknown keyword arguments: "{}"'.format(list(kwargs.keys())[0]))
+
+    transformer_list = _get_transformer_list(transformers)
+
+    return ColumnTransformer(transformer_list, n_jobs=n_jobs, remainder=remainder,
+                             sparse_threshold=sparse_threshold)

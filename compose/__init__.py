@@ -8,8 +8,8 @@ __all__ = [
     'Pipeline',
     'make_pipeline',
     'ColumnTransformer',
-    #'make_column_transformer',
+    'make_column_transformer',
     'FeatureUnion',
-    #'make_feature_union',
+    'make_union',
     'TransformedTargetRegressor',
 ]

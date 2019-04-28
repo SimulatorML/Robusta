@@ -4,8 +4,10 @@ import numpy as np
 from sklearn.base import TransformerMixin, clone
 from sklearn.utils.metaestimators import _BaseComposition
 
+from ._pipeline import _name_estimators
 
-__all__ = ['FeatureUnion']
+
+__all__ = ['FeatureUnion', 'make_union']
 
 
 
@@ -35,7 +37,7 @@ class FeatureUnion(_BaseComposition, TransformerMixin):
         Access the fitted transformer by name.
 
     '''
-    def __init__(self, transformers):
+    def __init__(self, transformers, **kwargs):
         self.transformers = transformers
 
 
@@ -117,3 +119,37 @@ class FeatureUnion(_BaseComposition, TransformerMixin):
         """
         self._set_params('transformers', **kwargs)
         return self
+
+
+
+
+def make_union(*transformers, **kwargs):
+    """Construct a FeatureUnion from the given transformers.
+
+    This is a shorthand for the FeatureUnion constructor; it does not require,
+    and does not permit, naming the transformers. Instead, they will be given
+    names automatically based on their types. It also does not allow weighting.
+
+    Parameters
+    ----------
+    *transformers : list of estimators
+
+    n_jobs : int or None, optional (default=None)
+        Number of jobs to run in parallel.
+        ``None`` means 1 unless in a :obj:`joblib.parallel_backend` context.
+        ``-1`` means using all processors. See :term:`Glossary <n_jobs>`
+        for more details.
+
+    Returns
+    -------
+    f : FeatureUnion
+
+    """
+    n_jobs = kwargs.pop('n_jobs', None)
+
+    if kwargs:
+        # We do not currently support `transformer_weights` as we may want to
+        # change its type spec in make_union
+        raise TypeError('Unknown keyword arguments: "{}"'.format(list(kwargs.keys())[0]))
+
+    return FeatureUnion(_name_estimators(transformers), n_jobs=n_jobs)
