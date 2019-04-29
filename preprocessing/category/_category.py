@@ -8,6 +8,7 @@ from pandas.api.types import CategoricalDtype
 from category_encoders import *
 
 from sklearn.base import clone, BaseEstimator, TransformerMixin
+from sklearn.utils.metaestimators import _BaseComposition
 from sklearn.model_selection import check_cv
 from sklearn import preprocessing, impute
 
@@ -196,6 +197,29 @@ class LabelEncoder(BaseEstimator, TransformerMixin):
 
 
 
+class TargetEncoder(TargetEncoder):
+
+    def __init__(self, verbose=0, cols=None, drop_invariant=False, return_df=True,
+                 handle_missing='value', handle_unknown='value', min_samples_leaf=1,
+                 smoothing=1.0):
+
+        self.return_df = return_df
+        self.drop_invariant = drop_invariant
+        self.drop_cols = []
+        self.verbose = verbose
+        self.cols = cols
+        self.ordinal_encoder = None
+        self.min_samples_leaf = min_samples_leaf
+        self.smoothing = smoothing # for python 3 only
+        self._dim = None
+        self.mapping = None
+        self.handle_unknown = handle_unknown
+        self.handle_missing = handle_missing
+        self._mean = None
+        self.feature_names = None
+
+
+
 
 class FastEncoder(BaseEstimator, TransformerMixin):
 
@@ -255,9 +279,8 @@ class EncoderCV(BaseEstimator):
         Controls the verbosity level.
 
     """
-    def __init__(self, encoder=FastEncoder(), cv=4, n_jobs=-1, verbose=0, **params):
+    def __init__(self, encoder=FastEncoder(), cv=4, n_jobs=-1, verbose=0):
         self.encoder = encoder
-        self.params = params
         self.cv = cv
 
         self.verbose = verbose
@@ -342,7 +365,7 @@ class EncoderCV(BaseEstimator):
 
     def _pre_fit(self, X, y, footprint=True):
 
-        self.encoder.set_params(**self.params)
+        #self.encoder.set_params(**self.params)
 
         is_classifier = len(np.unique(y)) < 100 # hack
         cv = check_cv(self.cv, y, is_classifier)
@@ -401,10 +424,41 @@ class EncoderCV(BaseEstimator):
                              'Please save traceback and inform developers.')
 
 
+    #def get_params(self, deep=True):
+        """Get parameters for this estimator.
+
+        Parameters
+        ----------
+        deep : boolean, optional
+            If True, will return the parameters for this estimator and
+            contained subobjects that are estimators.
+        Returns
+        -------
+        params : mapping of string to any
+            Parameter names mapped to their values.
+
+        """
+        #return self._get_params('encoders', deep=deep)
+
+
+    #def set_params(self, **kwargs):
+        """Set the parameters of this estimator.
+
+        Valid parameter keys can be listed with ``get_params()``.
+
+        Returns
+        -------
+        self
+
+        """
+        #self._set_params('encoders', **kwargs)
+        #return self
+
+
 
 FastEncoderCV = lambda **params: EncoderCV(FastEncoder(), **params)
-MEstimateEncoderCV = lambda **params: EncoderCV(MEstimateEncoder(), **params)
 TargetEncoderCV = lambda **params: EncoderCV(TargetEncoder(), **params)
+MEstimateEncoderCV = lambda **params: EncoderCV(MEstimateEncoder(), **params)
 JamesSteinEncoderCV = lambda **params: EncoderCV(JamesSteinEncoder(), **params)
 WOEEncoderCV = lambda **params: EncoderCV(WOEEncoder(), **params)
 

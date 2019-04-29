@@ -29,11 +29,11 @@ class ColumnTransformer(_BaseComposition, TransformerMixin):
         List of (string, transformer, columns) tuples (implementing fit/transform).
 
     remainder : {'drop', 'passthrough'} or estimator, default 'drop'
-        By default, only the specified columns in `transformers` are
+        By default, only the specified columns in `transformer_list` are
         transformed and combined in the output, and the non-specified
         columns are dropped. (default of ``'drop'``).
         By specifying ``remainder='passthrough'``, all remaining columns that
-        were not specified in `transformers` will be automatically passed
+        were not specified in `transformer_list` will be automatically passed
         through. This subset of columns is concatenated with the output of
         the transformers.
         By setting ``remainder`` to be an estimator, the remaining
@@ -73,7 +73,7 @@ class ColumnTransformer(_BaseComposition, TransformerMixin):
         of get_params via BaseComposition._get_params which expects lists
         of tuples of len 2.
         """
-        return [(name, trans) for name, trans, _ in self.transformers]
+        return [(name, trans) for name, trans, _ in self.transformer_list]
 
 
     def fit(self, X, y=None):
