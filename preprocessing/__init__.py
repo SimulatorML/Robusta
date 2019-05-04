@@ -1,13 +1,45 @@
-from ._preprocessing import *
+from .basic import *
 from .category import *
 from .numeric import *
 
 
 __all__ = [
+    # Basic
     'PandasTransformer',
     'TypeSelector',
     'ColumnSelector',
     'ColumnRenamer',
     'Imputer',
     'Identity',
+
+    # Categorical
+    'LabelEncoder',
+    'OneHotEncoder',
+    'BackwardDifferenceEncoder',
+    'BinaryEncoder',
+    'HashingEncoder',
+    'HelmertEncoder',
+    'OrdinalEncoder',
+    'SumEncoder',
+    'PolynomialEncoder',
+    'BaseNEncoder',
+    # supervised (binary/regression)
+    'FastEncoder',
+    'FastEncoderCV',
+    'TargetEncoder',
+    'TargetEncoderCV',
+    'CatBoostEncoder',
+    'LeaveOneOutEncoder',
+    # supervised (binary)
+    'JamesSteinEncoder',
+    'JamesSteinEncoderCV',
+    'MEstimateEncoder',
+    'MEstimateEncoderCV',
+    'WOEEncoder',
+    'WOEEncoderCV',
+
+    # Numeric
+    'GaussRank',
+    'RankTransform',
+    'MaxAbsScaler',
 ]

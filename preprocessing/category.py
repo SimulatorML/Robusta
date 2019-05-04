@@ -12,7 +12,7 @@ from sklearn.utils.metaestimators import _BaseComposition
 from sklearn.model_selection import check_cv
 from sklearn import preprocessing, impute
 
-from .._preprocessing import TypeSelector, ColumnSelector
+from .basic import TypeSelector, ColumnSelector
 
 
 

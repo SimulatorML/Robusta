@@ -5,7 +5,7 @@ import scipy
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn import preprocessing
 
-from .._preprocessing import PandasTransformer
+from .basic import PandasTransformer
 
 
 
