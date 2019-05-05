@@ -1,11 +1,10 @@
-from .basic import *
+from .base import *
 from .category import *
 from .numeric import *
 
 
 __all__ = [
     # Basic
-    'PandasTransformer',
     'TypeSelector',
     'ColumnSelector',
     'ColumnRenamer',

@@ -69,6 +69,15 @@ class PandasTransformer(BaseEstimator, TransformerMixin):
         return Xt
 
 
+    #def set_params(self, **params):
+    #    self.transformer.set_params(**params)
+    #    return self
+
+
+    #def get_params(self, deep=True):
+    #    return self.transformer.get_params(deep)
+
+
 
 
 class ColumnSelector(BaseEstimator, TransformerMixin):
