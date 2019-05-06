@@ -15,6 +15,33 @@ from sklearn import preprocessing, impute
 from .base import TypeSelector, ColumnSelector
 
 
+__all__ = [
+    'LabelEncoder',
+    'OneHotEncoder',
+    'BackwardDifferenceEncoder',
+    'BinaryEncoder',
+    'HashingEncoder',
+    'HelmertEncoder',
+    'OrdinalEncoder',
+    'SumEncoder',
+    'PolynomialEncoder',
+    'BaseNEncoder',
+    # supervised (binary/regression)
+    'FastEncoder',
+    'FastEncoderCV',
+    'TargetEncoder',
+    'TargetEncoderCV',
+    'CatBoostEncoder',
+    'LeaveOneOutEncoder',
+    # supervised (binary)
+    'JamesSteinEncoder',
+    'JamesSteinEncoderCV',
+    'MEstimateEncoder',
+    'MEstimateEncoderCV',
+    'WOEEncoder',
+    'WOEEncoderCV',
+]
+
 
 
 class OneHotEncoder(BaseEstimator, TransformerMixin):
@@ -69,7 +96,7 @@ class OneHotEncoder(BaseEstimator, TransformerMixin):
         of ``transform``).
 
     """
-    def __init__(self, sep='_', categories='auto', sparse=True, dtype=np.uint8,
+    def __init__(self, sep='_', categories='auto', sparse=False, dtype=np.uint8,
                  handle_unknown='ignore'):
         self.sep = sep
         self.categories = categories
@@ -251,11 +278,6 @@ class EncoderCV(BaseEstimator):
 
     Parameters
     ----------
-    dtype : number type, default=np.uint8
-        Desired dtype of output.
-
-    Attributes
-    ----------
     encoder : encoder instance, default=TargetEncoder()
 
     cv : int, cross-validation generator or an iterable, optional
@@ -422,37 +444,6 @@ class EncoderCV(BaseEstimator):
         except Exception:
             raise ValueError('Internal error. '
                              'Please save traceback and inform developers.')
-
-
-    #def get_params(self, deep=True):
-        """Get parameters for this estimator.
-
-        Parameters
-        ----------
-        deep : boolean, optional
-            If True, will return the parameters for this estimator and
-            contained subobjects that are estimators.
-        Returns
-        -------
-        params : mapping of string to any
-            Parameter names mapped to their values.
-
-        """
-        #return self._get_params('encoders', deep=deep)
-
-
-    #def set_params(self, **kwargs):
-        """Set the parameters of this estimator.
-
-        Valid parameter keys can be listed with ``get_params()``.
-
-        Returns
-        -------
-        self
-
-        """
-        #self._set_params('encoders', **kwargs)
-        #return self
 
 
 
