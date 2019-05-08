@@ -15,5 +15,4 @@ __all__ = [
 
     # Supervised Outlier Detector
     'SupervisedOutlierDetector',
-    'make_sod_estimator', # estimator
 ]
