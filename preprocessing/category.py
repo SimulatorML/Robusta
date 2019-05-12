@@ -178,8 +178,10 @@ class LabelEncoder1D(BaseEstimator, TransformerMixin):
         self
 
         """
-        categories = y.astype('category').values.categories
-        self.mapper = dict(zip(categories, range(len(categories))))
+        self.cats_ = y.astype('category').values.categories
+        self.dtype = y.dtype
+
+        self.mapper = dict(zip(self.cats_, range(len(self.cats_))))
         self.inv_mapper = {val: key for key, val in self.mapper.items()}
 
         self.mapper[np.nan] = -1
@@ -217,7 +219,7 @@ class LabelEncoder1D(BaseEstimator, TransformerMixin):
             Inverse transformed input.
 
         """
-        return y.map(self.inv_mapper)
+        return y.map(self.inv_mapper).astype(self.dtype)
 
 
 
