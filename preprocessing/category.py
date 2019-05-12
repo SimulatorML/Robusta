@@ -16,6 +16,7 @@ from .base import TypeSelector, ColumnSelector
 
 
 __all__ = [
+    'LabelEncoder1D',
     'LabelEncoder',
     'OneHotEncoder',
     'BackwardDifferenceEncoder',
@@ -158,26 +159,73 @@ class OneHotEncoder(BaseEstimator, TransformerMixin):
 
 
 
+class LabelEncoder1D(BaseEstimator, TransformerMixin):
+    """Encode categories as integers.
+    """
+    def __init__(self):
+        pass
+
+
+    def fit(self, y):
+        """Fit LabelEncoder to y.
+
+        Parameters
+        ----------
+        y : Series
+
+        Returns
+        -------
+        self
+
+        """
+        categories = y.astype('category').values.categories
+        self.mapper = dict(zip(categories, range(len(categories))))
+        self.inv_mapper = {val: key for key, val in self.mapper.items()}
+
+        self.mapper[np.nan] = -1
+        self.inv_mapper[-1] = np.nan
+
+        return self
+
+
+    def transform(self, y):
+        """Transform y.
+
+        Parameters
+        ----------
+        y : Series
+
+        Returns
+        -------
+        yt : Series
+            Transformed input.
+
+        """
+        return y.map(self.mapper)
+
+
+    def inverse_transform(self, y):
+        """Inverse transform y.
+
+        Parameters
+        ----------
+        y : Series
+
+        Returns
+        -------
+        yt : Series
+            Inverse transformed input.
+
+        """
+        return y.map(self.inv_mapper)
+
+
 
 class LabelEncoder(BaseEstimator, TransformerMixin):
     """Encode categorical features as integers.
-
-    Parameters
-    ----------
-    dtype : number type, default=np.uint8
-        Desired dtype of output.
-
-    Attributes
-    ----------
-    categories_ : dict of lists
-        The categories of each feature determined during fitting
-        (in order of the features in X and corresponding with the output
-        of ``transform``). The keys of dictionary is column names, the values
-        are lists of categories.
-
     """
-    def __init__(self, dtype=np.uint8):
-        self.dtype = dtype
+    def __init__(self):
+        pass
 
 
     def fit(self, X, y=None):
@@ -193,9 +241,9 @@ class LabelEncoder(BaseEstimator, TransformerMixin):
         self
 
         """
-        self.categories_ = {}
+        self.transformers = {}
         for col in X.columns:
-            self.categories_[col] = X[col].astype('category').cat.categories
+            self.transformers[col] = LabelEncoder1D().fit(X[col])
 
         return self
 
@@ -216,11 +264,32 @@ class LabelEncoder(BaseEstimator, TransformerMixin):
         """
         Xt = pd.DataFrame(index=X.index)
 
-        for col, cats in self.categories_.items():
-            cat_dtype = CategoricalDtype(cats, ordered=False)
-            Xt[col] = X[col].astype(cat_dtype).cat.codes
+        for col, transformer in self.transformers.items():
+            Xt[col] = transformer.transform(X[col])
 
-        return Xt.astype(self.dtype)
+        return Xt
+
+
+    def inverse_transform(self, X):
+        """Inverse transform X using label encoding.
+
+        Parameters
+        ----------
+        X : DataFrame, shape [n_samples, n_features]
+            The data to transform.
+
+        Returns
+        -------
+        Xt : DataFrame, shape [n_samples, n_features]
+            Inverse transformed input.
+
+        """
+        Xt = pd.DataFrame(index=X.index)
+
+        for col, transformer in self.transformers.items():
+            Xt[col] = transformer.inverse_transform(X[col])
+
+        return Xt
 
 
 

@@ -12,6 +12,7 @@ __all__ = [
     'Identity',
 
     # Categorical
+    'LabelEncoder1D',
     'LabelEncoder',
     'OneHotEncoder',
     'BackwardDifferenceEncoder',
