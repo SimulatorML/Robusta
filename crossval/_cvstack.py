@@ -16,9 +16,9 @@ __all__ = ['cross_val_stack']
 
 
 
-def cross_val_stack(estimator, cv, X, y, groups=None, X_new=None,
-                    test_average=True, voting='auto', method='predict',
-                    n_jobs=None, pre_dispatch='2*n_jobs', verbose=0):
+def cross_val_stack(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
+                    voting='auto', method='predict', n_jobs=None,
+                    pre_dispatch='2*n_jobs', verbose=0):
 
     # Check data
     X, y, groups = indexable(X, y, groups)
