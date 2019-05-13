@@ -1,5 +1,5 @@
 from sklearn.model_selection import cross_validate, cross_val_score
-from ._crossval import cross_val_stack
+from ._cvstack import cross_val_stack
 
 
 __all__ = [
