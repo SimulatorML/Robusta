@@ -14,7 +14,7 @@ from sklearn.utils import indexable
 from ..preprocessing import LabelEncoder1D
 
 
-__all__ = ['cross_val', 'cross_val_stack']
+__all__ = ['cross_val', 'cross_val_pred']
 
 
 
@@ -58,11 +58,13 @@ def cross_val(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
         if is_classifier(estimator):
 
             if not hasattr(estimator, method):
-                raise AttributeError("<{}> is not available for this estimator".format(method))
+                msg = "<{}> is not available for this estimator".format(method)
+                raise AttributeError(msg)
 
             if not hasattr(estimator, 'predict_proba') and voting is 'soft':
-                raise AttributeError("'{}' voting is not available for this estimator \
-                    cause it has not <{}> method".format(voting, method))
+                msg = "'{}' voting is not available for this estimator \
+                    cause it has not <{}> method".format(voting, method)
+                raise AttributeError(msg)
 
     # Method & averaging strategy selection
     if is_classifier(estimator):
@@ -85,30 +87,37 @@ def cross_val(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
     parallel = Parallel(backend='multiprocessing', max_nbytes='256M', n_jobs=n_jobs,
                         verbose=verbose, pre_dispatch='2*n_jobs')
 
-    if not return_pred or X_new is None or test_avg:
+    if test_avg or X_new is None:
 
-        # Variant A:
+        # Stacking Type A (test_averaging = True)
         results = parallel(
             (delayed(_fit_pred_score)(clone(estimator), method, scorer, X, y,
                 trn, oof, X_new, return_pred, return_estimator, return_score,
                 return_importance)
             for trn, oof in folds))
 
-    '''else:
+        results = _ld_to_dl(results)
 
-        # Variant B
-        jobs = (delayed(_fit_pred_score)(clone(estimator), method, scorer,
-                                         X, y, trn, oof, None)
-                                         for trn, oof in folds)
-        paths = parallel(jobs)
+    else:
 
-        oof_preds, _ = zip(*paths)
+        # Stacking Type B (test_averaging = False)
+        results = parallel(
+            (delayed(_fit_pred_score)(clone(estimator), method, scorer, X, y,
+                trn, oof, None, return_pred, return_estimator, return_score,
+                return_importance)
+            for trn, oof in folds))
 
-        _, new_pred = _fit_pred_score(clone(estimator), method, None,
-                                      X, y, None, None, X_new)
-        new_preds = [new_pred]'''
+        result_new = _fit_pred_score(clone(estimator), method, None, X, y,
+            None, None, X_new, return_pred, return_estimator, False,
+            return_importance)
 
-    results = _ld_to_dl(results) # FIXME: list of dict -> dict of list
+        results = _ld_to_dl(results)
+        for key, val in result_new.items():
+            if key in results:
+                results[key].append(val)
+            else:
+                results[key] = [val]
+
 
     # Concat Predictions (& Feature Importances)
     needs_concat = ['oof_pred', 'new_pred', 'importance', 'score']
@@ -134,8 +143,7 @@ def cross_val(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
         if 'score' in results:
             scores = results['score']
             scores = _ld_to_dl(scores)
-            if len(scores) is 1:
-                scores = scores['score']
+            scores = scores['score'] if len(scores) is 1 else scores
             results['score'] = scores
 
         concat_time = time.time() - start_time
@@ -148,9 +156,9 @@ def cross_val(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
 
 
-def cross_val_stack(estimator, cv, X, y, groups=None, X_new=None,
-                    test_avg=True, voting='auto', method='predict',
-                    n_jobs=None, verbose=0):
+def cross_val_pred(estimator, cv, X, y, groups=None, X_new=None,
+                   test_avg=True, voting='auto', method='predict',
+                   n_jobs=None, verbose=0):
 
     results = cross_val(estimator, cv, X, y, groups, X_new, test_avg, None,
         voting, method, True, False, False, False, n_jobs, verbose)
@@ -316,6 +324,8 @@ def _concat_preds(preds, mean, encoder, name, index):
 
 def _ld_to_dl(l):
     return {key: [d[key] for d in l] for key in l[0].keys()}
+
+
 
 def _dl_to_da(d):
     for key, val in d.items():
