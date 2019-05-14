@@ -22,7 +22,145 @@ __all__ = ['cross_val', 'cross_val_pred']
 def cross_val(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
               scoring=None, voting='auto', method='predict', return_pred=False,
               return_estimator=False, return_score=True, return_importance=False,
-              n_jobs=None, verbose=0):
+              n_jobs=-1, verbose=0):
+    """Evaluate metric(s) by cross-validation and also record fit/score time,
+    feature importances and compute out-of-fold and test predictions.
+
+    Parameters
+    ----------
+    estimator : estimator object
+        The object to use to fit the data.
+
+    cv : int, cross-validation generator or an iterable
+        Determines the cross-validation splitting strategy.
+        Possible inputs for cv are:
+
+        - None, to use the default 3-fold cross validation,
+        - integer, to specify the number of folds in a `(Stratified)KFold`,
+        - :term:`CV splitter`,
+        - An iterable yielding (train, test) splits as arrays of indices.
+
+        For integer/None inputs, if the estimator is a classifier and ``y`` is
+        either binary or multiclass, :class:`StratifiedKFold` is used. In all
+        other cases, :class:`KFold` is used.
+
+        Refer :ref:`User Guide <cross_validation>` for the various
+        cross-validation strategies that can be used here.
+
+    X : DataFrame, shape [n_samples, n_features]
+        The data to fit, score and calculate out-of-fold predictions
+
+    y : Series, shape [n_samples]
+        The target variable to try to predict
+
+    groups : None
+        Group labels for the samples used while splitting the dataset into
+        train/test set
+
+    X_new : DataFrame, shape [m_samples, n_features] or None
+        The unseed data to predict (test set)
+
+    test_avg : bool
+        Stacking strategy (essential parameter)
+
+        - True: bagged predictions for test set (given that we have N folds,
+                we fit N models on each fold's train data, then each model
+                predicts test set, then we perform bagging: compute mean of
+                predicted values (for regression or class probabilities) - or
+                majority vote: compute mode (when predictions are class labels)
+
+        - False: predictions for tests set (estimator is fitted once on full
+                 train set, then predicts test set)
+
+        Ignored if return_pred=False or X_new is not defined.
+
+    scoring : string, callable or None, optional, default: None
+        A string or a scorer callable object / function with signature
+        ``scorer(estimator, X, y)`` which should return only a single value.
+        If None, the estimator's default scorer (if available) is used.
+        Ignored if return_score=False.
+
+    voting : string, {'soft', 'hard', 'auto'} (default='auto')
+        If 'hard', uses predicted class labels for majority rule voting.
+        Else if 'soft', predicts the class label based on the argmax of
+        the sums of the predicted probabilities, which is recommended for
+        an ensemble of well-calibrated classifiers. If 'auto', select 'soft'
+        for estimators that has <predict_proba>, otherwise 'hard'.
+        Ignored if return_pred=False or estimator type is not 'classifier'.
+
+    method : string, optional, default: 'predict'
+        Invokes the passed method name of the passed estimator. For
+        method='predict_proba', the columns correspond to the classes
+        in sorted order.
+        Ignored if return_pred=False.
+
+    return_pred : bool (default=False)
+        Return out-of-fold predictions (and test predictions, if X_new is defined)
+
+    return_estimtor : bool (default=False)
+        Return fitted estimators
+
+    return_score : bool (default=True)
+        Return out-of-fold scores
+
+    return_importance : bool (default=False)
+        Return averaged <feature_importances_> or <coef_> of all estimators
+
+    n_jobs : int or None, optional (default=-1)
+        The number of jobs to run in parallel. None means 1.
+
+    verbose : int
+        Verbosity level
+
+
+    Returns
+    -------
+    results : dict of array, float or Series
+        Array of scores/predictions/time of the estimator for each run of the
+        cross validation. If test_avg=True, arrays has shape [n_splits],
+        otherwise [n_splits+1] except score & score_time.
+
+        The possible keys for this ``dict`` are:
+
+            ``score`` : array or dict of array, shape [n_splits]
+                The score array for test scores on each cv split.
+                If multimetric, return dict of array.
+                Ignored if return_score=False.
+
+            ``oof_pred`` : Series, shape [n_samples]
+                Out-of-fold predictions.
+                Ignored if return_pred=False.
+
+            ``new_pred`` : Series, shape [m_samples]
+                Test predictions (unseen data).
+                Ignored if return_pred=False.
+
+            ``fit_time`` : array of float, shape [n_splits] or [n_splits+1]
+                The time for fitting the estimator on the train
+                set for each cv split.
+
+            ``pred_time`` : array of float, shape [n_splits] or [n_splits+1]
+                Out-of-fold and test predictions time.
+                Ignored if return_pred=False.
+
+            ``score_time`` : array of float, shape [n_splits]
+                Out-of-fold scores time for each cv split.
+                Ignored if return_score=False.
+
+            ``concat_time`` : float
+                Extra time spent on concatenation of predictions, importances
+                or scores dictionaries. Ignored if all of return_pred,
+                return_importance, return_score are set to False.
+
+            ``estimator`` : estimator object, shape [n_splits] or [n_splits+1]
+                The fitted estimator objects for each cv split (and ).
+                Ignored if return_estimator=False.
+
+            ``importance`` : Series, shape [n_features]
+                Averaged <feature_importances_> or <coef_> of all estimators.
+                Ignored if return_importance=False.
+
+    """
 
     # Check data
     X, y, groups = indexable(X, y, groups)
@@ -84,8 +222,8 @@ def cross_val(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
         method = 'predict'
 
     # Fit & predict
-    parallel = Parallel(backend='multiprocessing', max_nbytes='256M', n_jobs=n_jobs,
-                        verbose=verbose, pre_dispatch='2*n_jobs')
+    parallel = Parallel(max_nbytes='256M', pre_dispatch='2*n_jobs',
+                        n_jobs=n_jobs, verbose=verbose)
 
     if test_avg or X_new is None:
 
@@ -158,8 +296,88 @@ def cross_val(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
 def cross_val_pred(estimator, cv, X, y, groups=None, X_new=None,
                    test_avg=True, voting='auto', method='predict',
-                   n_jobs=None, verbose=0):
+                   n_jobs=-1, verbose=0):
+    """Get Out-of-Fold and Test predictions.
 
+    Parameters
+    ----------
+    estimator : estimator object
+        The object to use to fit the data.
+
+    cv : int, cross-validation generator or an iterable
+        Determines the cross-validation splitting strategy.
+        Possible inputs for cv are:
+
+        - None, to use the default 3-fold cross validation,
+        - integer, to specify the number of folds in a `(Stratified)KFold`,
+        - :term:`CV splitter`,
+        - An iterable yielding (train, test) splits as arrays of indices.
+
+        For integer/None inputs, if the estimator is a classifier and ``y`` is
+        either binary or multiclass, :class:`StratifiedKFold` is used. In all
+        other cases, :class:`KFold` is used.
+
+        Refer :ref:`User Guide <cross_validation>` for the various
+        cross-validation strategies that can be used here.
+
+    X : DataFrame, shape [n_samples, n_features]
+        The data to fit, score and calculate out-of-fold predictions
+
+    y : Series, shape [n_samples]
+        The target variable to try to predict
+
+    groups : None
+        Group labels for the samples used while splitting the dataset into
+        train/test set
+
+    X_new : DataFrame, shape [m_samples, n_features] or None
+        The unseed data to predict (test set)
+
+    test_avg : bool
+        Stacking strategy (essential parameter)
+
+        - True: bagged predictions for test set (given that we have N folds,
+                we fit N models on each fold's train data, then each model
+                predicts test set, then we perform bagging: compute mean of
+                predicted values (for regression or class probabilities) - or
+                majority vote: compute mode (when predictions are class labels)
+
+        - False: predictions for tests set (estimator is fitted once on full
+                 train set, then predicts test set)
+
+        Ignored if return_pred=False or X_new is not defined.
+
+    voting : string, {'soft', 'hard', 'auto'} (default='auto')
+        If 'hard', uses predicted class labels for majority rule voting.
+        Else if 'soft', predicts the class label based on the argmax of
+        the sums of the predicted probabilities, which is recommended for
+        an ensemble of well-calibrated classifiers. If 'auto', select 'soft'
+        for estimators that has <predict_proba>, otherwise 'hard'.
+        Ignored if return_pred=False or estimator type is not 'classifier'.
+
+    method : string, optional, default: 'predict'
+        Invokes the passed method name of the passed estimator. For
+        method='predict_proba', the columns correspond to the classes
+        in sorted order.
+        Ignored if return_pred=False.
+
+    n_jobs : int or None, optional (default=-1)
+        The number of jobs to run in parallel. None means 1.
+
+    verbose : int
+        Verbosity level
+
+
+    Returns
+    -------
+    oof_pred : Series, shape [n_samples]
+        Out-of-fold predictions
+
+    new_pred : Series, shape [m_samples] or None
+        Test predictions (unseen data)
+        None if X_new is not defined
+
+    """
     results = cross_val(estimator, cv, X, y, groups, X_new, test_avg, None,
         voting, method, True, False, False, False, n_jobs, verbose)
         # FIXME: positional args are not robust to <cross_val> args update
@@ -192,7 +410,82 @@ def _soft_vote(preds):
 def _fit_pred_score(estimator, method, scorer, X, y, trn=None, oof=None, X_new=None,
                     return_pred=False, return_estimator=False, return_score=True,
                     return_importance=False):
+    """Fit estimator and evaluate metric(s), compute OOF predictions & etc.
 
+    Parameters
+    ----------
+    estimator : estimator object
+        The object to use to fit the data.
+
+    X : DataFrame, shape [n_samples, n_features]
+        The data to fit, score and calculate out-of-fold predictions
+
+    y : Series, shape [n_samples]
+        The target variable to try to predict
+
+    trn : array or None
+        Indices of rows, selected to fit estimator. If None, select all.
+
+    oof : array or None
+        Indices of rows, selected to score estimator. If None, select none.
+
+    X_new : DataFrame, shape [m_samples, n_features] or None
+        The unseed data to predict (test set)
+
+    scorer : scorer object
+        A scorer callable object with signature ``scorer(estimator, X, y)``
+        which should return only a single value.
+
+    method : string, optional, default: 'predict'
+        Invokes the passed method name of the passed estimator. For
+        method='predict_proba', the columns correspond to the classes
+        in sorted order. Ignored if return_pred=False.
+
+    return_pred : bool (default=False)
+        Return out-of-fold prediction (and test prediction, if X_new is defined)
+
+    return_estimtor : bool (default=False)
+        Return fitted estimator
+
+    return_score : bool (default=True)
+        Return out-of-fold score
+
+    return_importance : bool (default=False)
+        Return averaged <feature_importances_> or <coef_> of fitted estimator
+
+
+    Returns
+    -------
+    result : dict of float or Series
+        Scores/predictions/time of the estimator for each run of the
+        cross validation. The possible keys for this ``dict`` are:
+
+            ``score`` : float
+                The OOF score. If multimetric, return dict of float.
+                Ignored if return_score=False.
+
+            ``oof_pred`` : Series, shape [n_samples]
+                OOF predictions. Ignored if return_pred=False.
+
+            ``new_pred`` : Series, shape [m_samples]
+                Test predictions (unseen data). Ignored if return_pred=False.
+
+            ``fit_time`` : float
+                The time for fitting the estimator
+
+            ``pred_time`` : float
+                OOF and test predictions time. Ignored if return_pred=False.
+
+            ``score_time`` : float
+                OOF score time. Ignored if return_score=False.
+
+            ``estimator`` : estimator object
+                The fitted estimator object. Ignored if return_estimator=False.
+
+            ``importance`` : Series, shape [n_features]
+                <feature_importances_> or <coef_> of fitted estimator
+
+    """
     result = {}
 
     # Get indices
@@ -227,11 +520,11 @@ def _fit_pred_score(estimator, method, scorer, X, y, trn=None, oof=None, X_new=N
         start_time = time.time()
 
         if len(oof):
-            oof_pred = _pred(estimator, method, X_oof, y)
+            oof_pred = _pred(estimator, method, X_oof, y.name)
             result['oof_pred'] = oof_pred
 
         if len(new):
-            new_pred = _pred(estimator, method, X_new, y)
+            new_pred = _pred(estimator, method, X_new, y.name)
             result['new_pred'] = new_pred
 
         pred_time = time.time() - start_time
@@ -255,7 +548,23 @@ def _fit_pred_score(estimator, method, scorer, X, y, trn=None, oof=None, X_new=N
 
 
 def _imp(estimator, cols):
+    """Extract <feature_importances_> or <coef_> from fitted estimator.
 
+    Parameters
+    ----------
+    estimator : estimator object
+        Fitted estimator
+
+    cols : iterable of string
+        Feature names
+
+
+    Returns
+    -------
+    importance : Series, shape [n_features]
+        Feature importances of fitted estimator
+
+    """
     # Get importances
     if hasattr(estimator, 'coef_'):
         attr = 'coef_'
@@ -275,8 +584,30 @@ def _imp(estimator, cols):
 
 
 
-def _pred(estimator, method, X, y):
+def _pred(estimator, method, X, target):
+    """Call <method> of fitted <estimator> on data <X>.
 
+    Parameters
+    ----------
+    estimator : estimator object
+        Fitted estimator
+
+    method : iterable of string
+        Feature names
+
+    X : DataFrame, shape [k_samples, k_features]
+        The unseed data to predict
+
+    target : string
+        Name of target column
+
+
+    Returns
+    -------
+    pred : Series or DataFrame, shape [n_features] or [n_features, n_classes]
+        Computed predictions
+
+    """
     # Check Attribute
     if hasattr(estimator, method):
         action = getattr(estimator, method)
@@ -289,7 +620,7 @@ def _pred(estimator, method, X, y):
 
     # Convert numpy to pandas
     if len(pred.shape) is 1:
-        pred = pd.Series(pred, index=X.index, name=y.name)
+        pred = pd.Series(pred, index=X.index, name=target)
     else:
         pred = pd.DataFrame(pred, index=X.index)
 
@@ -297,8 +628,34 @@ def _pred(estimator, method, X, y):
 
 
 
-def _concat_preds(preds, mean, encoder, name, index):
+def _concat_preds(preds, mean, encoder, name, ind):
+    """Concatenate predictions, using <mean> function
 
+    Parameters
+    ----------
+    preds : list of Series or DataFrame
+        Fitted estimator
+
+    mean : callable
+        Function, which used to concatenate predictions
+
+    encoder : transformer object or None
+        Transformer, used to encode target labels. Must has <inverse_transform>
+        method. If None, interpreted as non-classification task.
+
+    name : string
+        Name of target column
+
+    ind : iterable
+        Original indices order of data, used to compute predictions
+
+
+    Returns
+    -------
+    pred : Series or DataFrame, shape [n_features] or [n_features, n_classes]
+        Computed predictions
+
+    """
     # Averaging predictions
     pred = mean(preds)
 
@@ -316,9 +673,44 @@ def _concat_preds(preds, mean, encoder, name, index):
         pred = pred.rename(name)
 
     # Original indices order
-    pred = pred.loc[index]
+    pred = pred.loc[ind]
 
     return pred
+
+
+
+def _extract_est_name(estimator, drop_type=False):
+    """Extract name of estimator instance.
+
+    Parameters
+    ----------
+    estimator : estimator object
+        Estimator or Pipeline
+
+    drop_type : bool (default=False)
+        Whether to remove an ending of the estimator's name, contains
+        estimator's type. For example, 'XGBRegressor' transformed to 'XGB'.
+
+
+    Returns
+    -------
+    name : string
+        Name of the estimator
+
+    """
+    name = estimator.__class__.__name__
+
+    if name is 'Pipeline':
+        # FIXME: more adequate name extraction for pipelines
+        inner_estimator = estimator.steps[-1][1]
+        name = _extract_est_name(inner_estimator, drop_type=drop_type)
+
+    elif drop_type:
+        for etype in ['Regressor', 'Classifier', 'Ranker']:
+            if name.endswith(etype):
+                name = name[:-len(etype)]
+
+    return name
 
 
 
@@ -334,21 +726,3 @@ def _dl_to_da(d):
         elif isinstance(val, dict):
             d[key] = _dl_to_da(val)
     return d
-
-
-
-def _extract_est_name(estimator, drop_type=False):
-
-    name = estimator.__class__.__name__
-
-    if name is 'Pipeline':
-        # FIXME: more adequate name extraction for pipelines
-        inner_estimator = estimator.steps[-1][1]
-        name = _extract_est_name(inner_estimator, drop_type=drop_type)
-
-    elif drop_type:
-        for etype in ['Regressor', 'Classifier', 'Ranker']:
-            if name.endswith(etype):
-                name = name[:-len(etype)]
-
-    return name
