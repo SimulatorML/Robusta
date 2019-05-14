@@ -6,6 +6,7 @@ from .numeric import *
 __all__ = [
     # Basic
     'TypeSelector',
+    'TypeConverter',
     'ColumnSelector',
     'ColumnRenamer',
     'Imputer',

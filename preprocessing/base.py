@@ -10,6 +10,7 @@ from typing import Iterable
 
 __all__ = [
     'TypeSelector',
+    'TypeConverter',
     'ColumnSelector',
     'ColumnRenamer',
     'Imputer',
@@ -76,15 +77,6 @@ class PandasTransformer(BaseEstimator, TransformerMixin):
         Xt = pd.DataFrame(Xt, columns=self.columns, index=X.index)
 
         return Xt
-
-
-    #def set_params(self, **params):
-    #    self.transformer.set_params(**params)
-    #    return self
-
-
-    #def get_params(self, deep=True):
-    #    return self.transformer.get_params(deep)
 
 
 
@@ -200,6 +192,80 @@ class TypeSelector(BaseEstimator, TransformerMixin):
 
         """
         return X[self.columns]
+
+
+
+class TypeConverter(BaseEstimator, TransformerMixin):
+    '''Convert columns type(s).
+
+    Parameters
+    ----------
+    dtypes : type or
+
+    Attributes
+    ----------
+    dtypes_old_ : type or iterable of type
+        Original type(s) of data
+
+    dtypes_new_ : type or iterable of type
+        Defined type(s) of data
+
+    '''
+    def __init__(self, dtypes):
+        self.dtypes = dtypes
+
+
+    def fit(self, X, y=None):
+        '''Get names of columns of specified type.
+
+        Parameters
+        ----------
+        X : DataFrame, shape [n_samples, n_features]
+            The data to transform.
+
+        Returns
+        -------
+        self
+
+        '''
+        self.dtypes_old_ = X.dtypes
+        self.dtypes_new_ = self.dtypes
+
+        return self
+
+
+    def transform(self, X):
+        """Convert features type.
+
+        Parameters
+        ----------
+        X : DataFrame, shape [n_samples, n_features]
+            The data to transform.
+
+        Returns
+        -------
+        Xt : DataFrame, shape [n_samples, n_features]
+            Transformed input.
+
+        """
+        return X.astype(self.dtypes_new_)
+
+
+    def inverse_transform(self, X):
+        """Convert features type to original.
+
+        Parameters
+        ----------
+        X : DataFrame, shape [n_samples, n_features]
+            The data to transform.
+
+        Returns
+        -------
+        Xt : DataFrame, shape [n_samples, n_features]
+            Inverse transformed input.
+
+        """
+        return X.astype(self.dtypes_old_)
 
 
 

@@ -1,10 +1,11 @@
 import pandas as pd
 import numpy as np
 
-from ._crossval import cross_val, cross_val_pred
+from ._crossval import cross_val, cross_val_pred, _extract_est_name
 
 
 #__all__ = ['stacking', 'StackingTransformer']
+__all__ = ['stacking']
 
 
 
@@ -24,7 +25,7 @@ def stacking(estimators, cv, X, y, groups=None, X_new=None, test_avg=True,
         oof_preds.append(oof_pred)
         new_preds.append(new_pred)
 
-        name = _extract_est_name(estimator)
+        name = _extract_est_name(estimator, drop_type=True)
         est_names.append(name)
 
     # Concat predictions
@@ -36,21 +37,3 @@ def stacking(estimators, cv, X, y, groups=None, X_new=None, test_avg=True,
     new_stack.columns = est_names
 
     return oof_stack, new_stack
-
-
-
-def _extract_est_name(estimator):
-
-    name = estimator.__class__.__name__
-
-    if name is 'Pipeline':
-        # FIXME: more adequate pipeline name extraction
-        inner_estimator = estimator.steps[-1][1]
-        return _extract_est_name(inner_estimator)
-
-    else:
-        for etype in ['Regressor', 'Classifier', 'Ranker']:
-            if name.endswith(etype):
-                name = name[:-len(etype)]
-
-        return name

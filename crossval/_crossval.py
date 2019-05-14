@@ -262,7 +262,7 @@ def _imp(estimator, cols):
     elif hasattr(estimator, 'feature_importances_'):
         attr = 'feature_importances_'
     else:
-        name = estimator.__class__.__name__
+        name = _extract_est_name(estimator)
         msg = "<{}> has neither <feature_importances_>, nor <coef_>".format(name)
         raise AttributeError(msg)
 
@@ -281,7 +281,7 @@ def _pred(estimator, method, X, y):
     if hasattr(estimator, method):
         action = getattr(estimator, method)
     else:
-        name = estimator.__class__.__name__
+        name = _extract_est_name(estimator)
         raise AttributeError("<{}> has no method <{}>".format(name, method))
 
     # Predict
@@ -334,3 +334,21 @@ def _dl_to_da(d):
         elif isinstance(val, dict):
             d[key] = _dl_to_da(val)
     return d
+
+
+
+def _extract_est_name(estimator, drop_type=False):
+
+    name = estimator.__class__.__name__
+
+    if name is 'Pipeline':
+        # FIXME: more adequate name extraction for pipelines
+        inner_estimator = estimator.steps[-1][1]
+        name = _extract_est_name(inner_estimator, drop_type=drop_type)
+
+    elif drop_type:
+        for etype in ['Regressor', 'Classifier', 'Ranker']:
+            if name.endswith(etype):
+                name = name[:-len(etype)]
+
+    return name
