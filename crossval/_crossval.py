@@ -83,7 +83,7 @@ def cross_val(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
     # Fit & predict
     parallel = Parallel(backend='multiprocessing', max_nbytes='256M', n_jobs=n_jobs,
-                        verbose=verbose, pre_dispatch=pre_dispatch)
+                        verbose=verbose, pre_dispatch='2*n_jobs')
 
     if not return_pred or X_new is None or test_avg:
 
@@ -132,10 +132,10 @@ def cross_val(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
 def cross_val_stack(estimator, cv, X, y, groups=None, X_new=None,
                     test_avg=True, voting='auto', method='predict',
-                    n_jobs=None, pre_dispatch='2*n_jobs', verbose=0):
+                    n_jobs=None, verbose=0):
 
     results = cross_val(estimator, cv, X, y, groups, X_new, test_avg, None,
-        voting, method, True, False, False, False, n_jobs, pre_dispatch, verbose)
+        voting, method, True, False, False, False, n_jobs, verbose)
         # FIXME: positional args are not robust to <cross_val> args update
 
     oof_pred = results['oof_pred'] if 'oof_pred' in results else None
