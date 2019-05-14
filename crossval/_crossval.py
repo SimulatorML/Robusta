@@ -21,8 +21,8 @@ __all__ = ['cross_val', 'cross_val_stack']
 
 def cross_val(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
               scoring=None, voting='auto', method='predict', return_pred=False,
-              return_estimator=False, return_score=True, return_importance=True,
-              n_jobs=None, pre_dispatch='2*n_jobs', verbose=0):
+              return_estimator=False, return_score=True, return_importance=False,
+              n_jobs=None, verbose=0):
 
     # Check data
     X, y, groups = indexable(X, y, groups)
@@ -68,17 +68,17 @@ def cross_val(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
     if is_classifier(estimator):
 
         if method is 'predict_proba':
-            mean = mean_pred
+            avg = _avg_preds
 
         elif voting is 'hard':
-            mean = hard_vote
+            avg = _hard_vote
 
         elif voting is 'soft':
-            mean = soft_vote
+            avg = _soft_vote
             method = 'predict_proba'
 
     else:
-        mean = mean_pred
+        avg = _avg_preds
         method = 'predict'
 
     # Fit & predict
@@ -90,7 +90,8 @@ def cross_val(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
         # Variant A:
         results = parallel(
             (delayed(_fit_pred_score)(clone(estimator), method, scorer, X, y,
-                trn, oof, X_new, return_estimator, return_score, return_pred)
+                trn, oof, X_new, return_pred, return_estimator, return_score,
+                return_importance)
             for trn, oof in folds))
 
     '''else:
@@ -109,25 +110,31 @@ def cross_val(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
     results = _ld_to_dl(results) # FIXME: list of dict -> dict of list
 
-    # Concat Predictions
-    if 'oof_pred' in results or 'new_pred' in results:
+    # Concat Predictions (& Feature Importances)
+    if np.any(np.in1d(['oof_pred','new_pred','importance'], list(results))):
 
         start_time = time.time()
 
         if 'oof_pred' in results:
             oof_preds = results['oof_pred']
-            oof_pred = _concat_preds(oof_preds, mean, encoder, X, y)
+            oof_pred = _concat_preds(oof_preds, avg, encoder, y.name, X.index)
             results['oof_pred'] = oof_pred
 
         if 'new_pred' in results:
             new_preds = results['new_pred']
-            new_pred = _concat_preds(new_preds, mean, encoder, X_new, y)
+            new_pred = _concat_preds(new_preds, avg, encoder, y.name, X_new.index)
             results['new_pred'] = new_pred
+
+        if 'importance' in results:
+            importances = results['importance']
+            importance = _avg_preds(importances)
+            results['importance'] = importance
 
         concat_time = time.time() - start_time
         results['concat_time'] = concat_time
 
     return results
+
 
 
 def cross_val_stack(estimator, cv, X, y, groups=None, X_new=None,
@@ -145,26 +152,27 @@ def cross_val_stack(estimator, cv, X, y, groups=None, X_new=None,
 
 
 
-def mean_pred(preds):
+def _avg_preds(preds):
     pred = pd.concat(preds)
     return pred.groupby(pred.index).mean()
 
 
 
-def hard_vote(preds):
+def _hard_vote(preds):
     pred = pd.concat(preds)
     return pred.groupby(pred.index).agg(pd.Series.mode)
 
 
 
-def soft_vote(preds):
+def _soft_vote(preds):
     pred = pd.concat(preds)
     return pred.groupby(pred.index).mean().idxmax(axis=1)
 
 
 
 def _fit_pred_score(estimator, method, scorer, X, y, trn=None, oof=None, X_new=None,
-                    return_estimator=False, return_score=True, return_pred=False):
+                    return_pred=False, return_estimator=False, return_score=True,
+                    return_importance=False):
 
     result = {}
 
@@ -188,6 +196,11 @@ def _fit_pred_score(estimator, method, scorer, X, y, trn=None, oof=None, X_new=N
 
     if return_estimator:
         result['estimator'] = estimator
+
+    # Feature importances
+    if return_importance:
+        imporance = _imp(estimator, X.columns)
+        result['importance'] = imporance
 
     # Predict
     if return_pred and (len(oof) or len(new)):
@@ -222,6 +235,27 @@ def _fit_pred_score(estimator, method, scorer, X, y, trn=None, oof=None, X_new=N
 
 
 
+def _imp(estimator, cols):
+
+    # Get importances
+    if hasattr(estimator, 'coef_'):
+        attr = 'coef_'
+    elif hasattr(estimator, 'feature_importances_'):
+        attr = 'feature_importances_'
+    else:
+        name = estimator.__class__.__name__
+        msg = "<{}> has neither <feature_importances_>, nor <coef_>".format(name)
+        raise AttributeError(msg)
+
+    imp = getattr(estimator, attr)
+
+    # Convert numpy to pandas
+    imp = pd.Series(imp, index=cols, name=attr)
+
+    return imp
+
+
+
 def _pred(estimator, method, X, y):
 
     # Check Attribute
@@ -244,11 +278,7 @@ def _pred(estimator, method, X, y):
 
 
 
-def _concat_preds(preds, mean, encoder, X, y):
-
-    # Check if empty
-    if X is None or X.empty:
-        return
+def _concat_preds(preds, mean, encoder, name, index):
 
     # Averaging predictions
     pred = mean(preds)
@@ -256,16 +286,18 @@ def _concat_preds(preds, mean, encoder, X, y):
     # Target Decoding
     if encoder is not None:
         if len(pred.shape) is 1:
-            pred = encoder.inverse_transform(pred).rename(y.name)
+            pred = encoder.inverse_transform(pred)
+            pred = pred.rename(name)
         else:
             pred.columns = encoder.inverse_transform(pred.columns)
 
     # Binary Classification
     if len(pred.shape) is 2 and set(pred.columns) == {0, 1}:
-        pred = pred[1].rename(y.name)
+        pred = pred[1]
+        pred = pred.rename(name)
 
     # Original indices order
-    pred = pred.loc[X.index]
+    pred = pred.loc[index]
 
     return pred
 
