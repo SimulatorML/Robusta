@@ -111,7 +111,8 @@ def cross_val(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
     results = _ld_to_dl(results) # FIXME: list of dict -> dict of list
 
     # Concat Predictions (& Feature Importances)
-    if np.any(np.in1d(['oof_pred','new_pred','importance'], list(results))):
+    needs_concat = ['oof_pred', 'new_pred', 'importance', 'score']
+    if np.any(np.in1d(needs_concat, list(results))):
 
         start_time = time.time()
 
@@ -130,8 +131,18 @@ def cross_val(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
             importance = _avg_preds(importances)
             results['importance'] = importance
 
+        if 'score' in results:
+            scores = results['score']
+            scores = _ld_to_dl(scores)
+            if len(scores) is 1:
+                scores = scores['score']
+            results['score'] = scores
+
         concat_time = time.time() - start_time
         results['concat_time'] = concat_time
+
+    # Convert list to numpy
+    results = _dl_to_da(results)
 
     return results
 
@@ -305,3 +316,11 @@ def _concat_preds(preds, mean, encoder, name, index):
 
 def _ld_to_dl(l):
     return {key: [d[key] for d in l] for key in l[0].keys()}
+
+def _dl_to_da(d):
+    for key, val in d.items():
+        if isinstance(val, list):
+            d[key] = np.array(val)
+        elif isinstance(val, dict):
+            d[key] = _dl_to_da(val)
+    return d
