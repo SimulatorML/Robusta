@@ -1,6 +1,7 @@
 from sklearn.model_selection import cross_validate, cross_val_score, cross_val_predict
+
 from ._crossval import cross_val, cross_val_pred
-from ._stacking import stacking#, StackingTransformer
+from ._stacking import stacking, StackingTransformer
 
 
 __all__ = [

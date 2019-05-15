@@ -701,9 +701,12 @@ def _extract_est_name(estimator, drop_type=False):
     name = estimator.__class__.__name__
 
     if name is 'Pipeline':
-        # FIXME: more adequate name extraction for pipelines
-        inner_estimator = estimator.steps[-1][1]
-        name = _extract_est_name(inner_estimator, drop_type=drop_type)
+        last_step = estimator.steps[-1][1]
+        name = _extract_est_name(last_step, drop_type=drop_type)
+
+    elif name is 'TransformedTargetRegressor':
+        regressor = estimator.regressor
+        name = _extract_est_name(regressor, drop_type=drop_type)
 
     elif drop_type:
         for etype in ['Regressor', 'Classifier', 'Ranker']:
