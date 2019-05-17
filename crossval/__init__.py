@@ -15,5 +15,5 @@ __all__ = [
     'cross_val_pred', # oof_pred, new_pred
 
     'stacking', # oof_stack, new_stack
-    #'StackingTransformer',
+    'StackingTransformer',
 ]

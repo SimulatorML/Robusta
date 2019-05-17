@@ -152,7 +152,7 @@ def cross_val(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
                 or scores dictionaries. Ignored if all of return_pred,
                 return_importance, return_score are set to False.
 
-            ``estimator`` : estimator object, shape [n_splits] or [n_splits+1]
+            ``estimator`` : list of estimator object, shape [n_splits] or [n_splits+1]
                 The fitted estimator objects for each cv split (and ).
                 Ignored if return_estimator=False.
 
@@ -160,17 +160,25 @@ def cross_val(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
                 Averaged <feature_importances_> or <coef_> of all estimators.
                 Ignored if return_importance=False.
 
+            ``encoder`` : transformer object or None
+                The fitted target transformer. For classification task only,
+                otherwise is None.
+
     """
 
     # Check data
     X, y, groups = indexable(X, y, groups)
     X_new, _ = indexable(X_new, None)
 
-    # Check validation scheme & scorer(s)
+    # Check validation scheme
     cv = check_cv(cv, y, classifier=is_classifier(estimator))
     folds = cv.split(X, y, groups)
 
+    # Check scorer(s)
     scorer, _ = _check_multimetric_scoring(estimator, scoring=scoring)
+
+    # Check voting strategy & method
+    method, avg = _check_voting(estimator, voting, method, return_pred)
 
     # Target Encoding
     if is_classifier(estimator):
@@ -179,53 +187,11 @@ def cross_val(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
     else:
         encoder = None
 
-    # Method & averaging strategy (voting type) check
-    if return_pred:
-
-        methods = ['predict', 'predict_proba', 'predict_log_proba']
-        if method not in methods:
-            raise ValueError('<method> should be in {}'.format(set(methods)))
-
-        votings = ['soft', 'hard', 'auto']
-        if voting not in votings:
-            raise ValueError('<voting> should be in {}'.format(set(votings)))
-
-        if voting is 'auto':
-            voting = 'soft' if hasattr(estimator, 'predict_proba') else 'hard'
-
-        if is_classifier(estimator):
-
-            if not hasattr(estimator, method):
-                msg = "<{}> is not available for this estimator".format(method)
-                raise AttributeError(msg)
-
-            if not hasattr(estimator, 'predict_proba') and voting is 'soft':
-                msg = "'{}' voting is not available for this estimator \
-                    cause it has not <{}> method".format(voting, method)
-                raise AttributeError(msg)
-
-    # Method & averaging strategy selection
-    if is_classifier(estimator):
-
-        if method is 'predict_proba':
-            avg = _avg_preds
-
-        elif voting is 'hard':
-            avg = _hard_vote
-
-        elif voting is 'soft':
-            avg = _soft_vote
-            method = 'predict_proba'
-
-    else:
-        avg = _avg_preds
-        method = 'predict'
-
     # Fit & predict
     parallel = Parallel(max_nbytes='256M', pre_dispatch='2*n_jobs',
-                        n_jobs=n_jobs, verbose=verbose)
+                        n_jobs=n_jobs)
 
-    if test_avg or X_new is None:
+    if test_avg:
 
         # Stacking Type A (test_averaging = True)
         results = parallel(
@@ -287,8 +253,11 @@ def cross_val(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
         concat_time = time.time() - start_time
         results['concat_time'] = concat_time
 
+    # Save encoder
+    results['encoder'] = encoder
+
     # Convert list to numpy
-    results = _dl_to_da(results)
+    #results = _dl_to_da(results)
 
     return results
 
@@ -378,9 +347,10 @@ def cross_val_pred(estimator, cv, X, y, groups=None, X_new=None,
         None if X_new is not defined
 
     """
-    results = cross_val(estimator, cv, X, y, groups, X_new, test_avg, None,
-        voting, method, True, False, False, False, n_jobs, verbose)
-        # FIXME: positional args are not robust to <cross_val> args update
+    results = cross_val(estimator, cv=cv, X=X, y=y, groups=groups, X_new=X_new,
+        scoring=None, voting=voting, method=method, test_avg=test_avg,
+        return_estimator=False, return_pred=True, return_score=False,
+        n_jobs=n_jobs, verbose=verbose)
 
     oof_pred = results['oof_pred'] if 'oof_pred' in results else None
     new_pred = results['new_pred'] if 'new_pred' in results else None
@@ -397,13 +367,69 @@ def _avg_preds(preds):
 
 def _hard_vote(preds):
     pred = pd.concat(preds)
-    return pred.groupby(pred.index).agg(pd.Series.mode)
+    return pred.groupby(pred.index).apply(lambda x: x.value_counts().index[0])
+    # FIXME: old version crashes when there are more then one modes
+    #return pred.groupby(pred.index).agg(pd.Series.mode)
 
 
 
 def _soft_vote(preds):
     pred = pd.concat(preds)
     return pred.groupby(pred.index).mean().idxmax(axis=1)
+
+
+
+def _check_voting(estimator, voting, method, return_pred=True):
+
+    name = _extract_est_name(estimator)
+
+    # Method & averaging strategy (voting type) check
+    if return_pred:
+
+        methods = ['predict', 'predict_proba', 'predict_log_proba']
+        if method not in methods:
+            raise ValueError('<method> should be in {}'.format(set(methods)))
+
+        votings = ['soft', 'hard', 'auto']
+        if voting not in votings:
+            raise ValueError('<voting> should be in {}'.format(set(votings)))
+
+        if voting is 'auto':
+            voting = 'soft' if hasattr(estimator, 'predict_proba') else 'hard'
+
+        if is_classifier(estimator):
+
+            if not hasattr(estimator, method):
+                msg = "<{}> is not available for <{}>".format(method, name)
+                raise AttributeError(msg)
+
+            if not hasattr(estimator, 'predict_proba') and voting is 'soft':
+                msg = "'{}' voting is not available for <{}> ".format(voting, name) \
+                    + "cause it has not <predict_proba> method"
+                raise AttributeError(msg)
+
+    # Method & averaging strategy selection
+    if is_classifier(estimator):
+
+        if method is 'predict_proba':
+            avg = _avg_preds
+
+        elif voting is 'hard':
+            avg = _hard_vote
+
+        elif voting is 'soft':
+            avg = _soft_vote
+            method = 'predict_proba'
+
+        else:
+            avg = _avg_preds
+            method = 'predict'
+
+    else:
+        avg = _avg_preds
+        method = 'predict'
+
+    return method, avg
 
 
 
