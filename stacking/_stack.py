@@ -8,16 +8,17 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.model_selection._split import check_cv
 from sklearn.utils.metaestimators import _safe_split
 
-from ._crossval import _pred, _extract_est_name, _check_voting, _concat_preds
-from ._crossval import cross_val, cross_val_pred
+from ..crossval._crossval import _pred, _extract_est_name, _check_voting, _concat_preds
+from ..crossval import cross_val, cross_val_pred
 
 
-__all__ = ['stacking', 'StackingTransformer']
+__all__ = ['stack', 'Stacker']
 
 
 
-def stacking(estimators, cv, X, y, groups=None, X_new=None, test_avg=True,
-             voting='auto', method='predict', n_jobs=-1, verbose=0):
+def stack(estimators, cv, X, y, groups=None, X_new=None, test_avg=True,
+          voting='auto', method='predict', join_X=False,
+          n_jobs=-1, verbose=0):
     """Get Out-of-Fold and Test predictions of multiple estimators.
 
     Parameters
@@ -118,20 +119,16 @@ def stacking(estimators, cv, X, y, groups=None, X_new=None, test_avg=True,
         oof_preds.append(oof_pred)
         new_preds.append(new_pred)
 
-    # Concat predictions
-    oof_stack = pd.concat(oof_preds, axis=1)
-    new_stack = pd.concat(new_preds, axis=1)
+    # Concatenate predictions
+    S_train = _stack_preds(oof_preds, est_names, join_X, X)
+    S_test = _stack_preds(new_preds, est_names, join_X, X_new)
 
-    # Columns renaming
-    oof_stack.columns = est_names
-    new_stack.columns = est_names
-
-    return oof_stack, new_stack
+    return S_train, S_test
 
 
 
-class StackingTransformer(BaseEstimator, TransformerMixin):
-    """StackingTransformer. Scikit-learn compatible API for stacking.
+class Stacker(BaseEstimator, TransformerMixin):
+    """Stacker. Scikit-learn compatible API for stacking.
 
     Parameters
     ----------
@@ -149,6 +146,22 @@ class StackingTransformer(BaseEstimator, TransformerMixin):
             task with probabilities estimator must return probabilities
             for each class (i.e. two columns).
 
+    cv : int, cross-validation generator or an iterable
+        Determines the cross-validation splitting strategy.
+        Possible inputs for cv are:
+
+        - None, to use the default 3-fold cross validation,
+        - integer, to specify the number of folds in a `(Stratified)KFold`,
+        - :term:`CV splitter`,
+        - An iterable yielding (train, test) splits as arrays of indices.
+
+        For integer/None inputs, if the estimator is a classifier and ``y`` is
+        either binary or multiclass, :class:`StratifiedKFold` is used. In all
+        other cases, :class:`KFold` is used.
+
+        Refer :ref:`User Guide <cross_validation>` for the various
+        cross-validation strategies that can be used here.
+
     verbose : int, default 0
         Level of verbosity.
         0 - show no messages
@@ -162,18 +175,18 @@ class StackingTransformer(BaseEstimator, TransformerMixin):
 
     """
     def __init__(self, estimators, cv=5, scoring=None, test_avg=True,
-                 voting='auto', method='predict', n_jobs=-1, verbose=0,
-                 return_importance=False):
+                 voting='auto', method='predict', join_X=False,
+                 n_jobs=-1, verbose=0):
 
         self.estimators = estimators
         self.scoring = scoring
         self.cv = cv
 
+        self.join_X = join_X
         self.test_avg = test_avg
         self.voting = voting
         self.method = method
-
-        self.return_importance = return_importance
+        #self.return_importance = return_importance
 
         self.n_jobs = n_jobs
         self.verbose = verbose
@@ -202,10 +215,7 @@ class StackingTransformer(BaseEstimator, TransformerMixin):
             self._save_results(results)
 
         # Concatenate predicitons
-        S_train = pd.concat(oof_preds, axis=1)
-        S_train.columns = self.est_names_
-        # TODO: crashes on non-binary classification
-        # Use MultiIndex columns in this cases
+        S_train = _stack_preds(oof_preds, self.est_names_, self.join_X, X)
 
         return S_train
 
@@ -322,8 +332,7 @@ class StackingTransformer(BaseEstimator, TransformerMixin):
             oof_preds.append(oof_pred)
 
         # Concatenate predicitons
-        S_train = pd.concat(oof_preds, axis=1)
-        S_train.columns = self.est_names_
+        S_train = _stack_preds(oof_preds, self.est_names_, self.join_X, X)
 
         return S_train
 
@@ -373,10 +382,7 @@ class StackingTransformer(BaseEstimator, TransformerMixin):
                 new_preds.append(new_pred)
 
         # Concatenate predicitons
-        S_test = pd.concat(new_preds, axis=1)
-        S_test.columns = self.est_names_
-        # TODO: crashes on non-binary classification
-        # Use MultiIndex columns in this cases
+        S_test = _stack_preds(new_preds, self.est_names_, self.join_X, X)
 
         return S_test
 
@@ -421,3 +427,17 @@ def _check_footprint(X, footprint, rtol=1e-05, atol=1e-08, equal_nan=False):
         return True
     except AssertionError:
         return False
+
+
+
+def _stack_preds(preds, names, join_X=False, X=None):
+
+    S = pd.concat(preds, axis=1)
+    S.columns = names
+    # FIXME: crashes on non-binary classification
+    # Use MultiIndex columns in this cases
+
+    if join_X:
+        return X.join(S)
+    else:
+        return S
