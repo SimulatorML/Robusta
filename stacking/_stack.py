@@ -9,10 +9,11 @@ from sklearn.model_selection._split import check_cv
 from sklearn.utils.metaestimators import _safe_split
 
 from ..crossval._crossval import _pred, _extract_est_name, _check_voting, _concat_preds
-from ..crossval import cross_val, cross_val_pred
+from ..crossval import crossval, crossval_predict
 
 
 __all__ = ['stack', 'Stacker', 'make_stacker']
+
 
 
 
@@ -38,9 +39,6 @@ def stack(estimators_list, cv, X, y, groups=None, X_new=None, test_avg=True,
         For integer/None inputs, if the estimator is a classifier and ``y`` is
         either binary or multiclass, :class:`StratifiedKFold` is used. In all
         other cases, :class:`KFold` is used.
-
-        Refer :ref:`User Guide <cross_validation>` for the various
-        cross-validation strategies that can be used here.
 
     X : DataFrame, shape [n_samples, n_features]
         The data to fit, score and calculate out-of-fold predictions
@@ -112,7 +110,7 @@ def stack(estimators_list, cv, X, y, groups=None, X_new=None, test_avg=True,
     # Fit & predict
     for estimator in estimators_list:
 
-        oof_pred, new_pred = cross_val_pred(estimator, cv=cv, X=X, y=y,
+        oof_pred, new_pred = crossval_predict(estimator, cv=cv, X=X, y=y,
             groups=groups, X_new=X_new, test_avg=test_avg, voting=voting,
             method=method, n_jobs=n_jobs, verbose=verbose)
 
@@ -159,9 +157,6 @@ class Stacker(BaseEstimator, TransformerMixin):
         either binary or multiclass, :class:`StratifiedKFold` is used. In all
         other cases, :class:`KFold` is used.
 
-        Refer :ref:`User Guide <cross_validation>` for the various
-        cross-validation strategies that can be used here.
-
     verbose : int, default 0
         Level of verbosity.
         0 - show no messages
@@ -203,7 +198,7 @@ class Stacker(BaseEstimator, TransformerMixin):
         for estimator in self.estimators_:
 
             # Fit each estimator
-            results = cross_val(estimator, cv=self.folds, X=X, y=y, groups=groups,
+            results = crossval(estimator, cv=self.folds, X=X, y=y, groups=groups,
                 scoring=self.scoring, voting=self.voting, method=self.method,
                 X_new=None, test_avg=self.test_avg, return_estimator=True,
                 return_pred=True, return_score=True, n_jobs=self.n_jobs)
@@ -230,7 +225,7 @@ class Stacker(BaseEstimator, TransformerMixin):
         for estimator in self.estimators_:
 
             # Fit each estimator
-            results = cross_val(estimator, cv=self.folds, X=X, y=y, groups=groups,
+            results = crossval(estimator, cv=self.folds, X=X, y=y, groups=groups,
                 scoring=self.scoring, voting=self.voting, method=self.method,
                 X_new=None, test_avg=self.test_avg, return_estimator=True,
                 return_pred=False, return_score=True, n_jobs=self.n_jobs)

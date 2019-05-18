@@ -14,15 +14,15 @@ from sklearn.utils import indexable
 from ..preprocessing import LabelEncoder1D
 
 
-__all__ = ['cross_val', 'cross_val_pred']
+__all__ = ['crossval', 'crossval_score', 'crossval_predict']
 
 
 
 
-def cross_val(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
-              scoring=None, voting='auto', method='predict', return_pred=False,
-              return_estimator=False, return_score=True, return_importance=False,
-              n_jobs=-1, verbose=0):
+def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
+             scoring=None, voting='auto', method='predict', return_pred=False,
+             return_estimator=False, return_score=True, return_importance=False,
+             return_encoder=False, n_jobs=-1, verbose=1):
     """Evaluate metric(s) by cross-validation and also record fit/score time,
     feature importances and compute out-of-fold and test predictions.
 
@@ -43,9 +43,6 @@ def cross_val(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
         For integer/None inputs, if the estimator is a classifier and ``y`` is
         either binary or multiclass, :class:`StratifiedKFold` is used. In all
         other cases, :class:`KFold` is used.
-
-        Refer :ref:`User Guide <cross_validation>` for the various
-        cross-validation strategies that can be used here.
 
     X : DataFrame, shape [n_samples, n_features]
         The data to fit, score and calculate out-of-fold predictions
@@ -241,31 +238,96 @@ def cross_val(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
         if 'importance' in results:
             importances = results['importance']
-            importance = _avg_preds(importances)
+            importance = pd.DataFrame(importances).reset_index(drop=True)
             results['importance'] = importance
 
         if 'score' in results:
             scores = results['score']
             scores = _ld_to_dl(scores)
-            scores = scores['score'] if len(scores) is 1 else scores
+            scores = pd.DataFrame(scores)
+            if scores.shape[1] == 1:
+                scores = scores.iloc[:,0]
             results['score'] = scores
+
+        for key in ['fit_time', 'score_time', 'pred_time']:
+            if key in results:
+                results[key] = np.array(results[key])
 
         concat_time = time.time() - start_time
         results['concat_time'] = concat_time
 
     # Save encoder
-    results['encoder'] = encoder
-
-    # Convert list to numpy
-    #results = _dl_to_da(results)
+    if return_encoder:
+        results['encoder'] = encoder
 
     return results
 
 
 
-def cross_val_pred(estimator, cv, X, y, groups=None, X_new=None,
-                   test_avg=True, voting='auto', method='predict',
-                   n_jobs=-1, verbose=0):
+def crossval_score(estimator, cv, X, y, groups=None, scoring=None,
+                   n_jobs=-1, verbose=1):
+    """Evaluate metric(s) by cross-validation and also record fit/score time,
+    feature importances and compute out-of-fold and test predictions.
+
+    Parameters
+    ----------
+    estimator : estimator object
+        The object to use to fit the data.
+
+    cv : int, cross-validation generator or an iterable
+        Determines the cross-validation splitting strategy.
+        Possible inputs for cv are:
+
+        - None, to use the default 3-fold cross validation,
+        - integer, to specify the number of folds in a `(Stratified)KFold`,
+        - :term:`CV splitter`,
+        - An iterable yielding (train, test) splits as arrays of indices.
+
+        For integer/None inputs, if the estimator is a classifier and ``y`` is
+        either binary or multiclass, :class:`StratifiedKFold` is used. In all
+        other cases, :class:`KFold` is used.
+
+    X : DataFrame, shape [n_samples, n_features]
+        The data to fit, score and calculate out-of-fold predictions
+
+    y : Series, shape [n_samples]
+        The target variable to try to predict
+
+    groups : None
+        Group labels for the samples used while splitting the dataset into
+        train/test set
+
+    scoring : string, callable or None, optional, default: None
+        A string or a scorer callable object / function with signature
+        ``scorer(estimator, X, y)`` which should return only a single value.
+        If None, the estimator's default scorer (if available) is used.
+        Ignored if return_score=False.
+
+    n_jobs : int or None, optional (default=-1)
+        The number of jobs to run in parallel. None means 1.
+
+    verbose : int
+        Verbosity level
+
+
+    Returns
+    -------
+    scores : Series or DataFrame
+        Rows are splits. If multimetric, return DataFrame, where each column
+        represents different metric.
+
+    """
+    results = crossval(estimator, cv=cv, X=X, y=y, groups=groups,
+        scoring=scoring, return_score=True, n_jobs=n_jobs, verbose=verbose)
+
+    scores = results['score']
+    return scores
+
+
+
+def crossval_predict(estimator, cv, X, y, groups=None, X_new=None,
+                     test_avg=True, voting='auto', method='predict',
+                     n_jobs=-1, verbose=0):
     """Get Out-of-Fold and Test predictions.
 
     Parameters
@@ -347,7 +409,7 @@ def cross_val_pred(estimator, cv, X, y, groups=None, X_new=None,
         None if X_new is not defined
 
     """
-    results = cross_val(estimator, cv=cv, X=X, y=y, groups=groups, X_new=X_new,
+    results = crossval(estimator, cv=cv, X=X, y=y, groups=groups, X_new=X_new,
         scoring=None, voting=voting, method=method, test_avg=test_avg,
         return_estimator=False, return_pred=True, return_score=False,
         n_jobs=n_jobs, verbose=verbose)
@@ -564,7 +626,6 @@ def _fit_pred_score(estimator, method, scorer, X, y, trn=None, oof=None, X_new=N
         start_time = time.time()
 
         is_multimetric = not callable(scorer)
-
         score = _score(estimator, X_oof, y_oof, scorer, is_multimetric)
         result['score'] = score
 
@@ -747,13 +808,3 @@ def _extract_est_name(estimator, drop_type=False):
 
 def _ld_to_dl(l):
     return {key: [d[key] for d in l] for key in l[0].keys()}
-
-
-
-def _dl_to_da(d):
-    for key, val in d.items():
-        if isinstance(val, list):
-            d[key] = np.array(val)
-        elif isinstance(val, dict):
-            d[key] = _dl_to_da(val)
-    return d
