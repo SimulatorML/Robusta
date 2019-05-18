@@ -388,11 +388,13 @@ def _check_voting(estimator, voting, method, return_pred=True):
 
         methods = ['predict', 'predict_proba', 'predict_log_proba']
         if method not in methods:
-            raise ValueError('<method> should be in {}'.format(set(methods)))
+            raise ValueError("<method> should be in {}".format(set(methods)) \
+                + "\n\t\tPassed '{}'".format(method))
 
         votings = ['soft', 'hard', 'auto']
         if voting not in votings:
-            raise ValueError('<voting> should be in {}'.format(set(votings)))
+            raise ValueError("<voting> should be in {}".format(set(votings)) \
+                + "\n\t\tPassed '{}'".format(voting))
 
         if voting is 'auto':
             voting = 'soft' if hasattr(estimator, 'predict_proba') else 'hard'
@@ -405,7 +407,7 @@ def _check_voting(estimator, voting, method, return_pred=True):
 
             if not hasattr(estimator, 'predict_proba') and voting is 'soft':
                 msg = "'{}' voting is not available for <{}> ".format(voting, name) \
-                    + "cause it has not <predict_proba> method"
+                    + "\n\t\tIt has not <predict_proba> method"
                 raise AttributeError(msg)
 
     # Method & averaging strategy selection

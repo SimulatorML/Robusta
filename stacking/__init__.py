@@ -1,4 +1,4 @@
-from ._stack import stack, Stacker
+from ._stack import *
 
 
 __all__ = ['stack', 'Stacker', 'make_stacker']
