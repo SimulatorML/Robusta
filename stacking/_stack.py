@@ -12,7 +12,7 @@ from ..crossval._crossval import _pred, _extract_est_name, _check_voting, _conca
 from ..crossval import cross_val, cross_val_pred
 
 
-__all__ = ['stack', 'Stacker']
+__all__ = ['stack', 'Stacker', 'make_stacker']
 
 
 
@@ -399,6 +399,27 @@ class Stacker(BaseEstimator, TransformerMixin):
             return _check_footprint(X, self.train_footprint, **kwargs)
         else:
             return False
+
+
+
+def make_stacker(estimators, cv, X, y, groups=None, X_new=None, test_avg=True,
+                 voting='auto', method='predict', join_X=False,
+                 n_jobs=-1, verbose=0):
+
+    # Extract estimator names
+    est_names = []
+
+    for estimator in estimators:
+        est_names.append(_extract_est_name(estimator, drop_type=True))
+
+    estimators = list(zip(est_names, estimators))
+
+    # Init Stacker
+    stacker = Stacker(estimators, cv, X, y, groups=groups, X_new=X_new,
+                      test_avg=test_avg, voting=voting, method=method,
+                      join_X=join_X, n_jobs=n_jobs, verbose=verbose)
+
+    return stacker
 
 
 
