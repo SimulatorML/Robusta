@@ -13,6 +13,8 @@ from sklearn.utils import indexable
 
 from ..preprocessing import LabelEncoder1D
 
+from ._output import CVLogger, _extract_est_name
+
 
 __all__ = ['crossval', 'crossval_score', 'crossval_predict']
 
@@ -119,6 +121,9 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
         The possible keys for this ``dict`` are:
 
+            ``fold`` : list of pair of list
+                Two lists with trn/oof indices
+
             ``score`` : array or dict of array, shape [n_splits]
                 The score array for test scores on each cv split.
                 If multimetric, return dict of array.
@@ -169,9 +174,11 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
     # Check validation scheme
     cv = check_cv(cv, y, classifier=is_classifier(estimator))
-    folds = cv.split(X, y, groups)
+    folds = list(cv.split(X, y, groups))
 
     # Check scorer(s)
+    if not (type(scoring) in [dict, list, set] or scoring is None):
+        scoring = [scoring]
     scorer, _ = _check_multimetric_scoring(estimator, scoring=scoring)
 
     # Check voting strategy & method
@@ -185,17 +192,18 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
         encoder = None
 
     # Fit & predict
+    logger = CVLogger(folds, estimator, X, X_new, verbose)
     parallel = Parallel(max_nbytes='256M', pre_dispatch='2*n_jobs',
-                        n_jobs=n_jobs)
+                        n_jobs=n_jobs, require='sharedmem')
 
     if test_avg:
 
-        # Stacking Type A (test_averaging = True)
+        # Stacking Type A (test averaging = True)
         results = parallel(
             (delayed(_fit_pred_score)(clone(estimator), method, scorer, X, y,
                 trn, oof, X_new, return_pred, return_estimator, return_score,
-                return_importance)
-            for trn, oof in folds))
+                return_importance, i, logger)
+            for i, (trn, oof) in enumerate(folds)))
 
         results = _ld_to_dl(results)
 
@@ -205,12 +213,12 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
         results = parallel(
             (delayed(_fit_pred_score)(clone(estimator), method, scorer, X, y,
                 trn, oof, None, return_pred, return_estimator, return_score,
-                return_importance)
-            for trn, oof in folds))
+                return_importance, i, logger)
+            for i, (trn, oof) in enumerate(folds)))
 
         result_new = _fit_pred_score(clone(estimator), method, None, X, y,
             None, None, X_new, return_pred, return_estimator, False,
-            return_importance)
+            return_importance, -1, logger)
 
         results = _ld_to_dl(results)
         for key, val in result_new.items():
@@ -499,7 +507,7 @@ def _check_voting(estimator, voting, method, return_pred=True):
 
 def _fit_pred_score(estimator, method, scorer, X, y, trn=None, oof=None, X_new=None,
                     return_pred=False, return_estimator=False, return_score=True,
-                    return_importance=False):
+                    return_importance=False, fold_ind=None, logger=None):
     """Fit estimator and evaluate metric(s), compute OOF predictions & etc.
 
     Parameters
@@ -550,6 +558,9 @@ def _fit_pred_score(estimator, method, scorer, X, y, trn=None, oof=None, X_new=N
         Scores/predictions/time of the estimator for each run of the
         cross validation. The possible keys for this ``dict`` are:
 
+            ``fold`` : pair of list
+                Two lists with trn/oof indices
+
             ``score`` : float
                 The OOF score. If multimetric, return dict of float.
                 Ignored if return_score=False.
@@ -581,6 +592,7 @@ def _fit_pred_score(estimator, method, scorer, X, y, trn=None, oof=None, X_new=N
     # Get indices
     trn = np.arange(len(X)) if trn is None else trn
     oof = np.arange(0) if oof is None else oof
+    result['fold'] = (trn, oof)
 
     new = np.arange(len(X_new)) if X_new is not None else np.arange(0)
 
@@ -631,6 +643,14 @@ def _fit_pred_score(estimator, method, scorer, X, y, trn=None, oof=None, X_new=N
 
         score_time = time.time() - start_time
         result['score_time'] = score_time
+
+    # Logging
+    while logger.verbose:
+        try:
+            logger.log(fold_ind, result)
+            break
+        except:
+            time.sleep(0.1)
 
     return result
 
@@ -765,44 +785,6 @@ def _concat_preds(preds, mean, encoder, name, ind):
     pred = pred.loc[ind]
 
     return pred
-
-
-
-def _extract_est_name(estimator, drop_type=False):
-    """Extract name of estimator instance.
-
-    Parameters
-    ----------
-    estimator : estimator object
-        Estimator or Pipeline
-
-    drop_type : bool (default=False)
-        Whether to remove an ending of the estimator's name, contains
-        estimator's type. For example, 'XGBRegressor' transformed to 'XGB'.
-
-
-    Returns
-    -------
-    name : string
-        Name of the estimator
-
-    """
-    name = estimator.__class__.__name__
-
-    if name is 'Pipeline':
-        last_step = estimator.steps[-1][1]
-        name = _extract_est_name(last_step, drop_type=drop_type)
-
-    elif name is 'TransformedTargetRegressor':
-        regressor = estimator.regressor
-        name = _extract_est_name(regressor, drop_type=drop_type)
-
-    elif drop_type:
-        for etype in ['Regressor', 'Classifier', 'Ranker']:
-            if name.endswith(etype):
-                name = name[:-len(etype)]
-
-    return name
 
 
 

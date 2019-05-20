@@ -8,7 +8,8 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.model_selection._split import check_cv
 from sklearn.utils.metaestimators import _safe_split
 
-from ..crossval._crossval import _pred, _extract_est_name, _check_voting, _concat_preds
+from ..crossval._crossval import _pred, _check_voting, _concat_preds
+from ..crossval._output import _extract_est_name
 from ..crossval import crossval, crossval_predict
 
 
