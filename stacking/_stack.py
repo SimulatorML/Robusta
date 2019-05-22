@@ -9,8 +9,9 @@ from sklearn.model_selection._split import check_cv
 from sklearn.utils.metaestimators import _safe_split
 
 from ..crossval._crossval import _pred, _check_voting, _concat_preds
-from ..crossval._output import _extract_est_name
 from ..crossval import crossval, crossval_predict
+
+from ..model import extract_model_name
 
 
 __all__ = ['stack', 'Stacker', 'make_stacker']
@@ -106,7 +107,7 @@ def stack(estimators_list, cv, X, y, groups=None, X_new=None, test_avg=True,
     est_names = []
 
     for estimator in estimators_list:
-        est_names.append(_extract_est_name(estimator, drop_type=True))
+        est_names.append(extract_model_name(estimator, short=True))
 
     # Fit & predict
     for estimator in estimators_list:
@@ -182,7 +183,6 @@ class Stacker(BaseEstimator, TransformerMixin):
         self.test_avg = test_avg
         self.voting = voting
         self.method = method
-        #self.return_importance = return_importance
 
         self.n_jobs = n_jobs
         self.verbose = verbose
@@ -406,7 +406,7 @@ def make_stacker(estimators_list, cv=5, scoring=None, test_avg=True,
     est_names = []
 
     for estimator in estimators_list:
-        est_names.append(_extract_est_name(estimator, drop_type=True))
+        est_names.append(extract_model_name(estimator, short=True))
 
     estimators = list(zip(est_names, estimators_list))
 

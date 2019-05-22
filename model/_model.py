@@ -7,12 +7,16 @@ warnings.simplefilter("ignore", UserWarning)
 from sklearn.base import BaseEstimator, clone
 
 
-__all__ = ['get_model']
+__all__ = [
+    'get_model',
+    'get_model_name',
+    'extract_model_name',
+]
 
 
 
 
-def get_model(model, task='regressor', **params):
+def get_model(name, task='regressor', **params):
     """Get model instance by name (if model is string, otherwise return model).
 
     Parameters
@@ -26,21 +30,21 @@ def get_model(model, task='regressor', **params):
 
     Returns
     -------
-    estimator : estimator object
+    model : estimator object
 
     """
-    if isinstance(model, str):
+    if isinstance(name, str):
         # Check model name
-        if model not in MODELS:
-            raise ValueError("Unknown model name: {}".format(model))
+        if name not in MODELS:
+            raise ValueError("Unknown model name: {}".format(name))
 
         # Check task
-        tasks = set(MODELS[model].keys())
+        tasks = set(MODELS[name].keys())
         if task not in tasks:
             raise ValueError("<task> should be in {}, not '{}''".format(tasks, task))
 
         # Get instance copy & set params
-        estimator = clone(MODELS[model][task]())
+        estimator = clone(MODELS[name][task]())
         estimator.set_params(**params)
 
     else:
@@ -48,6 +52,53 @@ def get_model(model, task='regressor', **params):
         estimator = clone(model)
 
     return estimator
+
+
+
+def get_model_name(model, short=False):
+    name = model.__class__.__name__
+    if short and name in MODEL_DICT:
+        name = MODEL_DICT[name]
+    return name
+
+
+
+def extract_model_name(estimator, short=False):
+    """Extract name of estimator instance.
+
+    Parameters
+    ----------
+    estimator : estimator object
+        Estimator or Pipeline
+
+    drop_type : bool (default=False)
+        Whether to remove an ending of the estimator's name, contains
+        estimator's type. For example, 'XGBRegressor' transformed to 'XGB'.
+
+
+    Returns
+    -------
+    name : string
+        Name of the estimator's core model
+
+    """
+    name = get_model_name(estimator)
+
+    if name is 'Pipeline':
+
+        # Check if last step is estimator
+        last_step = estimator.steps[-1][1]
+        msg = "Pipeline should have <predict> method on it's last step"
+        assert hasattr(last_step, 'predict'), msg
+
+        name = extract_model_name(last_step, short=short)
+
+    elif name is 'TransformedTargetRegressor':
+
+        regressor = estimator.regressor
+        name = extract_model_name(regressor, short=short)
+
+    return name
 
 
 
@@ -92,7 +143,7 @@ MODELS = {
     'LogReg': {
         'classifier': LogisticRegression
     },
-    'GLM': {
+    'SGD': {
         'regressor': SGDRegressor,
         'classifier': SGDClassifier
     },
@@ -240,12 +291,21 @@ MODELS = {
 
 
 
+MODEL_DICT = {}
+for name in MODELS:
+    for model in MODELS[name].values():
+        full_name = model.__name__
+        MODEL_DICT[full_name] = name
+
+
+
+
 MODEL_TYPE = {
 
     # Linear models
     'linear': ['Blend', 'LinReg', 'NNG', 'LogReg', 'Ridge', 'BayesRidge',
         'Lasso', 'ElasticNet', 'Lars', 'LassoLars', 'PA', 'LinearSVM', 'Huber',
-        'MARS', 'ARD', 'OMP', 'RANSAC', 'TheilSen', 'GLM', 'PLS'],
+        'MARS', 'ARD', 'OMP', 'RANSAC', 'TheilSen', 'SGD', 'PLS'],
 
     # Tree-Based models
     'tree': ['XGB', 'LGBM', 'CatBoost', 'GBM', 'ADA', 'RF', 'ET', 'RGF',
@@ -492,7 +552,7 @@ MODEL_PARAMS = {
         'max_iter': 1000,
     },
 
-    'GLM': {
+    'SGD': {
     # https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.SGDClassifier.html
         'loss': {'hinge', 'log', 'modified_huber', 'squared_hinge', 'perceptron', 'squared_loss', 'huber', 'epsilon_insensitive', 'squared_epsilon_insensitive'},
         'fit_intercept': {True, False},

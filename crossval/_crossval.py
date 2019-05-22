@@ -12,8 +12,9 @@ from sklearn.utils.metaestimators import _safe_split
 from sklearn.utils import indexable
 
 from ..preprocessing import LabelEncoder1D
+from ..model import extract_model_name
 
-from ._output import CVLogger, _extract_est_name, _log_msg
+from ._output import CVLogger, _log_msg
 
 
 __all__ = ['crossval', 'crossval_score', 'crossval_predict']
@@ -193,7 +194,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
     # Init estimator
     if verbose >= 1:
-        est_name = _extract_est_name(estimator)
+        est_name = extract_model_name(estimator)
         _log_msg(est_name)
 
     params = estimator.get_params()
@@ -493,7 +494,7 @@ def _soft_vote(preds):
 
 def _check_voting(estimator, voting, method, return_pred=True):
 
-    name = _extract_est_name(estimator)
+    name = extract_model_name(estimator)
 
     # Method & averaging strategy (voting type) check
     if return_pred:
@@ -718,7 +719,7 @@ def _imp(estimator, cols):
     elif hasattr(estimator, 'feature_importances_'):
         attr = 'feature_importances_'
     else:
-        name = _extract_est_name(estimator)
+        name = extract_model_name(estimator)
         msg = "<{}> has neither <feature_importances_>, nor <coef_>".format(name)
         raise AttributeError(msg)
 
@@ -759,7 +760,7 @@ def _pred(estimator, method, X, target):
     if hasattr(estimator, method):
         action = getattr(estimator, method)
     else:
-        name = _extract_est_name(estimator)
+        name = extract_model_name(estimator)
         raise AttributeError("<{}> has no method <{}>".format(name, method))
 
     # Predict
