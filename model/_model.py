@@ -1,212 +1,53 @@
-#from pylab import *
 import pandas as pd
 import numpy as np
+
 import warnings
+warnings.simplefilter("ignore", UserWarning)
 
 from sklearn.base import BaseEstimator, clone
 
-from ._prep import get_TT, get_TE, Imba, resamplers
 
-from robusta import data_prep #import get_cats
-from robusta import utils, metrics
-
-from copy import copy, deepcopy
-
-
-__all__ = ['Model', 'MODEL_TYPE', 'MODEL_PARAMS', 'PREP_PARAMS', 'FIT_PARAMS']
+__all__ = ['get_model']
 
 
 
-'''
-Meta-model
-----------
-'''
-class Model(BaseEstimator):
-    """
-    Meta-class for model.
+
+def get_model(model, task='regressor', **params):
+    """Get model instance by name (if model is string, otherwise return model).
 
     Parameters
     ----------
-    task : string
-        'reg':
-            Regression task
-        'bin':
-            Binary Classification task
+    model : string or estimator object
+        Model's short name ('XGB', 'LGBM', 'RF' & etc) or an estimator object.
 
-    model_name : string
-        Inner estimator name.
+    task : string, {'regressor', 'classifier', 'ranker'} (default='regressor')
+        Model type. Ignored if name is not string.
 
-    random_state : int, optional (default: 0)
+
+    Returns
+    -------
+    estimator : estimator object
 
     """
+    if isinstance(model, str):
+        # Check model name
+        if model not in MODELS:
+            raise ValueError("Unknown model name: {}".format(model))
 
-    def __init__(self, task, model_name, model_params={}):
-        self.task = task
-        self.model_name = model_name
-        self.update(model_params)
+        # Check task
+        tasks = set(MODELS[model].keys())
+        if task not in tasks:
+            raise ValueError("<task> should be in {}, not '{}''".format(tasks, task))
 
+        # Get instance copy & set params
+        estimator = clone(MODELS[model][task]())
+        estimator.set_params(**params)
 
-    def fit(self, X, y=None, prep_params={}, fit_params={}):
-        """Base fit function for inner estimator.
+    else:
+        # Check if scikit-learn estimator
+        estimator = clone(model)
 
-        Parameters
-        ----------
-        X : array-like, shape (n_samples, n_features)
-            Subset of the training data
-
-        y : array-like, shape (n_samples,) or (n_samples, n_classes)
-            Subset of the target values
-
-        cat_cols : list of strings
-            Categorical columns (can include some extra columns)
-
-        Returns
-        -------
-        self
-        """
-        X, y = self._prep(X, y, prep_params)
-
-        fit_params = dict(fit_params)
-
-        # check categorical features
-        #for key, val in FIT_PARAMS[self.model_name]:
-        #    fit_params[key]: val(X)
-
-        # check verbose
-        fit_args = utils.get_params(self.estimator.fit)
-        if ('verbose' in fit_args) and ('verbose' not in fit_params):
-            fit_params['verbose'] = 0
-
-        self.estimator.fit(X, y, **fit_params)
-        self.fitted_ = True
-        return self
-
-
-    def predict(self, X):
-        """Base predict function for outer estimator.
-
-        Parameters
-        ----------
-        X (array-like or sparse matrix of shape = [n_samples, n_features])
-            Input features matrix.
-
-        Returns
-        -------
-        self
-        """
-        #X = self._prep_X(X)
-
-        y_pred = self.estimator.predict(X)
-        y_pred = pd.Series(np.array(y_pred), name=self.target_name, index=X.index)
-        y_pred = self._prep_y(y_pred)
-
-        return y_pred
-
-
-    def predict_proba(self, X):
-        #X = self._prep_X(X)
-
-        y_pred = self.estimator.predict_proba(X)[:,1]
-        y_pred = pd.Series(np.array(y_pred), name=self.target_name, index=X.index)
-
-        return y_pred
-
-
-    def cols_importance(self, algo='inbuilt'):
-        if algo in ['inbuilt', None]:
-            if hasattr(self.estimator, 'feature_importances_'):
-                importance = self.estimator.feature_importances_
-            elif hasattr(self.estimator, 'coef_'):
-                importance = abs(self.estimator.coef_)
-                if len(np.shape(importance)) > 1:
-                    importance = importance[0]
-            else:
-                importance = 1
-        else:
-            importance = 1
-
-        return pd.Series(importance, index=self.cols, name='importance')
-
-
-    def copy(self):
-        _self = deepcopy(self)
-
-        _self.task = self.task
-        _self.model_name = self.model_name
-        _self.update(self.get_params())
-
-        return _self
-
-
-    def update(self, model_params={}, init_model=True):
-
-        if init_model:
-            self._init_estimator()
-            self.model_params = self.get_params()
-
-        self.set_params(**model_params)
-
-
-    def _init_estimator(self):
-        output = 'There is no such model in pipeline ("%s").' % self.model_name
-        assert self.model_name in MODELS, output
-        undefined_model = MODELS[self.model_name]
-
-        output = '%s is not suitable for this task ("%s").' % (self.model_name, self.task)
-        assert self.task in undefined_model, output
-        self.estimator = undefined_model[self.task]()
-
-
-    def get_params(self, deep=True):
-        model_params = self.estimator.get_params(deep=deep)
-        return model_params
-
-
-    def set_params(self, **model_params):
-        self.estimator.set_params(**model_params)
-        return self
-        #model_params = {key: model_params[key] for key in model_params if key in self.get_params()}
-        #self.model_params = self.get_params()
-
-
-    def _prep(self, X, y, prep_params={}):
-
-        X, y = X.copy(), y.copy()
-        self.target_name = y.name
-        self.cols = list(X.columns)
-
-        params = {
-            'tt_name': None,
-            'te_name': 'nested',
-            'te_params': {'folds': 5, 'alpha': 30},
-            'imba_name': None,
-            'imba_params': {'random_state': 0},
-        }
-        params.update(prep_params)
-
-        tt = get_TT(params['tt_name'])
-        te = get_TE(params['te_name'], params['te_params'])
-        imba = Imba(params['imba_name'], **params['imba_params'])
-
-        #cats = data_prep.get_cats(X)
-        #X = data_prep.cat_le(X, cats, '')
-
-        y = tt.transform(y) # Transform
-        #X, y = imba.fit_resample(X, y) # Resample
-        #X = te.fit_transform(X, y, cats) # Encode
-
-        self.transformers = {'tt': tt, 'te': te}
-        return X, y
-
-
-    def _prep_X(self, X):
-        return self.transformers['te'].transform(X)
-
-
-    def _prep_y(self, y):
-        return self.transformers['tt'].inverse_transform(y)
-
-
+    return estimator
 
 
 
@@ -236,193 +77,195 @@ from ._nng import NonNegativeGarrote
 
 
 
+
 MODELS = {
     'Blend': {
-        'reg': Blend,
-        'bin': Blend
+        'regressor': Blend,
+        'classifier': Blend
     },
-    'OLS': {
-        'reg': LinearRegression
+    'LinReg': {
+        'regressor': LinearRegression
     },
     'NNG': {
-        'reg': NonNegativeGarrote
+        'regressor': NonNegativeGarrote
     },
-    'Logit': {
-        'bin': LogisticRegression
+    'LogReg': {
+        'classifier': LogisticRegression
     },
     'GLM': {
-        'reg': SGDRegressor,
-        'bin': SGDClassifier
+        'regressor': SGDRegressor,
+        'classifier': SGDClassifier
     },
     'LinearSVM': {
-        'reg': LinearSVR,
-        'bin': LinearSVC
+        'regressor': LinearSVR,
+        'classifier': LinearSVC
     },
     'PA': {
-        'reg': PassiveAggressiveRegressor,
-        'bin': PassiveAggressiveClassifier
+        'regressor': PassiveAggressiveRegressor,
+        'classifier': PassiveAggressiveClassifier
     },
     'Ridge': {
-        'reg': Ridge,
-        'bin': RidgeClassifier
+        'regressor': Ridge,
+        'classifier': RidgeClassifier
     },
     'BayesRidge': {
-        'reg': BayesianRidge
+        'regressor': BayesianRidge
     },
     'MARS': {
-        'reg': Earth
+        'regressor': Earth
     },
     'ARD': {
-        'reg': ARDRegression
+        'regressor': ARDRegression
     },
     'OMP': {
-        'reg': OrthogonalMatchingPursuit
+        'regressor': OrthogonalMatchingPursuit
     },
     'RANSAC': {
-        'reg': RANSACRegressor
+        'regressor': RANSACRegressor
     },
     'TheilSen': {
-        'reg': TheilSenRegressor
+        'regressor': TheilSenRegressor
     },
     'Huber': {
-        'reg': HuberRegressor
+        'regressor': HuberRegressor
     },
     'Lasso': {
-        'reg': Lasso
+        'regressor': Lasso
     },
     'Lars': {
-        'reg': Lars
+        'regressor': Lars
     },
     'LassoLars': {
-        'reg': LassoLars
+        'regressor': LassoLars
     },
     'ElasticNet': {
-        'reg': ElasticNet
+        'regressor': ElasticNet
     },
     'PLS': {
-        'reg': PLSRegression
+        'regressor': PLSRegression
     },
 
 
     # Tree Based
-    'XGBoost': {
-        'reg': XGBRegressor,
-        'bin': XGBClassifier
+    'XGB': {
+        'regressor': XGBRegressor,
+        'classifier': XGBClassifier
     },
-    'LightGBM': {
-        'reg': LGBMRegressor,
-        'bin': LGBMClassifier
+    'LGBM': {
+        'regressor': LGBMRegressor,
+        'classifier': LGBMClassifier
     },
     'CatBoost': {
-        'reg': CatBoostRegressor,
-        'bin': CatBoostClassifier
+        'regressor': CatBoostRegressor,
+        'classifier': CatBoostClassifier
     },
     'GBM': {
-        'reg': GradientBoostingRegressor,
-        'bin': GradientBoostingClassifier
+        'regressor': GradientBoostingRegressor,
+        'classifier': GradientBoostingClassifier
     },
     'AdaBoost': {
-        'reg': AdaBoostRegressor,
-        'bin': AdaBoostClassifier
+        'regressor': AdaBoostRegressor,
+        'classifier': AdaBoostClassifier
     },
     'RF': {
-        'reg': RandomForestRegressor,
-        'bin': RandomForestClassifier
+        'regressor': RandomForestRegressor,
+        'classifier': RandomForestClassifier
     },
     'ET': {
-        'reg': ExtraTreesRegressor,
-        'bin': ExtraTreesClassifier
+        'regressor': ExtraTreesRegressor,
+        'classifier': ExtraTreesClassifier
     },
     'RGF': {
-        'reg': RGFRegressor,
-        'bin': RGFClassifier
+        'regressor': RGFRegressor,
+        'classifier': RGFClassifier
     },
     'FastRGF': {
-    #    'reg': FastRGFRegressor,
-    #    'bin': FastRGFClassifier
+    #    'regressor': FastRGFRegressor,
+    #    'classifier': FastRGFClassifier
     },
     'BART': {
-        'reg': BART
+        'regressor': BART
     },
 
     # Distance Based
     'KNN': {
-        'reg': KNeighborsRegressor,
-        'bin': KNeighborsClassifier
+        'regressor': KNeighborsRegressor,
+        'classifier': KNeighborsClassifier
     },
     'RadiusNN': {
-    #    'reg': RadiusNeighborsRegressor,
-    #    'bin': RadiusNeighborsClassifier
+    #    'regressor': RadiusNeighborsRegressor,
+    #    'classifier': RadiusNeighborsClassifier
     },
     'Centoid': {
-        'bin': NearestCentroid
+        'classifier': NearestCentroid
     },
     'SVM': {
-        'reg': SVR,
-        'bin': SVC
+        'regressor': SVR,
+        'classifier': SVC
     },
     'NuSVM': {
-        'reg': NuSVR,
-        'bin': NuSVC
+        'regressor': NuSVR,
+        'classifier': NuSVC
     },
     'RVM': {
-        'reg': RVR,
-        'bin': RVC
+        'regressor': RVR,
+        'classifier': RVC
     },
 
     # Naive Bayes
     'NB': {
-        'bin': GaussianNB
+        'classifier': GaussianNB
     },
     'BNB': {
-        'bin': BernoulliNB
+        'classifier': BernoulliNB
     },
     'MNB': {
-        'bin': MultinomialNB
+        'classifier': MultinomialNB
     },
     'CNB': {
-        'bin': ComplementNB
+        'classifier': ComplementNB
     },
 
     # Factorization Machines
     'FM': {
-        'reg': FMModel,
-        'bin': FMModel
+        'regressor': FMModel,
+        'classifier': FMModel
     },
     'FFM': {
-        'reg': FFMModel,
-        'bin': FFMModel
+        'regressor': FFMModel,
+        'classifier': FFMModel
     },
 }
 
 
 
-LIN_MODELS = {'Blend', 'OLS', 'NNG', 'Logit', 'Ridge', 'BayesRidge', 'Lasso',
-    'ElasticNet', 'Lars', 'LassoLars', 'PA', 'LinearSVM', 'Huber', 'MARS', 'ARD',
-    'OMP', 'RANSAC', 'TheilSen', 'GLM', 'PLS'}
 
-TREE_MODELS = {'XGBoost', 'LightGBM', 'CatBoost', 'GBM', 'AdaBoost', 'RF', 'ET',
-    'RGF', 'FastRGF', 'BART'}
+MODEL_TYPE = {
 
-DIST_MODELS = {'Centoid', 'KNN', 'RadiusNN', 'SVM', 'NuSVM', 'RVM'}
+    # Linear models
+    'linear': ['Blend', 'LinReg', 'NNG', 'LogReg', 'Ridge', 'BayesRidge',
+        'Lasso', 'ElasticNet', 'Lars', 'LassoLars', 'PA', 'LinearSVM', 'Huber',
+        'MARS', 'ARD', 'OMP', 'RANSAC', 'TheilSen', 'GLM', 'PLS'],
 
-PROB_MODELS = {'NB', 'BNB', 'MNB', 'CNB'}
+    # Tree-Based models
+    'tree': ['XGB', 'LGBM', 'CatBoost', 'GBM', 'ADA', 'RF', 'ET', 'RGF',
+        'FastRGF', 'BART'],
 
-FACT_MODELS = {'FM', 'FFM'}
+    # Distance-Based models
+    'dist': ['Centoid', 'KNN', 'RadiusNN', 'SVM', 'NuSVM', 'RVM'],
 
+    # Probability-Distribution-Based models
+    'proba': ['NB', 'BNB', 'MNB', 'CNB'],
 
-MODEL_TYPE = {}
-MODEL_TYPE.update({model_name: 'lin' for model_name in LIN_MODELS})
-MODEL_TYPE.update({model_name: 'dist' for model_name in DIST_MODELS})
-MODEL_TYPE.update({model_name: 'tree' for model_name in TREE_MODELS})
-MODEL_TYPE.update({model_name: 'fact' for model_name in FACT_MODELS})
-MODEL_TYPE.update({model_name: 'prob' for model_name in PROB_MODELS})
+    # Factorization Machines
+    'factor': ['FM', 'FFM']
+}
 
 
 
 
 MODEL_PARAMS = {
-    'XGBoost': {
+    'XGB': {
     # https://xgboost.readthedocs.io/en/latest/parameter.html
         'learning_rate': 0.3,
         # Once your learning rate is fixed, do not change it.
@@ -441,7 +284,7 @@ MODEL_PARAMS = {
         #'lambda': (1e-6, 1e6, 'log'),
     },
 
-    'LightGBM': {
+    'LGBM': {
     # https://lightgbm.readthedocs.io/en/latest/Parameters.html
         'learning_rate': 0.1,
         # Once your learning rate is fixed, do not change it.
@@ -632,12 +475,12 @@ MODEL_PARAMS = {
         'oob_score': True,
     },
 
-    'OLS': {
+    'LinReg': {
     # https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LinearRegression.html
         'fit_intercept': {True, False},
     },
 
-    'Logit': {
+    'LogReg': {
     # https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html
         'penalty': {'l1', 'l2'},
         'C': (1e-6, 1e6, 'log'),
@@ -745,7 +588,7 @@ MODEL_PARAMS = {
 
 
 
-FIT_PARAMS = {
+'''FIT_PARAMS = {
 # X dependent parameters
     'Blend': {
         'weights': lambda X, use_cols: [(0,1)]*(np.shape(X)[1] if not use_cols else len(use_cols))
@@ -753,28 +596,13 @@ FIT_PARAMS = {
     'CatBoost': {
         'cat_features': lambda X: get_cats(X, as_idx=True)
     },
-    'LightGBM': {
+    'LGBM': {
         'categorical_feature': lambda X: get_cats(X, as_idx=True)
     },
-}
+}'''
 
 
-CAT_PARAMS = {
+'''CAT_PARAMS = {
     'CatBoost': 'cat_features',
-    'LightGBM': 'categorical_feature'
-}
-
-
-
-PREP_PARAMS = {
-    'tt_name': None,
-    'te_name': {'nested', 'inbuilt'},
-    'te_params': {
-        'folds': (3, 20, 1),
-        'alpha': (0, 1e3, 'log'),
-    },
-    'imba_name': set(resamplers.keys()),
-    'imba_params': {
-        'random_state': 0
-    },
-}
+    'LGBM': 'categorical_feature'
+}'''

@@ -11,64 +11,50 @@ __all__ = ['CVLogger']
 
 class CVLogger(object):
 
-    def __init__(self, folds, estimator, X, X_new=None, verbose=1):
+    def __init__(self, folds, verbose=1):
         self.n_folds = len(list(folds))
-        self.n_train = len(X)
-        self.n_test = len(X_new) if X_new is not None else 0
-
-        self.est_name = _extract_est_name(estimator)
-        self._log_msg(self.est_name)
+        self.verbose = verbose
 
         self.messages = {}
         self.last_ind = -1
-
-        self.verbose = verbose
 
         self.busy = False
 
 
     def log(self, ind, result):
 
-        if self.busy:
-            raise
-        else:
-            self.busy = True
+        if ind is -1:
+            return
+
+        while True:
+            if not self.busy:
+                self.busy = True
+                break
+            else:
+                time.sleep(0.1)
 
         sep = ' '*6
 
         # Fold index
-        if ind > -1:
-            msg = 'fold_{}'.format(ind)
-        else:
-            msg = 'full  '.format()
+        msg = 'fold_{}'.format(ind)
 
         # Train/test size
-        if ind > -1:
-            train, test = result['fold']
-            n_train, n_test = len(train), len(test)
-        else:
-            n_train, n_test = self.n_train, self.n_test
+        train, test = result['fold']
+        n_train, n_test = len(train), len(test)
 
         msg += '{}train/test: {}/{}'.format(sep, n_train, n_test)
 
         # Scores
-        if ind > -1:
-            for key, score in result['score'].items():
-                msg += '{}{}: {:.4f}'.format(sep, key, score)
+        for key, score in result['score'].items():
+            msg += '{}{}: {:.4f}'.format(sep, key, score)
 
         # Save message
         self.messages[ind] = msg
 
-        # Full train case
-        if ind is -1:
-            self._log_msg(ind)
-            self.busy = False
-            return
-
         # If all previous folds are ready, print them
         for i in range(self.last_ind+1, self.n_folds):
             if i in self.messages.keys():
-                if i >= ind and self.verbose >= 2:
+                if self.verbose >= 2 and i >= ind:
                     self._log_ind(i)
                     self.last_ind = i
             else:
@@ -79,13 +65,14 @@ class CVLogger(object):
 
     def _log_ind(self, ind):
         msg = self.messages[ind]
-        self._log_msg(msg)
+        _log_msg(msg)
 
 
-    def _log_msg(self, msg):
-        t = datetime.datetime.now().strftime("[%H:%M:%S]")
-        print(t, msg)
-        time.sleep(0.1)
+
+def _log_msg(msg):
+    t = datetime.datetime.now().strftime("[%H:%M:%S]")
+    print(t, msg)
+    time.sleep(0.1)
 
 
 

@@ -13,7 +13,7 @@ from sklearn.utils import indexable
 
 from ..preprocessing import LabelEncoder1D
 
-from ._output import CVLogger, _extract_est_name
+from ._output import CVLogger, _extract_est_name, _log_msg
 
 
 __all__ = ['crossval', 'crossval_score', 'crossval_predict']
@@ -24,7 +24,7 @@ __all__ = ['crossval', 'crossval_score', 'crossval_predict']
 def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
              scoring=None, voting='auto', method='predict', return_pred=False,
              return_estimator=False, return_score=True, return_importance=False,
-             return_encoder=False, n_jobs=-1, verbose=1):
+             return_encoder=False, return_folds=False, n_jobs=-1, verbose=1):
     """Evaluate metric(s) by cross-validation and also record fit/score time,
     feature importances and compute out-of-fold and test predictions.
 
@@ -105,6 +105,12 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
     return_importance : bool (default=False)
         Return averaged <feature_importances_> or <coef_> of all estimators
 
+    return_encoder : bool (default=False)
+        Return label encoder for target
+
+    return_folds : bool (default=False)
+        Return folds
+
     n_jobs : int or None, optional (default=-1)
         The number of jobs to run in parallel. None means 1.
 
@@ -127,7 +133,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
             ``score`` : array or dict of array, shape [n_splits]
                 The score array for test scores on each cv split.
                 If multimetric, return dict of array.
-                Ignored if return_score=False.
+                Ignored if return_score=False AND verbose=0.
 
             ``oof_pred`` : Series, shape [n_samples]
                 Out-of-fold predictions.
@@ -180,9 +186,28 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
     if not (type(scoring) in [dict, list, set] or scoring is None):
         scoring = [scoring]
     scorer, _ = _check_multimetric_scoring(estimator, scoring=scoring)
+    return_score = True if verbose else return_score
 
     # Check voting strategy & method
     method, avg = _check_voting(estimator, voting, method, return_pred)
+
+    # Init estimator
+    if verbose >= 1:
+        est_name = _extract_est_name(estimator)
+        _log_msg(est_name)
+
+    params = estimator.get_params()
+    params_update = {}
+
+    for key, val in params.items():
+        # Fix random seed
+        if key.endswith('random_state'):
+            params_update[key] = 0 if val is None else val
+        # Parallel CV vs Parallel Model
+        if key.endswith('n_jobs'):
+            params_update[key] = 1 if n_jobs not in [None, 1] else val
+
+    estimator = estimator.set_params(**params_update)
 
     # Target Encoding
     if is_classifier(estimator):
@@ -192,7 +217,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
         encoder = None
 
     # Fit & predict
-    logger = CVLogger(folds, estimator, X, X_new, verbose)
+    logger = CVLogger(folds, verbose)
     parallel = Parallel(max_nbytes='256M', pre_dispatch='2*n_jobs',
                         n_jobs=n_jobs, require='sharedmem')
 
@@ -216,9 +241,13 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
                 return_importance, i, logger)
             for i, (trn, oof) in enumerate(folds)))
 
+        if verbose >= 2:
+            print()
+            _log_msg('Fitting full train set...')
+
         result_new = _fit_pred_score(clone(estimator), method, None, X, y,
             None, None, X_new, return_pred, return_estimator, False,
-            return_importance, -1, logger)
+            return_importance, -1, None)
 
         results = _ld_to_dl(results)
         for key, val in result_new.items():
@@ -253,8 +282,6 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
             scores = results['score']
             scores = _ld_to_dl(scores)
             scores = pd.DataFrame(scores)
-            if scores.shape[1] == 1:
-                scores = scores.iloc[:,0]
             results['score'] = scores
 
         for key in ['fit_time', 'score_time', 'pred_time']:
@@ -267,6 +294,21 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
     # Save encoder
     if return_encoder:
         results['encoder'] = encoder
+
+    # Save folds
+    if not return_folds:
+        results.pop('fold')
+
+    # Final score
+    if verbose >= 2:
+        print()
+
+    if verbose >= 1:
+        for metric, scores in results['score'].items():
+            mean, std = scores.mean(), scores.std()
+            msg = '{}: {:.4f} ± {:.4f}'.format(metric, mean, std)
+            _log_msg(msg)
+        print()
 
     return results
 
@@ -645,12 +687,8 @@ def _fit_pred_score(estimator, method, scorer, X, y, trn=None, oof=None, X_new=N
         result['score_time'] = score_time
 
     # Logging
-    while logger.verbose:
-        try:
-            logger.log(fold_ind, result)
-            break
-        except:
-            time.sleep(0.1)
+    if logger:
+        logger.log(fold_ind, result)
 
     return result
 

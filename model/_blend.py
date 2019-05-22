@@ -7,7 +7,7 @@ import pandas as pd
 
 from scipy.optimize import minimize
 
-from robusta.metrics import get_metric
+#from robusta.metrics import get_metric
 
 
 __all__ = ['Blend']
