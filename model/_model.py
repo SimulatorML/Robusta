@@ -10,6 +10,7 @@ from sklearn.base import BaseEstimator, clone
 __all__ = [
     'get_model',
     'get_model_name',
+    'extract_model',
     'extract_model_name',
 ]
 
@@ -57,9 +58,31 @@ def get_model(name, task='regressor', **params):
 
 def get_model_name(model, short=False):
     name = model.__class__.__name__
-    if short and name in MODEL_DICT:
+    if name in MODEL_DICT and short:
         name = MODEL_DICT[name]
     return name
+
+
+
+def extract_model(estimator):
+
+    name = get_model_name(estimator)
+
+    if name is 'Pipeline':
+
+        # Check if last step is estimator
+        last_step = estimator.steps[-1][1]
+        msg = "Pipeline should have <predict> method on it's last step"
+        assert hasattr(last_step, 'predict'), msg
+
+        estimator = extract_model(last_step)
+
+    elif name is 'TransformedTargetRegressor':
+
+        regressor = estimator.regressor
+        estimator = extract_model(regressor)
+
+    return estimator
 
 
 
@@ -71,9 +94,13 @@ def extract_model_name(estimator, short=False):
     estimator : estimator object
         Estimator or Pipeline
 
-    drop_type : bool (default=False)
-        Whether to remove an ending of the estimator's name, contains
-        estimator's type. For example, 'XGBRegressor' transformed to 'XGB'.
+    short : bool (default=False)
+        Whether to return estimator's short name. For example:
+
+            - 'XGBRegressor' -> 'XGB'
+            - 'LogisticRegression' -> 'LogReg'
+            - 'RandomForestClassifier' -> 'RF'
+            - 'PassiveAggressiveRegressor' -> 'PA'
 
 
     Returns
@@ -82,23 +109,8 @@ def extract_model_name(estimator, short=False):
         Name of the estimator's core model
 
     """
-    name = get_model_name(estimator)
-
-    if name is 'Pipeline':
-
-        # Check if last step is estimator
-        last_step = estimator.steps[-1][1]
-        msg = "Pipeline should have <predict> method on it's last step"
-        assert hasattr(last_step, 'predict'), msg
-
-        name = extract_model_name(last_step, short=short)
-
-    elif name is 'TransformedTargetRegressor':
-
-        regressor = estimator.regressor
-        name = extract_model_name(regressor, short=short)
-
-    return name
+    model = extract_model(estimator)
+    return get_model_name(model, short=short)
 
 
 
@@ -123,7 +135,7 @@ from xlearn import FMModel, FFMModel
 from skrvm import RVR, RVC
 from pyearth import Earth
 
-from ._blend import Blend
+from ._blend import *
 from ._nng import NonNegativeGarrote
 
 
@@ -131,8 +143,8 @@ from ._nng import NonNegativeGarrote
 
 MODELS = {
     'Blend': {
-        'regressor': Blend,
-        'classifier': Blend
+        'regressor': BlendRegressor,
+        'classifier': BlendClassifier,
     },
     'LinReg': {
         'regressor': LinearRegression

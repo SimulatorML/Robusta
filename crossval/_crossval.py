@@ -194,7 +194,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
     # Init estimator
     if verbose >= 1:
-        est_name = extract_model_name(estimator)
+        est_name = extract_model_name(estimator, short=True)
         _log_msg(est_name)
 
     params = estimator.get_params()
@@ -378,7 +378,7 @@ def crossval_score(estimator, cv, X, y, groups=None, scoring=None,
 
 def crossval_predict(estimator, cv, X, y, groups=None, X_new=None,
                      test_avg=True, voting='auto', method='predict',
-                     n_jobs=-1, verbose=0):
+                     scoring=None, n_jobs=-1, verbose=0):
     """Get Out-of-Fold and Test predictions.
 
     Parameters
@@ -443,6 +443,12 @@ def crossval_predict(estimator, cv, X, y, groups=None, X_new=None,
         in sorted order.
         Ignored if return_pred=False.
 
+    scoring : string, callable or None, optional, default: None
+        A string or a scorer callable object / function with signature
+        ``scorer(estimator, X, y)`` which should return only a single value.
+        If None, the estimator's default scorer (if available) is used.
+        Ignored if return_score=False.
+
     n_jobs : int or None, optional (default=-1)
         The number of jobs to run in parallel. None means 1.
 
@@ -461,7 +467,7 @@ def crossval_predict(estimator, cv, X, y, groups=None, X_new=None,
 
     """
     results = crossval(estimator, cv=cv, X=X, y=y, groups=groups, X_new=X_new,
-        scoring=None, voting=voting, method=method, test_avg=test_avg,
+        scoring=scoring, voting=voting, method=method, test_avg=test_avg,
         return_estimator=False, return_pred=True, return_score=False,
         n_jobs=n_jobs, verbose=verbose)
 

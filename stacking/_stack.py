@@ -20,7 +20,7 @@ __all__ = ['stack', 'Stacker', 'make_stacker']
 
 
 def stack(estimators_list, cv, X, y, groups=None, X_new=None, test_avg=True,
-          voting='auto', method='predict', join_X=False,
+          voting='auto', method='predict', join_X=False, scoring=None,
           n_jobs=-1, verbose=0):
     """Get Out-of-Fold and Test predictions of multiple estimators.
 
@@ -83,6 +83,12 @@ def stack(estimators_list, cv, X, y, groups=None, X_new=None, test_avg=True,
         in sorted order.
         Ignored if return_pred=False.
 
+    scoring : string, callable or None, optional, default: None
+        A string or a scorer callable object / function with signature
+        ``scorer(estimator, X, y)`` which should return only a single value.
+        If None, the estimator's default scorer (if available) is used.
+        Ignored if return_score=False.
+
     n_jobs : int or None, optional (default=-1)
         The number of jobs to run in parallel. None means 1.
 
@@ -113,8 +119,8 @@ def stack(estimators_list, cv, X, y, groups=None, X_new=None, test_avg=True,
     for estimator in estimators_list:
 
         oof_pred, new_pred = crossval_predict(estimator, cv=cv, X=X, y=y,
-            groups=groups, X_new=X_new, test_avg=test_avg, voting=voting,
-            method=method, n_jobs=n_jobs, verbose=verbose)
+            groups=groups, X_new=X_new, test_avg=test_avg, scoring=scoring,
+            voting=voting, method=method, n_jobs=n_jobs, verbose=verbose)
 
         oof_preds.append(oof_pred)
         new_preds.append(new_pred)
@@ -158,6 +164,12 @@ class Stacker(BaseEstimator, TransformerMixin):
         For integer/None inputs, if the estimator is a classifier and ``y`` is
         either binary or multiclass, :class:`StratifiedKFold` is used. In all
         other cases, :class:`KFold` is used.
+
+    scoring : string, callable or None, optional, default: None
+        A string or a scorer callable object / function with signature
+        ``scorer(estimator, X, y)`` which should return only a single value.
+        If None, the estimator's default scorer (if available) is used.
+        Ignored if return_score=False.
 
     verbose : int, default 0
         Level of verbosity.

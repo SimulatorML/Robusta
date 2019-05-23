@@ -1,79 +1,30 @@
-#from sklearn.base import BaseEstimator
-from sklearn.linear_model.base import LinearModel
-
-import weightedstats as ws
-import numpy as np
 import pandas as pd
+import numpy as np
+import weightedstats as ws
+
+from sklearn.base import ClassifierMixin, RegressorMixin
+from sklearn.linear_model.base import LinearModel
+from sklearn.metrics import get_scorer
 
 from scipy.optimize import minimize
 
-#from robusta.metrics import get_metric
+from ..preprocessing import LabelEncoder1D
 
 
-__all__ = ['Blend']
+__all__ = ['BlendRegressor', 'BlendClassifier']
 
-
-
-
-ones_weights = lambda x: np.ones(len(x))
-norm_weights = lambda weights: np.array(weights)/sum(weights)
-
-def weighted_gmean(x, weights=None):
-    w = ones_weights(x) if weights is None else weights
-    w = norm_weights(w)
-    return np.exp(sum(w*np.log(x)))
-
-
-def weighted_hmean(x, weights=None):
-    w = ones_weights(x) if weights is None else weights
-    w = norm_weights(w)
-    return (sum(w*x**-1))**-1
-
-def weighted_rms(x, weights=None):
-    w = ones_weights(x) if weights is None else weights
-    w = norm_weights(w)
-    return np.sqrt(sum(w*x**2))
-
-
-mean_funcs = {
-    'mean': np.average,
-    'median': ws.numpy_weighted_median,
-    'gmean': weighted_gmean,
-    'hmean': weighted_hmean,
-    'rms': weighted_rms,
-}
 
 
 
 class Blend(LinearModel):
     '''
-    Blending Estimator
+    Base Blending Estimator
 
     Parameters
     ----------
-    mean_func : string, optional
-        The weighted mean function:
-
-        'mean': [default]
-            x = sum[x_i * w_i] / sum[w_i]
-        'median':
-            x = x_k, where sum[w_i] == 1 and k satisfying:
-            sum[w_i, i=1..k-1] <= 0.5
-            sum[w_i, i=k+1..n] <= 0.5
-        'gmean':
-            x = exp( sum[w_i * log(x_i)] / sum[w_i] )
-        'hmean':
-            x = sum[w_i] / sum[w_i / x_i]
-        'rms':
-            sqrt( sum[w_i * x_i^2] )
-
-    eval_metric : string or None
+    scoring : string or None (default=None)
         Objective for optimization. If not None, then calculate the optimal
         weights for the blending.
-
-    max_iters : int, optional (defautl: 1000)
-        Maximum number of iterations in optimization. This parameter is ignored
-        when eval_metric is None.
 
     Attributes
     ----------
@@ -81,62 +32,148 @@ class Blend(LinearModel):
         Estimated weights of blending model.
 
     '''
-    def __init__(self, mean_func='mean', eval_metric=None, max_iters=500):
+    def __init__(self, scoring=None, **opt_params):
 
-        self.eval_metric = eval_metric
-        self.mean_func = mean_func
-        self.max_iters = max_iters
-
+        self.scoring = scoring
+        self.opt_params = opt_params
 
 
-    def fit(self, X, y, weights=None):
+
+    def _fit(self, X, y, weights=None):
         '''
         X : array-like, shape = (n_samples, n_features)
 
         y : array-like, shape = (n_samples, )
 
         weights : array-like, shape = [n_features] or None
-            Features weights, initial guess in optimization if eval_metric is
+            Features weights, initial guess in optimization if scoring is
             not None, otherwise use 'weights' as final coefficients. If None,
             then features are equally weighted. Must be non negative.
 
         '''
 
-        X_shape = np.shape(X)
-        n_features = X_shape[1]
+        # Save data
+        self.n_cols = X.shape[1]
+        self.target = y.name
 
-        # Check type
-        if isinstance(weights, type(None)):
-            weights = np.ones(n_features)
-        elif isinstance(weights, dict):
-            weights = list(weights.values())
-        elif hasattr(weights, '__iter__'):
-            weights = list(weights)
-        else:
-            raise TypeError('Unknown type for weights: %s' % type(w))
+        # Initial weights
+        weights = np.ones(self.n_cols) if weights is None else weights
+        weights = norm_weights(weights)
+        self._set_weights(weights)
 
-        # Check size
-        w_shape = np.shape(weights)
-        msg = 'X and weights have incompatible shapes: {} and {}'.format(X_shape, w_shape)
-        assert n_features == w_shape[0], msg
+        # Optimization (if scoring is defined)
+        if self.scoring is not None:
 
-        # Check non-negativity
-        assert min(weights) >= .0, 'All weights must be non-negative'
+            # Define scorer & objective
+            scorer = get_scorer(self.scoring)
+            objective = lambda w: -scorer(self._set_weights(w), X, y)
 
-        # Blending function
-        self._mean = lambda x, weights: mean_funcs[self.mean_func](x, weights=weights)
-        self._blend = lambda X, weights: X.apply(lambda x: self._mean(x, weights), axis=1)
+            # Define constraints & bounds
+            constraints = [{'type': 'eq', 'fun': lambda w: np.sum(w)-1}]
+            bounds = [(0.,1.)]*self.n_cols
 
-        # Optimization (if eval_metric is defined)
-        if self.eval_metric:
-            metric = get_metric(self.eval_metric)
-            objective = lambda weights: metric(y, self._blend(X, weights))
-            result = minimize(objective, weights, bounds=[(0.,1.)]*n_features,
-                options={'maxiter': self.max_iters})
-            weights = result['x']
+            # Define optimizator params
+            opt_params = {'method': 'SLSQP', 'options': {'maxiter': 100000}}
+            opt_params.update(self.opt_params)
 
-        # Define final linear model
-        self.coef_ = norm_weights(weights)
-        self.intercept_ = .0
+            # Optimize
+            result = minimize(objective, self.coef_, constraints=constraints,
+                bounds=bounds, **opt_params)
+
+            self._set_weights(result['x'])
 
         return self
+
+
+    def _set_weights(self, weights=None):
+        self.coef_ = weights
+        self.intercept_ = .0
+        return self
+
+
+    def _mean(self, x):
+        return np.average(x, weights=self.coef_)
+
+
+    def _blend(self, X):
+        return X.apply(self._mean, axis=1).rename(self.target)
+
+
+
+
+class BlendRegressor(Blend, RegressorMixin):
+
+    def fit(self, X, y, weights=None):
+        return self._fit(X, y, weights)
+
+    def predict(self, X):
+        return self._blend(X)
+
+
+
+
+class BlendClassifier(Blend, ClassifierMixin):
+
+    # WARNING: Binary only
+
+    def fit(self, X, y, weights=None):
+        self.le = LabelEncoder1D()
+        y = self.le.fit_transform(y)
+        return self._fit(X, y, weights)
+
+    def predict_proba(self, X):
+        prob = self._blend(X)
+        prob = pd.concat([1-prob, prob], axis=1)
+        return prob.values
+
+    def predict(self, X):
+        prob = self._blend(X)
+        pred = prob.map(round).astype(int)
+        pred = self.le.inverse_transform(pred)
+        return pred.values
+
+
+
+
+#def _check_weights(x, weights=None):
+#    w = ones_weights(x) if weights is None else weights
+#    w = norm_weights(w)
+
+# Check type
+#if weights is None:
+#    weights = ones_weights(self.X_shape_[1])
+#elif hasattr(weights, '__iter__'):
+#    weights = np.array(weights)
+#else:
+#    raise TypeError('Unknown type for weights: %s' % type(w))
+
+# Check size
+#msg = 'X and weights have incompatible shapes: \
+#    {} and {}'.format(self.X_shape_, np.shape(weights))
+#assert len(weights) == self.X_shape_[1],
+
+# Check non-negativity
+#assert min(weights) >= .0, 'All weights must be non-negative'
+
+ones_weights = lambda x: np.ones(len(x))
+norm_weights = lambda weights: np.array(weights)/sum(weights)
+
+#def _check_weights(x, weights=None):
+#    w = ones_weights(x) if weights is None else weights
+#    w = norm_weights(w)
+#    return w
+
+def weighted_gmean(x, weights=None):
+    w = _check_weights(x, weights)
+    return np.exp(sum(w*np.log(x)))
+
+#def weighted_hmean(x, weights=None):
+#    w = _check_weights(x, weights)
+#    return (sum(w*x**-1))**-1
+
+#MEAN_FUNCS = {
+#    'mean': np.average,
+#    'gmean': weighted_gmean,
+#    'hmean': weighted_hmean,
+#    'median': ws.numpy_weighted_median,
+#}
