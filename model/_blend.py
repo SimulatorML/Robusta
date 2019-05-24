@@ -10,7 +10,7 @@ from scipy.optimize import minimize
 
 from ..preprocessing import LabelEncoder1D
 
-import time
+import time, datetime
 
 __all__ = ['BlendRegressor', 'BlendClassifier']
 
@@ -40,19 +40,32 @@ class Blend(LinearModel):
     opt_params : dict, optional (default={'method': 'SLSQP', 'options': {'maxiter': 100000}})
         Parameters for scipy <minimize> function
 
+    verbose : int (default=100)
+        Logging period. 0: No Output. 100: Print progress each 100 steps & etc.
+
 
     Attributes
     ----------
     coef_ : Series, shape (n_features, )
         Estimated weights of blending model.
 
+    n_iters_ : int
+        Number of evaluations
+
+    scores_ : list of float
+        Evaluation results
+
+    times_ : list of float
+        Iteration time (seconds)
+
     '''
     def __init__(self, mean='mean', scoring=None, opt_params={'method': 'SLSQP',
-        'options': {'maxiter': 100000}}):
+        'options': {'maxiter': 100000}}, verbose=100):
 
         self.mean = mean
         self.scoring = scoring
         self.opt_params = opt_params
+        self.verbose = verbose
 
 
 
@@ -64,6 +77,16 @@ class Blend(LinearModel):
 
         # Init weights
         self.set_weights(weights)
+
+        # Init output
+        if self.verbose:
+            self.n_iters_ = 0
+            self.scores_ = []
+            self.times_ = []
+            self.time = time.time()
+
+            self.score(X, y)
+            self._print_last()
 
         # Optimization (if scoring is defined)
         if self.scoring is not None:
@@ -80,6 +103,11 @@ class Blend(LinearModel):
             result = minimize(objective, w0, bounds=bounds, constraints=cons,
                 **self.opt_params)
 
+            self.set_weights(result['x'])
+
+            if self.verbose:
+                self._print_last()
+
         return self
 
 
@@ -92,7 +120,9 @@ class Blend(LinearModel):
 
     def score(self, X, y):
         scorer = get_scorer(self.scoring)
-        return scorer(self, X, y)
+        score = scorer(self, X, y)
+        self._save_score(score)
+        return score
 
 
     def _mean(self, x):
@@ -102,6 +132,28 @@ class Blend(LinearModel):
 
     def _blend(self, X):
         return self._mean(X).rename(self.target)
+
+
+    def _save_score(self, score):
+        self.time, start_time = time.time(), self.time
+        self.times_.append(self.time - start_time)
+        self.scores_.append(score)
+        self.n_iters_ += 1
+
+        if self.verbose:
+            if self.n_iters_ % self.verbose is 0:
+                self._print_last()
+
+
+    def _print_last(self):
+        i = self.n_iters_
+        s = self.scores_[-1]
+        t = sec_to_str(sum(self.times_))
+
+        msg = 'iters: {}      score: {:.6f}      elapsed: {}'.format(i, s, t)
+        _log_msg(msg)
+
+
 
 
 
@@ -208,3 +260,25 @@ def get_mean(mean):
         raise ValueError(
             'Invalid value for <mean>. Allowed string ' \
             'values are {}.'.format(mean, set(MEAN_FUNCS)))
+
+
+
+def _log_msg(msg):
+    # TODO: move to the utils
+    t = datetime.datetime.now().strftime("[%H:%M:%S]")
+    print(t, msg)
+    time.sleep(0.1)
+
+
+def sec_to_str(s):
+    # TODO: move to the utils
+    H, r = divmod(s, 3600)
+    M, S = divmod(r, 60)
+    if H:
+        return '{} h {} min {} sec'.format(int(H), int(M), int(S))
+    elif M:
+        return '{} min {} sec'.format(int(M), int(S))
+    elif S >= 1:
+        return '{} sec'.format(int(S))
+    else:
+        return '{} ms'.format(int(S*1000))
