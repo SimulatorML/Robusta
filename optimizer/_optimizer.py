@@ -3,12 +3,9 @@ import optuna, hyperopt
 import scipy
 
 import time
-import traceback, sys
 
-from multiprocessing import TimeoutError
 from collections.abc import Iterable
 from numbers import Number
-from funcy import project
 
 import pandas as pd
 import numpy as np

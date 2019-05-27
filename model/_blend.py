@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-import weightedstats as ws
 
 from sklearn.base import ClassifierMixin, RegressorMixin
 from sklearn.linear_model.base import LinearModel
@@ -245,7 +244,6 @@ MEAN_FUNCS = {
     'mean': lambda x, weights: x.dot(weights),
     'gmean': lambda x, weights: np.exp(np.log(x).dot(weights)),
     'hmean': lambda x, weights: 1/(x**-1).dot(weights),
-    'median': ws.numpy_weighted_median,
 }
 
 

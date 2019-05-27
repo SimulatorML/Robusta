@@ -1,9 +1,6 @@
 import pandas as pd
 import numpy as np
 
-from itertools import combinations
-from functools import reduce
-import operator as op
 import datetime
 
 from sklearn.utils.random import check_random_state
@@ -21,25 +18,28 @@ __all__ = ['SFM', 'RFE', 'SFS', 'RFS']
 
 class Selector():
 
-    def __init__(self, cv, model, model_params={}, prep_params={},
-                 fit_params={}, use_cols=None, **fs_params):
+    def __init__(self, estimator, cv, **kwargs):
 
-        self.cv, self.model = cv.copy(), model.copy()
+        self.estimator = estimator
+        self.cv = cv
 
-        self.model_params = model_params
-        self.prep_params = prep_params
-        self.fit_params = fit_params
-        self.fs_params = fs_params
+        self.kwargs = kwargs
 
-        self.use_cols = set(use_cols) if use_cols else set(cv.X_train.columns)
-        self.max_cols = len(self.use_cols)
+        #self.cv, self.model = cv.copy(), model.copy()
 
-        self.reset_trials()
+        #self.model_params = model_params
+        #self.prep_params = prep_params
+        #self.fit_params = fit_params
+        #self.fs_params = fs_params
+
+        #self.use_cols = set(use_cols) if use_cols else set(cv.X_train.columns)
+        #self.max_cols = len(self.use_cols)
+
+        #self.reset_trials()
 
 
 
-    def get_score(self, cols, prev=[], return_importance=False,
-                  save_trial=True):
+    def _get_score(self, cols, prev=[], return_importance=False, save_trial=True):
 
         cols = set(cols)
         prev = set(prev) if prev else []

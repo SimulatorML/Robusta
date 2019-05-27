@@ -125,15 +125,15 @@ from sklearn.naive_bayes import *
 from sklearn.neighbors import *
 from sklearn.ensemble import *
 from sklearn.svm import *
-from rgf import *
+#from rgf import *
 
-from bartpy.sklearnmodel import SklearnModel as BART
+#from bartpy.sklearnmodel import SklearnModel as BART
 from catboost import CatBoostRegressor, CatBoostClassifier
 from lightgbm import LGBMRegressor, LGBMClassifier
 from xgboost import XGBRegressor, XGBClassifier
-from xlearn import FMModel, FFMModel
-from skrvm import RVR, RVC
-from pyearth import Earth
+#from xlearn import FMModel, FFMModel
+#from skrvm import RVR, RVC
+#from pyearth import Earth
 
 from ._blend import *
 from ._nng import NonNegativeGarrote
@@ -175,7 +175,7 @@ MODELS = {
         'regressor': BayesianRidge
     },
     'MARS': {
-        'regressor': Earth
+    #    'regressor': Earth
     },
     'ARD': {
         'regressor': ARDRegression
@@ -239,15 +239,15 @@ MODELS = {
         'classifier': ExtraTreesClassifier
     },
     'RGF': {
-        'regressor': RGFRegressor,
-        'classifier': RGFClassifier
+    #    'regressor': RGFRegressor,
+    #    'classifier': RGFClassifier
     },
     'FastRGF': {
     #    'regressor': FastRGFRegressor,
     #    'classifier': FastRGFClassifier
     },
     'BART': {
-        'regressor': BART
+    #    'regressor': BART
     },
 
     # Distance Based
@@ -271,8 +271,8 @@ MODELS = {
         'classifier': NuSVC
     },
     'RVM': {
-        'regressor': RVR,
-        'classifier': RVC
+    #    'regressor': RVR,
+    #    'classifier': RVC
     },
 
     # Naive Bayes
@@ -291,12 +291,12 @@ MODELS = {
 
     # Factorization Machines
     'FM': {
-        'regressor': FMModel,
-        'classifier': FMModel
+    #    'regressor': FMModel,
+    #    'classifier': FMModel
     },
     'FFM': {
-        'regressor': FFMModel,
-        'classifier': FFMModel
+    #    'regressor': FFMModel,
+    #    'classifier': FFMModel
     },
 }
 
