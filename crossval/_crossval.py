@@ -193,8 +193,9 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
     method, avg = _check_voting(estimator, voting, method, return_pred)
 
     # Init estimator
-    if verbose >= 1:
-        est_name = extract_model_name(estimator, short=True)
+    est_name = extract_model_name(estimator, short=True)
+
+    if verbose >= 2:
         _log_msg(est_name)
 
     params = estimator.get_params()
@@ -303,13 +304,17 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
     # Final score
     if verbose >= 2:
         print()
-
-    if verbose >= 1:
         for metric, scores in results['score'].items():
             mean, std = scores.mean(), scores.std()
             msg = '{}: {:.4f} ± {:.4f}'.format(metric, mean, std)
             _log_msg(msg)
         print()
+
+    if verbose == 1:
+        for metric, scores in results['score'].items():
+            mean, std = scores.mean(), scores.std()
+            msg = '{}: {:.4f} ± {:.4f} ({})'.format(metric, mean, std, est_name)
+            _log_msg(msg)
 
     return results
 

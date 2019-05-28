@@ -129,6 +129,9 @@ def stack(estimators_list, cv, X, y, groups=None, X_new=None, test_avg=True,
     S_train = _stack_preds(oof_preds, est_names, join_X, X)
     S_test = _stack_preds(new_preds, est_names, join_X, X_new)
 
+    if self.verbose:
+        print()
+
     return S_train, S_test
 
 
@@ -214,7 +217,8 @@ class Stacker(BaseEstimator, TransformerMixin):
             results = crossval(estimator, cv=self.folds, X=X, y=y, groups=groups,
                 scoring=self.scoring, voting=self.voting, method=self.method,
                 X_new=None, test_avg=self.test_avg, return_estimator=True,
-                return_pred=True, return_score=True, n_jobs=self.n_jobs)
+                return_pred=True, return_score=True, return_encoder=True,
+                n_jobs=self.n_jobs, verbose=self.verbose)
 
             # Save predictions
             oof_pred = results['oof_pred']
@@ -224,6 +228,9 @@ class Stacker(BaseEstimator, TransformerMixin):
 
         # Concatenate predicitons
         S_train = _stack_preds(oof_preds, self.est_names_, self.join_X, X)
+
+        if self.verbose:
+            print()
 
         return S_train
 
@@ -241,9 +248,13 @@ class Stacker(BaseEstimator, TransformerMixin):
             results = crossval(estimator, cv=self.folds, X=X, y=y, groups=groups,
                 scoring=self.scoring, voting=self.voting, method=self.method,
                 X_new=None, test_avg=self.test_avg, return_estimator=True,
-                return_pred=False, return_score=True, n_jobs=self.n_jobs)
+                return_pred=False, return_score=True, return_encoder=True,
+                n_jobs=self.n_jobs, verbose=self.verbose)
 
             self._save_results(results)
+
+        if self.verbose:
+            print()
 
         return self
 
