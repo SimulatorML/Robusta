@@ -78,12 +78,12 @@ class Blend(LinearModel):
         self.set_weights(weights)
 
         # Init output
-        if self.verbose:
-            self.n_iters_ = 0
-            self.scores_ = []
-            self.times_ = []
-            self.time = time.time()
+        self.n_iters_ = 0
+        self.scores_ = []
+        self.times_ = []
+        self.time = time.time()
 
+        if self.verbose:
             self.score(X, y)
             self._print_last()
 
@@ -134,10 +134,12 @@ class Blend(LinearModel):
 
 
     def _save_score(self, score):
-        self.time, start_time = time.time(), self.time
-        self.times_.append(self.time - start_time)
+
         self.scores_.append(score)
         self.n_iters_ += 1
+
+        self.time, start_time = time.time(), self.time
+        self.times_.append(self.time - start_time)
 
         if self.verbose:
             if self.n_iters_ % self.verbose is 0:

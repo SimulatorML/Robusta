@@ -74,7 +74,11 @@ class PandasTransformer(BaseEstimator, TransformerMixin):
 
         """
         Xt = self.transformer.transform(X)
-        Xt = pd.DataFrame(Xt, columns=self.columns, index=X.index)
+        
+        if Xt.shape[1] == len(self.columns):
+            Xt = pd.DataFrame(Xt, index=X.index, columns=self.columns)
+        else:
+            Xt = pd.DataFrame(Xt, index=X.index)
 
         return Xt
 
