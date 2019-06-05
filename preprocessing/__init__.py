@@ -43,4 +43,5 @@ __all__ = [
     'GaussRank',
     'RankTransform',
     'MaxAbsScaler',
+    'SyntheticFeatures',
 ]

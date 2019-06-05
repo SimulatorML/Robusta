@@ -125,14 +125,14 @@ from sklearn.naive_bayes import *
 from sklearn.neighbors import *
 from sklearn.ensemble import *
 from sklearn.svm import *
-#from rgf import *
+from rgf import *
 
 #from bartpy.sklearnmodel import SklearnModel as BART
 from catboost import CatBoostRegressor, CatBoostClassifier
 from lightgbm import LGBMRegressor, LGBMClassifier
 from xgboost import XGBRegressor, XGBClassifier
 #from xlearn import FMModel, FFMModel
-#from skrvm import RVR, RVC
+from skrvm import RVR, RVC
 #from pyearth import Earth
 
 from ._blend import *
@@ -239,8 +239,8 @@ MODELS = {
         'classifier': ExtraTreesClassifier
     },
     'RGF': {
-    #    'regressor': RGFRegressor,
-    #    'classifier': RGFClassifier
+        'regressor': RGFRegressor,
+        'classifier': RGFClassifier
     },
     'FastRGF': {
     #    'regressor': FastRGFRegressor,
@@ -271,8 +271,8 @@ MODELS = {
         'classifier': NuSVC
     },
     'RVM': {
-    #    'regressor': RVR,
-    #    'classifier': RVC
+        'regressor': RVR,
+        'classifier': RVC
     },
 
     # Naive Bayes

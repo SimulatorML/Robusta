@@ -12,6 +12,7 @@ __all__ = [
     'GaussRank',
     'RankTransform',
     'MaxAbsScaler',
+    'SyntheticFeatures',
 ]
 
 
@@ -157,6 +158,76 @@ class RankTransform(BaseEstimator, TransformerMixin):
         """
         Xt = X.copy() if self.copy else X
         return Xt.rank(axis=0, **self.params)
+
+
+
+class SyntheticFeatures(BaseEstimator, TransformerMixin):
+
+    def __init__(self, pair_sum=True, pair_dif=True, pair_mul=True, pair_div=True, join_X=True, eps=1e-2):
+        self.pair_sum = pair_sum
+        self.pair_dif = pair_dif
+        self.pair_mul = pair_mul
+        self.pair_div = pair_div
+        self.join_X = join_X
+        self.eps = eps
+
+
+    def fit(self, X, y=None):
+        if isinstance(X, pd.core.frame.DataFrame):
+            self.columns = X.columns
+        else:
+            self.columns = ['x_{}'.format(i) for i in range(X.shape[1])]
+        return self
+
+
+    def transform(self, X):
+
+        if isinstance(X, pd.core.frame.DataFrame):
+            inds = X.index
+        else:
+            inds = np.arange(X.shape[0])
+            X = pd.DataFrame(X, columns=self.columns, index=inds)
+
+
+        Xt = pd.DataFrame(index=inds)
+
+        cols_pairs = np.array(list(combinations(self.columns, 2)))
+        cols_A = cols_pairs[:,0]
+        cols_B = cols_pairs[:,1]
+
+        if self.pair_sum:
+            cols = ['{}+{}'.format(a, b) for a, b in cols_pairs]
+            F = np.vstack([X[a].values + X[b].values for a, b in cols_pairs]).T
+            F = pd.DataFrame(F, index=inds, columns=cols)
+            Xt = Xt.join(F)
+
+        if self.pair_dif:
+            cols = ['{}-{}'.format(a, b) for a, b in cols_pairs]
+            F = np.vstack([X[a].values - X[b].values for a, b in cols_pairs]).T
+            F = pd.DataFrame(F, index=inds, columns=cols)
+            Xt = Xt.join(F)
+
+        if self.pair_mul:
+            cols = ['{}*{}'.format(a, b) for a, b in cols_pairs]
+            F = np.vstack([X[a].values * X[b].values for a, b in cols_pairs]).T
+            F = pd.DataFrame(F, index=inds, columns=cols)
+            Xt = Xt.join(F)
+
+        if self.pair_div:
+            cols = ['{}/{}'.format(a, b) for a, b in cols_pairs]
+            F = np.vstack([X[a].values / (X[b].values + self.eps) for a, b in cols_pairs]).T
+            F = pd.DataFrame(F, index=inds, columns=cols)
+            Xt = Xt.join(F)
+
+            cols = ['{}/{}'.format(a, b) for b, a in cols_pairs]
+            F = np.vstack([X[a].values / (X[b].values + self.eps) for b, a in cols_pairs]).T
+            F = pd.DataFrame(F, index=inds, columns=cols)
+            Xt = Xt.join(F)
+
+        if self.join_X:
+            Xt = X.join(Xt)
+
+        return Xt
 
 
 
