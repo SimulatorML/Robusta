@@ -624,7 +624,7 @@ MODEL_PARAMS = {
     # https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.Lars.html
         'eps': (1e-6, 1e-2, 'log'),
 
-        'n_nonzero_coefs': lambda X: (1, np.shape(X)[1], 1),
+        #'n_nonzero_coefs': lambda X: (1, np.shape(X)[1], 1),
 
         'fit_intercept': {True, False},
         'normalize': {True, False},
@@ -651,7 +651,7 @@ MODEL_PARAMS = {
 
     'PLS': {
     # https://scikit-learn.org/stable/modules/generated/sklearn.cross_decomposition.PLSRegression.html
-        'n_components': lambda X: (1, np.shape(X)[1], 1),
+        #'n_components': lambda X: (1, np.shape(X)[1], 1),
         'scale': {True, False},
     }
 }

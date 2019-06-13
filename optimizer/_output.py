@@ -2,11 +2,11 @@ from IPython import display
 from matplotlib.ticker import MaxNLocator
 import matplotlib.pylab as plt
 import numpy as np
-import time
+import time, datetime
 
 from scipy import signal, stats
 
-from robusta import utils, metrics
+#from robusta import utils, metrics
 
 
 
@@ -29,9 +29,11 @@ def print_progress(opt):
         return
 
     trials = opt.trials_
-    n_iters = opt.max_trials
+    # TODO: max_trials
+    #n_iters = opt.max_trials
+    n_iters = None
     k_iters = len(trials)
-    trial = trials[-1]
+    trial = trials.iloc[-1]
 
     if opt.verbose >= 1:
 
@@ -44,9 +46,11 @@ def print_progress(opt):
             iters_left = None
 
         # eta (estimated time to arrival)
-        iters_time = np.array(opt.get_key_trials('time'))
+        iters_time = np.array(opt.trials_['time'])
 
-        if opt.max_time:
+        # TODO: max_time
+        #if opt.max_time:
+        if False:
             eta_time = max(0, opt.max_time - opt.time_)
         else:
             eta_time = np.nan
@@ -58,26 +62,30 @@ def print_progress(opt):
             eta_iter = np.nan
 
         eta = np.nanmin([eta_time, eta_iter])
-        if not np.isnan(eta):
-            eta = 'eta: %s' % utils.sec_to_str(eta)
-        else:
-            eta = ''
+        # TODO: eta
+        eta = ''
+        #if not np.isnan(eta):
+        #    eta = 'eta: %s' % utils.sec_to_str(eta)
+        #else:
+        #    eta = ''
 
         # status & scores
+        t = datetime.datetime.now().strftime("[%H:%M:%S]")
+
         if trial['status'] is 'ok':
             score = trial['score']
-            best_score = opt.best_score_
-            metric_name = opt.cv.metric_name
+            best_score = opt.trials_['score'].max()
+            metric_name = opt.scoring if isinstance(opt.scoring, str) else 'score'
             star = '(*)' if score == best_score else '   '
 
-            msg = (utils.ctime_str(), iters, metric_name, abs(score), abs(best_score), star, eta)
+            msg = (t, iters, metric_name, abs(score), abs(best_score), star, eta)
             print('%s iter: %s      %s: %.4f      best: %.4f %s   %s' % msg)
         else:
-            msg = (utils.ctime_str(), iters, trial['status'])
+            msg = (t, iters, trial['status'])
             print('%s iter: %s      status: %s' % msg)
 
     if opt.verbose >= 2:
-        # current hyperparameters
+        # current hyperparams
         print(trial['params'])
         print()
 

@@ -1,4 +1,6 @@
 from sklearn.model_selection import ParameterSampler, ParameterGrid
+from sklearn.base import BaseEstimator, clone
+
 import optuna, hyperopt
 import scipy
 
@@ -10,160 +12,143 @@ from numbers import Number
 import pandas as pd
 import numpy as np
 
+from ..crossval import crossval_score
+
 from ._output import plot_progress, print_progress
 
-from robusta.model._model import MODEL_PARAMS, PREP_PARAMS, FIT_PARAMS
-from robusta import utils
-
-
-__all__ = ['RandomSearch', 'HyperOpt', 'Optuna', 'DE']
+#from ..model._model import MODEL_PARAMS, PREP_PARAMS, FIT_PARAMS
 
 
 
-class Optimizer():
+
+
+#__all__ = ['GridSearchCV', 'RandomSearchCV', 'OptunaCV']
+__all__ = ['OptunaCV']
+
+
+
+class BaseOptimizer(BaseEstimator):
     '''
-    Hyper-Parameters Optimizer
+    Hyper-parameters Optimizer
 
     Parameters
     ----------
-    cv, model : instance
-        CrossValidation & Model instances
+    estimator : estimator object
+        The object to use to fit the data.
 
-    model_params, prep_params, fit_params : dict, optional (default: {})
-        Fixed model & preparation & fit parameters. Also can be used as custom bounds.
+    cv : int, cross-validation generator or an iterable
+        Determines the cross-validation splitting strategy.
+        Possible inputs for cv are:
 
-    use_cols : iterable, optional (default: None)
-        List of features names to use
+        - None, to use the default 3-fold cross validation,
+        - integer, to specify the number of folds in a `(Stratified)KFold`,
+        - :term:`CV splitter`,
+        - An iterable yielding (train, test) splits as arrays of indices.
 
-    mode : string, optional
-        'model': [default]
-            Optimize ''model_params''
-        'prep':
-            Optimize ''prep_params''
-        'fit':
-            Optimize ''fit_params''
+        For integer/None inputs, if the estimator is a classifier and ``y`` is
+        either binary or multiclass, :class:`StratifiedKFold` is used. In all
+        other cases, :class:`KFold` is used.
+
+    scoring : string, callable or None, optional, default: None
+        A string or a scorer callable object / function with signature
+        ``scorer(estimator, X, y)`` which should return only a single value.
+        If None, the estimator's default scorer (if available) is used.
+
+    param_space : dict
+
+    clone_estimator : boolean (default: True)
+
+    return_estimator : boolean (default: False)
+        If return_estimator=True, <fit> method returns estimator with optimal
+        parameters (attr <best_estimator_>), otherwise return optimizer object.
 
     verbose : int, optional (default: 1)
         Verbosity level:
         0: No output
         1: Print time, iters, score & eta
-        2: Same plus trial's parameters
-        3: Same plus cv output for each fold
+        2: Also print trial's parameters
+        3: Also print cv output for each fold
 
     plot : bool, optional (defautl: False)
         Plot scores if True
 
-    debug : bool, optional (defautl: False)
-        Print error messages if True
-
     Attributes
     ----------
 
-    best_params_ : dict
-        Best parameters
+    trials_ : DataFrame
+        Params, score, time & cv results:
+
+        - 'params' : dict
+            Estimated parameters
+
+        - 'score', 'std' : float
+            Mean score of cross-validation & it's standard deviation
+
+        - 'time' : float
+            Fitting duration (# of sec)
+
+        - 'status': string
+            Final status of trial ('ok', 'timeout', 'fail' or 'interrupted')
+
+    best_estimator_ : estimator
+        Estimator with best params
 
     best_score_ : float
         Best score
 
+    best_params_ : dict
+        Best parameters
+
     best_trial_ : int
         Index of best trial
 
-    params_ : list of dicts
-        All estimated parameters
-
-    scores_ : list of float
-        All scores
-
-    trials_ : list of dicts
-        All trials. Each trial contains:
-
-        'params' : dict
-            Estimated parameters
-
-        'score', 'std' : float
-            Mean score of cross-validation & it's standard deviation
-
-        'time' : float
-            Fitting duration (# of sec)
-
-        'status': string
-            Final status of trial ('ok', 'timeout', 'fail' or 'interrupted')
-
-    time_ : float
-        Total optimization time
-
     '''
-    def __init__(self, cv, model, model_params={}, prep_params={}, fit_params={},
-                 use_cols=None, mode='model', verbose=1, plot=False, debug=False):
+    def __init__(self, estimator, cv=5, scoring=None, param_space=None,
+                 clone_estimator=True, verbose=1, debug=False, plot=False):
 
-        self.cv, self.model = cv.copy(), model.copy()
+        self.param_space = param_space
 
-        self.model_params = model_params
-        self.prep_params = prep_params
-        self.fit_params = fit_params
-        self.use_cols = use_cols
+        self.estimator = estimator
+        self.clone_estimator = clone_estimator
 
+        self.scoring = scoring
+        self.cv = cv
 
-        # Space selection
-        modes = {'model', 'prep', 'fit'}
-        if mode in modes:
-            self.mode = mode
-        else:
-            raise ValueError("Unknown mode: '{}'. Expected: {}.".format(mode, modes))
-
-        if self.mode is 'model':
-            base_space = dict(MODEL_PARAMS[model.model_name])
-            base_space.update(self.model_params)
-
-        elif self.mode is 'prep':
-            base_space = dict({})
-            base_space.update(PREP_PARAMS[self.prep_params])
-
-        elif self.mode is 'fit':
-            base_space = dict(FIT_PARAMS[model.model_name])
-            base_space.update(self.fit_params)
-
-
-        # Init output & space & trials
-        self.set_output(plot, verbose, debug)
-        self.set_space(base_space)
-        self.reset_trials()
+        self.verbose = verbose
+        self.debug = debug
+        self.plot = plot
 
 
 
-    def get_score(self, params, save_trial=True, return_std=False):
+    def eval_params(self, params):
 
         if self.is_finished:
             return
 
+        time_start = time.time()
+        params = fix_params(params, self.param_space)
+
         trial = {
-            'params': self.fix_params(params),
+            'status': 'ok',
+            'params': params,
             'score': None,
-            'std': None,
-            'status': 'interrupted',
             'time': .0
         }
 
-        time_start = utils.ctime()
-
         try:
-            kwargs = {
-                'model': self.model,
-                'model_params': dict(self.model_params),
-                'prep_params': dict(self.prep_params),
-                'fit_params': dict(self.fit_params),
-                'use_cols': self.use_cols,
-            }
+            # TODO: Do not clone for Pipeline
+            estimator = clone(self.estimator)
+            estimator = estimator.set_params(**params)
 
-            kwargs['{}_params'.format(self.mode)] = trial['params']
-
-            cv = self.cv.copy().fit(**kwargs)
-            trial['score'], trial['std'] = cv.score(return_std=True)
-
-            trial.update({'status': 'ok'})
+            scores = self.eval(estimator)
+            trial['score'] = np.mean(scores)
+            # TODO: score for each fold & std
+            # TODO: multiple scoring
+            # TODO: ranking
 
         except KeyboardInterrupt:
-            trial.update({'status': 'interrupted'})
+            trial['status'] = 'interrupt'
+
             self.is_finished = True
             raise KeyboardInterrupt
 
@@ -171,239 +156,71 @@ class Optimizer():
         #    trial.update({'status': 'timeout'})
 
         except Exception as ex:
-            trial.update({'status': 'fail'})
+            trial['status'] = 'fail'
 
             if self.debug:
                 print('[{}] {}'.format(type(ex).__name__, ex))
 
         finally:
-            time_end = utils.ctime()
-            time_delta = (time_end-time_start).total_seconds()
-            trial['time'] = time_delta
+            trial['time'] = time.time() - time_start
+            # TODO: global timer (timeout ending)
+            #if self.max_time and self.total_time() > self.max_time:
+            #    self.is_finished = True
 
-            self.save_trial(**trial)
-            self.output()
+            self._save_trial(trial)
+            self._output()
 
-            if return_std:
-                return trial['score'], trial['std']
-            else:
-                return trial['score']
+            return trial['score']
 
 
 
-    def save_trial(self, params, score=None, std=None, time=None, status='ok'):
+    def _save_trial(self, trial):
 
-        trial = {
-            'params': params,
-            'score': score,
-            'std': std,
-            'time': time,
-            'status': status,
-        }
-
-        # Update best
-        if score:
-            if not self.best_score_ or score >= self.best_score_:
-                self.best_params_ = params
-                self.best_score_ = score
-                self.best_trial_ = len(self.trials_)
-
-        # Append new trial
-        self.trials_.append(trial)
-        self.params_.append(trial['params'])
-        self.scores_.append(trial['score'])
-
-        # Update optimization time
-        self.time_ += trial['time']
-        if self.max_time and self.time_ > self.max_time:
-            self.is_finished = True
+        self.trials_ = self.trials_.append(trial, ignore_index=True)
 
 
-    def reset_trials(self):
+    def _init_trials(self):
+        # TODO: continue optimization
+        self.trials_ = pd.DataFrame()
 
-        self.trials_ = []
-        self.params_ = []
-        self.scores_ = []
 
-        self.best_params_ = None
-        self.best_score_ = None
-        self.best_trial_ = None
 
+    def _set_eval(self, X, y, groups):
+
+        self.eval = lambda estimator: crossval_score(estimator, self.cv,
+            X, y, groups, self.scoring, n_jobs=-1, verbose=0).values
+
+
+
+    def _fit(self, X, y, groups):
+
+        self._init_trials()
+        self._init_space()
+
+        self._set_eval(X, y, groups)
         self.is_finished = False
-        self.time_ = .0
 
 
-    def get_key_trials(self, key='params'):
-        return [trial[key] for trial in self.trials_]
+    def _fit_end(self):
+
+        best_iter = self.trials_['score'].argmax()
+
+        self.best_iter_ = best_iter
+        self.best_score_ = self.trials_.loc[best_iter, 'score']
+        self.best_params_ = self.trials_.loc[best_iter, 'params']
+
+        best_estimator = clone(self.estimator)
+        best_estimator.set_params(**self.best_params_)
+        self.best_estimator_ = best_estimator
 
 
-    def init_base_space(self, base_space):
+    def _init_space(self):
 
-        space = {}
-
-        for param, bounds in base_space.items():
-
-            # dependent bounds: bounds = f(x, y, ...)
-            if callable(bounds):
-                #args = {arg: dict_args[arg] for arg in utils.get_params(bounds)}
-                args = {arg: getattr(self, arg) for arg in utils.get_params(bounds)}
-                bounds = bounds(**args)
-
-            # list bounds: [x, y, ...]
-            if isinstance(bounds, list):
-
-                for i in range(len(bounds)):
-                    sub_param = '{}@{}'.format(param, i)
-                    space[sub_param] = bounds[i]
-
-            # regular bounds
-            else:
-                space[param] = bounds
-
-        self.base_space = space
+        self.btypes = get_bound_types(self.param_space)
+        self.space = self._get_space()
 
 
-    def init_btypes(self):
-
-        btypes = {}
-
-        for param, bounds in self.base_space.items():
-            # Step 3. Other bounds typification
-            if isinstance(bounds, str):
-                btype = 'const'
-
-            elif isinstance(bounds, Iterable):
-                if isinstance(bounds, set):
-                    btype = 'choice'
-
-                elif isinstance(bounds, tuple):
-
-                    if len(bounds) == 2:
-                        btype = 'uniform'
-
-                    elif len(bounds) == 3:
-
-                        if bounds[2] == 'log':
-                            btype = 'loguniform'
-
-                        elif bounds[2] == 1:
-                            btype = 'quniform_int'
-
-                        elif isinstance(bounds[2], Number):
-                            btype = 'quniform'
-
-                        else:
-                            raise ValueError('Unknown bounds type: {}'.format(bounds))
-
-                    else:
-                        raise ValueError('Unknown bounds type: {}'.format(bounds))
-
-                else:
-                    raise ValueError('Unknown bounds type: {}'.format(bounds))
-
-            else:
-                btype = 'const'
-
-            btypes[param] = btype
-
-        self.btypes = btypes
-
-
-    def set_space(self, base_space):
-
-        self.init_base_space(base_space)
-        self.init_btypes()
-        self.init_space()
-
-
-    def fix_params(self, params):
-
-        params = dict(params)
-
-        # Normalize:
-        # - integers
-        # - constant
-        for param, bounds in self.base_space.items():
-
-            if self.btypes[param] in ['quniform', 'quniform_int']:
-                a, b, q = bounds
-                params[param] = utils.round_step(params[param], q=q, a=a)
-
-            elif self.btypes[param] is 'const':
-                params[param] = bounds
-
-
-        # Squeeze lists
-        base_params = set([param.split('@')[0] for param in params])
-
-        for param in base_params:
-            if param not in params:
-
-                params[param] = []
-                i = 0
-
-                while '{}@{}'.format(param, i) in params:
-                    sub_param = '{}@{}'.format(param, i)
-                    params[param].append(params[sub_param])
-                    del params[sub_param]
-                    i += 1
-
-        return params
-
-
-    def set_limits(self, n_trials=None, timeout=None):
-        '''
-        Set iterations limits
-
-        Parameters
-        ----------
-        n_trials : int or None (default: None)
-            The maximum number of trials. If self.trials is not empty, then n_iters
-            adds to previous max_iters.
-
-        timeout : int, float or None (default: None)
-            Stop optimization after given time (# of sec). If self.trials is not empty,
-            then timeout adds to previous max_time.
-
-        '''
-        if n_trials:
-            if len(self.trials_):
-                self.max_trials = n_trials + len(self.trials_)
-            else:
-                self.max_trials = n_trials
-        else:
-            self.max_trials = None
-
-        if timeout:
-            if len(self.trials_):
-                self.max_time = timeout + sum(self.get_key_trials('time'))
-            else:
-                self.max_time = timeout
-        else:
-            self.max_time = None
-
-
-    def set_output(self, plot=True, verbose=1, debug=False):
-        '''
-        Output setting.
-
-        Parameters
-        ----------
-        verbose : int
-
-        plot : bool
-
-        debug : bool
-        '''
-        self.cv.verbose = 2 if (int(verbose) > 2) else 0
-        self.cv.plot = False
-
-        self.verbose = verbose
-        self.debug = debug
-        self.plot = plot
-
-
-    def output(self):
+    def _output(self):
         '''
         Print verbose & plot output for the last trial (self.trials[-1]).
         '''
@@ -417,7 +234,11 @@ class Optimizer():
 
 
 
-class RandomSearch(Optimizer):
+
+
+
+
+'''class RandomSearchCV(Optimizer):
 
     def init_space(self):
 
@@ -454,15 +275,15 @@ class RandomSearch(Optimizer):
         except:
             pass
 
-        return self.best_params_
+        return self.best_params_'''
 
 
 
 
 
-class DE(Optimizer):
+'''class DECV(Optimizer):
 
-    def init_space(self):
+    def _init_space(self):
 
         space = {}
 
@@ -495,15 +316,15 @@ class DE(Optimizer):
         except:
             pass
 
-        return self.best_params_
+        return self.best_params_'''
 
 
 
 
 
-class HyperOpt(Optimizer):
+'''class HyperOptCV(Optimizer):
 
-    def init_space(self):
+    def _init_space(self):
 
         space = {}
 
@@ -551,19 +372,19 @@ class HyperOpt(Optimizer):
         except:
             pass
 
-        return self.best_params_
+        return self.best_params_'''
 
 
 
 
 
-class Optuna(Optimizer):
+class OptunaCV(BaseOptimizer):
 
-    def init_space(self):
-        self.space = self.base_space
+    def _get_space(self):
+        return self.param_space
 
 
-    def get_params(self, trial):
+    def _get_params(self, trial):
 
         space = self.space
         params = {}
@@ -579,7 +400,11 @@ class Optuna(Optimizer):
 
             elif btype is 'quniform':
                 a, b, q = space[param]
-                b = utils.round_step(b, q=q, a=a)
+                #b = utils.round_step(b, q=q, a=a)
+                # FIXME: round step
+                b = a + ((b - a)//q)*q
+                b = round(b, 8)
+
                 params[param] = trial.suggest_discrete_uniform(param, a, b, q)
 
             elif btype is 'quniform_int':
@@ -596,18 +421,28 @@ class Optuna(Optimizer):
         return params
 
 
-    def optimize(self, n_trials=None, timeout=None, seed=0, algo='tpe', **kwargs):
+    def fit(self, X, y, groups=None):
 
-        self.set_limits(n_trials=n_trials, timeout=timeout)
+        self._fit(X, y, groups)
+        # n_trials=None, timeout=None, seed=0, algo='tpe', **kwargs):
+        #self.set_limits(n_trials=n_trials, timeout=timeout)
+        seed = 0
+        n_trials = 5
+        timeout = 300
+        sampler = optuna.samplers.TPESampler(seed=seed)
 
         def objective(trial):
-            params = self.get_params(trial)
-            score = self.get_score(params)
-            if self.is_finished: raise KeyboardInterrupt
-            return -score if score else np.nan
 
-        if algo is 'tpe': sampler = optuna.samplers.TPESampler(seed=seed)
-        elif algo is 'rand': sampler = optuna.samplers.RandomSampler(seed=seed)
+            params = self._get_params(trial)
+            score = self.eval_params(params)
+
+            if self.is_finished:
+                raise KeyboardInterrupt
+            else:
+                return -score if score else np.nan
+
+        #if algo is 'tpe':
+        #elif algo is 'rand': sampler = optuna.samplers.RandomSampler(seed=seed)
 
         try:
             optuna.logging.disable_default_handler()
@@ -616,4 +451,90 @@ class Optuna(Optimizer):
         except KeyboardInterrupt:
             pass
 
-        return self.best_params_
+        self._fit_end()
+
+        # TODO: return estimator
+        #if return_estimator:
+        #    return self.best_estimator_
+        #else:
+        #    return self
+        return self
+
+
+
+
+def get_bound_types(space):
+
+    btypes = {}
+
+    for param, bounds in space.items():
+
+        if isinstance(bounds, str):
+            btype = 'const'
+
+        elif isinstance(bounds, Iterable):
+            if isinstance(bounds, set):
+                btype = 'choice'
+
+            elif isinstance(bounds, tuple):
+
+                if len(bounds) == 2:
+                    btype = 'uniform'
+
+                elif len(bounds) == 3:
+
+                    if bounds[2] == 'log':
+                        btype = 'loguniform'
+
+                    elif bounds[2] == 1:
+                        btype = 'quniform_int'
+
+                    elif isinstance(bounds[2], Number):
+                        btype = 'quniform'
+
+                    else:
+                        raise ValueError('Unknown bounds type: {}'.format(bounds))
+
+                else:
+                    raise ValueError('Unknown bounds type: {}'.format(bounds))
+
+            else:
+                raise ValueError('Unknown bounds type: {}'.format(bounds))
+
+        else:
+            btype = 'const'
+
+        btypes[param] = btype
+
+    return btypes
+
+
+
+def fix_params(params, space):
+
+    params = dict(params)
+    btypes = get_bound_types(space)
+
+    # Normalize:
+    # - integers
+    # - constant
+    for param, bounds in space.items():
+
+        if btypes[param] in ['quniform', 'quniform_int']:
+            # round param value with step: q
+            x = params[param]
+            a, b, q = bounds
+
+            x = a + ((x - a)//q)*q
+            x = round(x, 8)
+
+            # FIXME: bad checking
+            if int(x) == x:
+                x = int(x)
+
+            params[param] = x
+
+        elif btypes[param] is 'const':
+            params[param] = bounds
+
+    return params
