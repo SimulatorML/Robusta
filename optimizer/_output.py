@@ -29,11 +29,10 @@ def print_progress(opt):
         return
 
     trials = opt.trials_
-    # TODO: max_trials
-    #n_iters = opt.max_trials
-    n_iters = None
-    k_iters = len(trials)
     trial = trials.iloc[-1]
+
+    n_iters = opt.max_trials
+    k_iters = len(trials)
 
     if opt.verbose >= 1:
 
@@ -45,13 +44,11 @@ def print_progress(opt):
             iters = '%i' % k_iters
             iters_left = None
 
-        # eta (estimated time to arrival)
+        # ETA (estimated time to arrival)
         iters_time = np.array(opt.trials_['time'])
 
-        # TODO: max_time
-        #if opt.max_time:
-        if False:
-            eta_time = max(0, opt.max_time - opt.time_)
+        if opt.timeout:
+            eta_time = max(0, opt._time_left())
         else:
             eta_time = np.nan
 
@@ -62,12 +59,10 @@ def print_progress(opt):
             eta_iter = np.nan
 
         eta = np.nanmin([eta_time, eta_iter])
-        # TODO: eta
-        eta = ''
-        #if not np.isnan(eta):
-        #    eta = 'eta: %s' % utils.sec_to_str(eta)
-        #else:
-        #    eta = ''
+        if not np.isnan(eta):
+            eta = 'eta: {}'.format(sec_to_str(eta))
+        else:
+            eta = ''
 
         # status & scores
         t = datetime.datetime.now().strftime("[%H:%M:%S]")
@@ -78,7 +73,7 @@ def print_progress(opt):
             metric_name = opt.scoring if isinstance(opt.scoring, str) else 'score'
             star = '(*)' if score == best_score else '   '
 
-            msg = (t, iters, metric_name, abs(score), abs(best_score), star, eta)
+            msg = (t, iters, metric_name, score, best_score, star, eta)
             print('%s iter: %s      %s: %.4f      best: %.4f %s   %s' % msg)
         else:
             msg = (t, iters, trial['status'])
@@ -86,7 +81,7 @@ def print_progress(opt):
 
     if opt.verbose >= 2:
         # current hyperparams
-        print(trial['params'])
+        print('\t', trial['params'])
         print()
 
 
@@ -167,3 +162,17 @@ def plot_progress(opt, cut=.75, delay=10):
 
         if opt.is_finished:
             time.sleep(1)
+
+
+
+def sec_to_str(s):
+    H, r = divmod(s, 3600)
+    M, S = divmod(r, 60)
+    if H:
+        return '{} h {} min {} sec'.format(int(H), int(M), int(S))
+    elif M:
+        return '{} min {} sec'.format(int(M), int(S))
+    elif S >= 1:
+        return '{} sec'.format(int(S))
+    else:
+        return '{} ms'.format(int(S*1000))
