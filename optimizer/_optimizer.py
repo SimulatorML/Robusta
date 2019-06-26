@@ -28,8 +28,7 @@ __all__ = ['OptunaCV']
 
 
 class BaseOptimizer(BaseEstimator):
-    '''
-    Hyper-parameters Optimizer
+    '''Hyper-parameters Optimizer
 
     Parameters
     ----------
@@ -55,12 +54,36 @@ class BaseOptimizer(BaseEstimator):
         If None, the estimator's default scorer (if available) is used.
 
     param_space : dict
+        Parameters bounds:
 
-    clone_estimator : boolean (default: True)
+            - 'uniform':
+                Uniform distribution [a, b].
+                Pass 2 values (a, b) as tuple.
 
-    return_estimator : boolean (default: False)
-        If return_estimator=True, <fit> method returns estimator with optimal
-        parameters (attr <best_estimator_>), otherwise return optimizer object.
+            - 'quniform':
+                Uniform distribution [a, b] with step q.
+                Pass 3 values (a, b, q) as tuple.
+
+            - 'quniform_int':
+                Uniform distribution [a, b] with integer step q=1.
+                Pass 3 values (a, b, 1) as tuple of integers.
+
+            - 'loguniform':
+                Log-uniform distribution [log10(a), log10(b)].
+                Pass 3 values (a, b, 'log') as tuple.
+
+            - 'choice':
+                Set of options A, B, C & etc.
+                Pass several values {A, B, C, ...} as set.
+
+            - 'const':
+                Constant value.
+                Pass single value (int, float, string, None, ...).
+
+    clone : boolean (default: True)
+        Whether to clone estimator on each iteration or refit original
+        estimator instance. Can be useful for Pipeline with cached
+        transformation steps.
 
     timeout : int or NoneType (default: None)
         Stop optimization after given number of seconds.
@@ -75,11 +98,14 @@ class BaseOptimizer(BaseEstimator):
         termination signal such as Ctrl+C or SIGTERM.
 
     warm_start : boolean (default: False)
-        Whether to continue previous optimization process when calling <fit>.
-        Otherwise delete old trials and start new optimization.
+        Whether to continue optimization and start with previos optimal params
+        when calling <fit>. Otherwise drop old trials and start new optimization.
 
     random_state : int (default: 0)
         Random seed for stochastic oprimizers.
+
+    debug: boolean (default: False)
+        Raise all exceptions during optimization.
 
     verbose : int, optional (default: 1)
         Verbosity level:
@@ -93,6 +119,9 @@ class BaseOptimizer(BaseEstimator):
 
     Attributes
     ----------
+
+    best_estimator_ : estimator
+        Estimator with best params
 
     trials_ : DataFrame
         Params, score, time & cv results:
@@ -112,9 +141,6 @@ class BaseOptimizer(BaseEstimator):
     n_trials_ : int
         Total number of trials
 
-    best_estimator_ : estimator
-        Estimator with best params
-
     best_score_ : float
         Best score
 
@@ -124,17 +150,18 @@ class BaseOptimizer(BaseEstimator):
     best_trial_ : int
         Index of best trial
 
+    is_finished_ : boolean
+        Whether optimization process is finished correctly
+
     '''
     def __init__(self, estimator, cv=5, scoring=None, param_space=None,
-                 clone_estimator=True, return_estimator=False, warm_start=False,
-                 timeout=None, n_trials=None, random_state=0, debug=False,
-                 verbose=1, plot=False):
+                 clone=True, cascade_optimization, warm_start=False, timeout=None, n_trials=None,
+                 random_state=0, debug=False, verbose=1, plot=False):
 
         self.param_space = param_space
 
         self.estimator = estimator
-        self.clone_estimator = clone_estimator
-        self.return_estimator = return_estimator
+        self.clone = clone
 
         self.scoring = scoring
         self.cv = cv
@@ -152,7 +179,21 @@ class BaseOptimizer(BaseEstimator):
 
 
     def eval_params(self, params):
+        '''Evaluate new trial and save to history DataFrame <trials_>.
+        Can be called by user manually.
 
+        Args
+        ----
+            params : dict
+                New trial
+
+        Return
+        ------
+            score : float or NoneType
+                Returns trial's score (greater is always better). If status is
+                not 'ok', returns None.
+
+        '''
         if self.is_finished_:
             return
 
@@ -167,15 +208,24 @@ class BaseOptimizer(BaseEstimator):
         }
 
         try:
+            # Check if timeout reached
             if self._time_left() < 0:
                 raise TimeoutError
 
-            # TODO: Do not clone for Pipeline
-            estimator = clone(self.best_estimator_)
+            # Continue optimization from previos best estimator (if warm_start)
+            if self.warm_start and hasattr(self, 'best_estimator_'):
+                baseline = self.best_estimator_
+            else:
+                baseline = self.estimator
+
+            # Clone estimator (if needed)
+            estimator = clone(baseline) if self.clone else baseline
             estimator = estimator.set_params(**params)
 
+            # Fit & evaluate new estimator
             scores = self.eval(estimator)
             trial['score'] = np.mean(scores)
+
             # TODO: score for each fold & std
             # TODO: multiple scoring
             # TODO: ranking
@@ -192,17 +242,17 @@ class BaseOptimizer(BaseEstimator):
             self.is_finished_ = True
             raise KeyboardInterrupt
 
-
         except Exception as ex:
             trial['status'] = 'fail'
 
             if self.debug:
                 print('[{}] {}'.format(type(ex).__name__, ex))
 
-
         finally:
+            # Calculate time difference
             trial['time'] = time.time() - time_start
 
+            # Save trial & show user
             self._save_trial(trial)
             self._output()
 
@@ -211,18 +261,25 @@ class BaseOptimizer(BaseEstimator):
 
 
     def _save_trial(self, trial):
+        '''Save new trial to history DataFrame <trials_>.
 
+        Args
+        ----
+            trial : dict
+                Contains keys ['status', 'params', 'score', 'time']
+
+        '''
         self.trials_ = self.trials_.append(trial, ignore_index=True)
 
 
     def _init_trials(self):
-
+        '''Reset trials (if needed) and set iterations limit.
+        '''
         if not (self.warm_start and hasattr(self, 'trials_')):
             # Reset optimization
             # max trials = new trials
-            self.trials_ = pd.DataFrame()
             self.max_trials = self.n_trials
-            self.best_estimator_ = self.estimator
+            self.trials_ = pd.DataFrame()
 
         elif self.n_trials is None:
             # Continue optimization (with no limits)
@@ -236,34 +293,54 @@ class BaseOptimizer(BaseEstimator):
 
 
 
-    def _set_eval(self, X, y, groups):
+    def _time_left(self):
+        '''Return time left. If timeout is None, always returns 1.
+        Otherwise return time left to (time_start + timeout).
+
+        Return
+        ------
+            time_left : float
+                Time left (in seconds). Negative values means timeout reached.
+
+        '''
+        if self.timeout is None:
+            return 1
+        else:
+            return self.time_start + self.timeout - time.time()
+
+
+
+    def _fit_start(self, X, y, groups):
+        '''Starting routine. Initialize trials, space, starting time and define
+        evaluator function (estimator -> score).
+
+        Args
+        ----
+            X : DataFrame, shape [n_samples, n_features]
+                The data to fit, score and calculate out-of-fold predictions
+
+            y : Series, shape [n_samples]
+                The target variable to try to predict
+
+            groups : None
+                Group labels for the samples used while splitting the dataset
+                into train/test set
+
+        '''
+        self._init_trials()
+        self._init_space()
 
         self.eval = lambda estimator: crossval_score(estimator, self.cv,
             X, y, groups, self.scoring, n_jobs=-1, verbose=0).values
 
-
-
-    def _time_left(self):
-
-        time_delta = self.timeout if self.timeout else 0
-        return self.time_start + time_delta - time.time()
-
-
-
-    def _fit(self, X, y, groups):
-
-        self._init_trials()
-        self._init_space()
-
-        self._set_eval(X, y, groups)
-        self.is_finished_ = False
-
         self.time_start = time.time()
+        self.is_finished_ = False
 
 
 
     def _fit_end(self):
-
+        '''Ending routine. Find best trial, score, parameters & etc.
+        '''
         self.is_finished_ = True
         self.n_trials_ = len(self.trials_)
 
@@ -280,14 +357,16 @@ class BaseOptimizer(BaseEstimator):
 
 
     def _init_space(self):
-
+        '''Get boundaries types (btypes) and convert param_space to optimizer's
+        specific format (space) via method <_get_space>.
+        '''
         self.btypes = get_bound_types(self.param_space)
-        self.space = self._get_space()
+        self.space = self._get_space(self.param_space)
+
 
 
     def _output(self):
-        '''
-        Print verbose & plot output for the last trial (self.trials_[-1]).
+        '''Print verbose & plot output for the last trial.
         '''
         if self.plot:
             plot_progress(self)
@@ -445,8 +524,9 @@ class BaseOptimizer(BaseEstimator):
 
 class OptunaCV(BaseOptimizer):
 
-    def _get_space(self):
-        return self.param_space
+
+    def _get_space(self, base_space):
+        return base_space
 
 
     def _get_params(self, trial):
@@ -484,10 +564,13 @@ class OptunaCV(BaseOptimizer):
 
     def fit(self, X, y, groups=None):
 
-        self._fit(X, y, groups)
+        # Starting routine
+        self._fit_start(X, y, groups)
 
+        # Disable inbuilt logger
         optuna.logging.disable_default_handler()
 
+        # Define objective (trial -> loss)
         def objective(trial):
 
             params = self._get_params(trial)
@@ -498,6 +581,7 @@ class OptunaCV(BaseOptimizer):
             else:
                 return -score if score else np.nan
 
+        # Optimization loop
         try:
             if not (self.warm_start and hasattr(self, 'study')):
                 sampler = optuna.samplers.TPESampler(seed=self.random_state)
@@ -507,18 +591,36 @@ class OptunaCV(BaseOptimizer):
         except KeyboardInterrupt:
             pass
 
+        # Ending routine
         self._fit_end()
 
-        if self.return_estimator:
-            return self.best_estimator_
-        else:
-            return self
+        return self
 
 
 
 
 def get_bound_types(space):
+    '''
+    Get parameter's type
 
+        - 'uniform': uniform distribution [a, b]
+        - 'quniform': uniform distribution [a, b] with step q
+        - 'quniform_int': uniform distribution [a, b] with integer step q
+        - 'loguniform': log-uniform distribution [log10(a), log10(b)]
+        - 'choice' : set of options {A, B, C, ...}
+        - 'const': any single value
+
+    Args
+    ----
+        space : dict
+            Boundaries
+
+
+    Returns
+    -------
+        btypes : dict
+            Boundaries type
+    '''
     btypes = {}
 
     for param, bounds in space.items():
@@ -540,7 +642,7 @@ def get_bound_types(space):
                     if bounds[2] == 'log':
                         btype = 'loguniform'
 
-                    elif bounds[2] == 1:
+                    elif bounds[2] == 1 and isinstance(bounds[0], int):
                         btype = 'quniform_int'
 
                     elif isinstance(bounds[2], Number):
@@ -569,8 +671,8 @@ def fix_params(params, space):
     '''
     Normalize parameters value according to defined space:
 
-        - For quniform distribution: round param value with defined step
-        - For constant: replace parameter's value with defined constant
+        - 'quniform': round param value with defined step
+        - 'constant': replace parameter's value with defined constant
 
     Args
     ----
@@ -599,6 +701,7 @@ def fix_params(params, space):
             params[param] = bounds
 
     return params
+
 
 
 
@@ -636,7 +739,7 @@ def qround(x, a, b, q, decimals=4):
     x = a + ((x - a)//q)*q
     x = round(x, decimals)
 
-    # Convert x to integer (if both a & q are integers)
+    # Convert x to integer
     if isinstance(a + q, int):
         x = int(x)
 

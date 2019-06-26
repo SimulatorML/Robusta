@@ -17,8 +17,7 @@ __all__ = ['BlendRegressor', 'BlendClassifier']
 
 
 class Blend(LinearModel):
-    '''
-    Base Blending Estimator
+    '''Base Blending Estimator
 
     Parameters
     ----------
