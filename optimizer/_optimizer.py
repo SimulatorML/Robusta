@@ -155,7 +155,7 @@ class BaseOptimizer(BaseEstimator):
 
     '''
     def __init__(self, estimator, cv=5, scoring=None, param_space=None,
-                 clone=True, cascade_optimization, warm_start=False, timeout=None, n_trials=None,
+                 clone=True, warm_start=False, timeout=None, n_trials=None,
                  random_state=0, debug=False, verbose=1, plot=False):
 
         self.param_space = param_space
@@ -212,15 +212,8 @@ class BaseOptimizer(BaseEstimator):
             if self._time_left() < 0:
                 raise TimeoutError
 
-            # Continue optimization from previos best estimator (if warm_start)
-            if self.warm_start and hasattr(self, 'best_estimator_'):
-                baseline = self.best_estimator_
-            else:
-                baseline = self.estimator
-
-            # Clone estimator (if needed)
-            estimator = clone(baseline) if self.clone else baseline
-            estimator = estimator.set_params(**params)
+            # Get estimator with new params
+            estimator = self._get_estimator(params)
 
             # Fit & evaluate new estimator
             scores = self.eval(estimator)
@@ -338,6 +331,38 @@ class BaseOptimizer(BaseEstimator):
 
 
 
+    def _get_estimator(self, params):
+        '''Get estimator instance. Previous best if warm start. Clone if needed.
+
+        Args
+        ----
+            params : dict
+                Parameters to set
+
+        Return
+        ------
+            estimator : estimator object
+                The object to use to fit the data.
+
+        '''
+
+        # Continue optimization from previos best estimator (if warm_start)
+        if self.warm_start and hasattr(self, 'best_estimator_'):
+            estimator = self.best_estimator_
+        else:
+            estimator = self.estimator
+
+        # Clone estimator (if needed)
+        estimator = clone(estimator) if self.clone else estimator
+
+        # Set params
+        estimator = estimator.set_params(**params)
+
+        return estimator
+
+
+
+
     def _fit_end(self):
         '''Ending routine. Find best trial, score, parameters & etc.
         '''
@@ -352,7 +377,7 @@ class BaseOptimizer(BaseEstimator):
             self.best_score_ = self.trials_.loc[best_trial, 'score']
             self.best_params_ = self.trials_.loc[best_trial, 'params']
 
-            self.best_estimator_.set_params(**self.best_params_)
+            self.best_estimator_ = self._get_estimator(self.best_params_)
 
 
 
@@ -733,7 +758,7 @@ def qround(x, a, b, q, decimals=4):
     '''
     # Check if a <= x <= b
     b = max(a, b)
-    x = max(min(x, a), b)
+    x = min(max(x, a), b)
 
     # Round x (with defined step q)
     x = a + ((x - a)//q)*q
