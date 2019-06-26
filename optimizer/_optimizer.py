@@ -303,34 +303,6 @@ class BaseOptimizer(BaseEstimator):
 
 
 
-    def _fit_start(self, X, y, groups):
-        '''Starting routine. Initialize trials, space, starting time and define
-        evaluator function (estimator -> score).
-
-        Args
-        ----
-            X : DataFrame, shape [n_samples, n_features]
-                The data to fit, score and calculate out-of-fold predictions
-
-            y : Series, shape [n_samples]
-                The target variable to try to predict
-
-            groups : None
-                Group labels for the samples used while splitting the dataset
-                into train/test set
-
-        '''
-        self._init_trials()
-        self._init_space()
-
-        self.eval = lambda estimator: crossval_score(estimator, self.cv,
-            X, y, groups, self.scoring, n_jobs=-1, verbose=0).values
-
-        self.time_start = time.time()
-        self.is_finished_ = False
-
-
-
     def _get_estimator(self, params):
         '''Get estimator instance. Previous best if warm start. Clone if needed.
 
@@ -362,6 +334,34 @@ class BaseOptimizer(BaseEstimator):
 
 
 
+    def _fit_start(self, X, y, groups):
+        '''Starting routine. Initialize trials, space, starting time and define
+        evaluator function (estimator -> score).
+
+        Args
+        ----
+            X : DataFrame, shape [n_samples, n_features]
+                The data to fit, score and calculate out-of-fold predictions
+
+            y : Series, shape [n_samples]
+                The target variable to try to predict
+
+            groups : None
+                Group labels for the samples used while splitting the dataset
+                into train/test set
+
+        '''
+        self._init_trials()
+        self._init_space()
+
+        self.eval = lambda estimator: crossval_score(estimator, self.cv,
+            X, y, groups, self.scoring, n_jobs=-1, verbose=0).values
+
+        self.time_start = time.time()
+        self.is_finished_ = False
+
+
+
 
     def _fit_end(self):
         '''Ending routine. Find best trial, score, parameters & etc.
@@ -371,7 +371,9 @@ class BaseOptimizer(BaseEstimator):
 
         if self.n_trials_ and (self.trials_['status'] == 'ok').any():
 
-            best_trial = self.trials_['score'].argmax()
+            scores = self.trials_['score']
+            self.trials_['rank'] = ranking(scores)
+            best_trial = scores.argmax()
 
             self.best_trial_ = best_trial
             self.best_score_ = self.trials_.loc[best_trial, 'score']
@@ -755,6 +757,7 @@ def qround(x, a, b, q, decimals=4):
     -------
         x_new : int or float
             Rounded value
+
     '''
     # Check if a <= x <= b
     b = max(a, b)
@@ -769,3 +772,27 @@ def qround(x, a, b, q, decimals=4):
         x = int(x)
 
     return x
+
+
+
+
+def ranking(ser):
+    '''Make rank transformation.
+
+    Args
+    ----
+        ser : Series of float
+            Values for ranking. None interpreted as worst.
+
+    Returns
+    -------
+        rnk : Series of int
+            Ranks (1: highest, N: lowest)
+
+    '''
+    ser = ser.fillna(ser.min())
+
+    rnk = ser.rank(method='dense', ascending=False)
+    rnk = rnk.astype(int)
+
+    return rnk
