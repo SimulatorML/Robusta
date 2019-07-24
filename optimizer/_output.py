@@ -86,7 +86,7 @@ def print_progress(opt):
 
 
 
-def plot_progress(opt, cut=.75, delay=10):
+def plot_progress(opt, cut=.25, delay=10):
     '''
     Plot last trial score in optimizer
 
@@ -96,8 +96,8 @@ def plot_progress(opt, cut=.75, delay=10):
         Optimizator instance
 
     cut : float, optional
-        Scores ratio to cut off. For example, 0.75 (by default) means
-        that only top 25% of trials will be shown
+        Scores ratio to cut off. For example, 0.25 (by default) means
+        that only top-75% trials will be shown
 
     delay : int, optional (default: 10)
         Minimum # of iterations before cutting off
@@ -114,12 +114,15 @@ def plot_progress(opt, cut=.75, delay=10):
     if not hasattr(opt, 'ax'):
         opt.fig, opt.ax = plt.subplots(1,1)
 
-        opt.ax.set_title('Hyperparameter optmization ({})'.format(type(opt).__name__))
+        opt.ax.set_title('Hyperparameters optmization ({})'.format(type(opt).__name__))
         opt.ax.set_xlabel('# iters')
-        opt.ax.set_ylabel(opt.cv.metric_name)
+
+        # Metric name
+        metric_name = opt.scoring if isinstance(opt.scoring, str) else 'metric'
+        opt.ax.set_ylabel(metric_name)
 
     # Last point
-    scores = np.array(opt.scores_, dtype=np.float64)
+    scores = np.array(opt.trials_['score'], dtype=np.float64)
     scores[scores == None] = np.nan
     iters = len(scores)
     score = scores[-1]
@@ -138,7 +141,8 @@ def plot_progress(opt, cut=.75, delay=10):
 
         # New best trial
         line_style = 'o-'
-        color = metrics.metric_color[opt.metric_name]
+        #color = metrics.metric_color[opt.metric_name]
+        color = '#fbb339'
     else:
         # New ordinary trial
         line_style = '.'
@@ -150,18 +154,16 @@ def plot_progress(opt, cut=.75, delay=10):
     opt.ax.plot(xx, np.abs(yy), line_style, c=color, alpha=alpha)
     opt.ax.xaxis.set_major_locator(MaxNLocator(integer=True)) # force int x-axis
     opt.fig.canvas.draw()
+    time.sleep(1)
 
-    if iters > 10:
+    '''if iters > delay:
         # Cut plot (y-axis)
         y_min = abs(stats.scoreatpercentile(scores, 100*cut))
         y_max = abs(opt.best_score_)
         dy = abs(y_max-y_min)*0.05
 
         opt.ax.set_ylim(min(y_min, y_max)-dy, max(y_min, y_max)+dy)
-        opt.fig.canvas.draw()
-
-        if opt.is_finished:
-            time.sleep(1)
+        opt.fig.canvas.draw()'''
 
 
 

@@ -12,10 +12,9 @@ from numbers import Number
 import pandas as pd
 import numpy as np
 
-from ..crossval import crossval_score
-
 from ._output import plot_progress, print_progress
 
+from ..crossval import crossval_score
 #from ..model._model import MODEL_PARAMS, PREP_PARAMS, FIT_PARAMS
 
 
@@ -23,7 +22,7 @@ from ._output import plot_progress, print_progress
 
 
 #__all__ = ['GridSearchCV', 'RandomSearchCV', 'OptunaCV']
-__all__ = ['OptunaCV']
+#__all__ = ['BaseOptimizer', 'qround', 'ranking']
 
 
 
@@ -101,12 +100,6 @@ class BaseOptimizer(BaseEstimator):
         Whether to continue optimization and start with previos optimal params
         when calling <fit>. Otherwise drop old trials and start new optimization.
 
-    random_state : int (default: 0)
-        Random seed for stochastic oprimizers.
-
-    debug: boolean (default: False)
-        Raise all exceptions during optimization.
-
     verbose : int, optional (default: 1)
         Verbosity level:
         0: No output
@@ -150,13 +143,10 @@ class BaseOptimizer(BaseEstimator):
     best_trial_ : int
         Index of best trial
 
-    is_finished_ : boolean
-        Whether optimization process is finished correctly
-
     '''
     def __init__(self, estimator, cv=5, scoring=None, param_space=None,
                  clone=True, warm_start=False, timeout=None, n_trials=None,
-                 random_state=0, debug=False, verbose=1, plot=False):
+                 verbose=1, plot=False):
 
         self.param_space = param_space
 
@@ -172,9 +162,6 @@ class BaseOptimizer(BaseEstimator):
 
         self.verbose = verbose
         self.plot = plot
-
-        self.random_state = random_state
-        self.debug = debug
 
 
 
@@ -194,7 +181,7 @@ class BaseOptimizer(BaseEstimator):
                 not 'ok', returns None.
 
         '''
-        if self.is_finished_:
+        if self.is_finished:
             return
 
         time_start = time.time()
@@ -226,13 +213,13 @@ class BaseOptimizer(BaseEstimator):
         except KeyboardInterrupt:
             trial['status'] = 'interrupt'
 
-            self.is_finished_ = True
+            self.is_finished = True
             raise KeyboardInterrupt
 
         except TimeoutError:
             trial['status'] = 'timeout'
 
-            self.is_finished_ = True
+            self.is_finished = True
             raise KeyboardInterrupt
 
         except Exception as ex:
@@ -254,7 +241,7 @@ class BaseOptimizer(BaseEstimator):
 
 
     def _save_trial(self, trial):
-        '''Save new trial to history DataFrame <trials_>.
+        '''Save new trial to history DataFrame <trials_> and update best.
 
         Args
         ----
@@ -262,7 +249,21 @@ class BaseOptimizer(BaseEstimator):
                 Contains keys ['status', 'params', 'score', 'time']
 
         '''
+        # Save new trial
         self.trials_ = self.trials_.append(trial, ignore_index=True)
+        self.n_trials_ = len(self.trials_)
+
+        # Update best trial
+        # (if better, than previous)
+        if trial['status'] is 'ok' and (not hasattr(self, 'best_score_') or
+                                        trial['score'] > self.best_score_):
+
+            self.best_trial_ = self.n_trials_ - 1
+            self.best_score_ = self.trials_.loc[self.best_trial_, 'score']
+            self.best_params_ = self.trials_.loc[self.best_trial_, 'params']
+
+            self.best_estimator_ = self._get_estimator(self.best_params_)
+
 
 
     def _init_trials(self):
@@ -358,28 +359,21 @@ class BaseOptimizer(BaseEstimator):
             X, y, groups, self.scoring, n_jobs=-1, verbose=0).values
 
         self.time_start = time.time()
-        self.is_finished_ = False
+        self.is_finished = False
 
 
 
 
     def _fit_end(self):
-        '''Ending routine. Find best trial, score, parameters & etc.
+        '''Fit ending routine: ranking, "is finished", ...
         '''
-        self.is_finished_ = True
-        self.n_trials_ = len(self.trials_)
+        self.is_finished = True
 
         if self.n_trials_ and (self.trials_['status'] == 'ok').any():
 
             scores = self.trials_['score']
             self.trials_['rank'] = ranking(scores)
-            best_trial = scores.argmax()
 
-            self.best_trial_ = best_trial
-            self.best_score_ = self.trials_.loc[best_trial, 'score']
-            self.best_params_ = self.trials_.loc[best_trial, 'params']
-
-            self.best_estimator_ = self._get_estimator(self.best_params_)
 
 
 
@@ -548,84 +542,6 @@ class BaseOptimizer(BaseEstimator):
 
 
 
-
-class OptunaCV(BaseOptimizer):
-
-
-    def _get_space(self, base_space):
-        return base_space
-
-
-    def _get_params(self, trial):
-
-        space = self.space
-        params = {}
-
-        for param, btype in self.btypes.items():
-
-            if btype is 'choice':
-                params[param] = trial.suggest_categorical(param, space[param])
-
-            elif btype is 'uniform':
-                a, b = space[param]
-                params[param] = trial.suggest_uniform(param, a, b)
-
-            elif btype is 'quniform':
-                a, b, q = space[param]
-                b = qround(b, a, b, q)
-                params[param] = trial.suggest_discrete_uniform(param, a, b, q)
-
-            elif btype is 'quniform_int':
-                a, b = space[param][:2]
-                params[param] = trial.suggest_int(param, a, b)
-
-            elif btype is 'loguniform':
-                a, b = space[param][:2]
-                params[param] = trial.suggest_loguniform(param, a, b)
-
-            elif btype is 'const':
-                pass
-
-        return params
-
-
-    def fit(self, X, y, groups=None):
-
-        # Starting routine
-        self._fit_start(X, y, groups)
-
-        # Disable inbuilt logger
-        optuna.logging.disable_default_handler()
-
-        # Define objective (trial -> loss)
-        def objective(trial):
-
-            params = self._get_params(trial)
-            score = self.eval_params(params)
-
-            if self.is_finished_:
-                raise KeyboardInterrupt
-            else:
-                return -score if score else np.nan
-
-        # Optimization loop
-        try:
-            if not (self.warm_start and hasattr(self, 'study')):
-                sampler = optuna.samplers.TPESampler(seed=self.random_state)
-                self.study = optuna.create_study(sampler=sampler)
-            self.study.optimize(objective, n_trials=self.n_trials)
-
-        except KeyboardInterrupt:
-            pass
-
-        # Ending routine
-        self._fit_end()
-
-        return self
-
-
-
-
 def get_bound_types(space):
     '''
     Get parameter's type
@@ -732,6 +648,29 @@ def fix_params(params, space):
 
 
 
+def ranking(ser):
+    '''Make rank transformation.
+
+    Args
+    ----
+        ser : Series of float
+            Values for ranking. None interpreted as worst.
+
+    Returns
+    -------
+        rnk : Series of int
+            Ranks (1: highest, N: lowest)
+
+    '''
+    ser = ser.fillna(ser.min())
+
+    rnk = ser.rank(method='dense', ascending=False)
+    rnk = rnk.astype(int)
+
+    return rnk
+
+
+
 def qround(x, a, b, q, decimals=4):
     '''
     Convert x to one of [a, a+q, a+2q, .., b]
@@ -772,27 +711,3 @@ def qround(x, a, b, q, decimals=4):
         x = int(x)
 
     return x
-
-
-
-
-def ranking(ser):
-    '''Make rank transformation.
-
-    Args
-    ----
-        ser : Series of float
-            Values for ranking. None interpreted as worst.
-
-    Returns
-    -------
-        rnk : Series of int
-            Ranks (1: highest, N: lowest)
-
-    '''
-    ser = ser.fillna(ser.min())
-
-    rnk = ser.rank(method='dense', ascending=False)
-    rnk = rnk.astype(int)
-
-    return rnk

@@ -184,7 +184,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
     folds = list(cv.split(X, y, groups))
 
     # Check scorer(s)
-    # FIXME: fails on scorers
+    # FIXME: fails on multiple scorers
     if not (type(scoring) in [dict, list, set] or scoring is None):
         scoring = [scoring]
     scorer, _ = _check_multimetric_scoring(estimator, scoring=scoring)
