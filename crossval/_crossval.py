@@ -12,7 +12,7 @@ from sklearn.utils.metaestimators import _safe_split
 from sklearn.utils import indexable
 
 from ..preprocessing import LabelEncoder1D
-from ..model import extract_model_name
+from ..model import extract_model_name, extract_model
 
 from ._output import CVLogger, _log_msg
 
@@ -23,9 +23,9 @@ __all__ = ['crossval', 'crossval_score', 'crossval_predict']
 
 
 def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
-             scoring=None, voting='auto', method='predict', return_pred=False,
-             return_estimator=False, return_score=True, return_importance=False,
-             return_encoder=False, return_folds=False, n_jobs=-1, verbose=1):
+             scoring=None, voting='auto', method='predict', return_pred=True,
+             return_estimator=True, return_score=True, return_importance=False,
+             return_encoder=False, return_folds=True, n_jobs=-1, verbose=1):
     """Evaluate metric(s) by cross-validation and also record fit/score time,
     feature importances and compute out-of-fold and test predictions.
 
@@ -725,17 +725,20 @@ def _imp(estimator, cols):
         Feature importances of fitted estimator
 
     """
+    # Extract model from estimator
+    model = extract_model(estimator)
+
     # Get importances
-    if hasattr(estimator, 'coef_'):
+    if hasattr(model, 'coef_'):
         attr = 'coef_'
-    elif hasattr(estimator, 'feature_importances_'):
+    elif hasattr(model, 'feature_importances_'):
         attr = 'feature_importances_'
     else:
-        name = extract_model_name(estimator)
+        name = extract_model_name(model)
         msg = "<{}> has neither <feature_importances_>, nor <coef_>".format(name)
         raise AttributeError(msg)
 
-    imp = getattr(estimator, attr)
+    imp = getattr(model, attr)
 
     # Convert numpy to pandas
     imp = pd.Series(imp, index=cols, name=attr)
