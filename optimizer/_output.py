@@ -154,7 +154,6 @@ def plot_progress(opt, cut=.25, delay=10):
     opt.ax.plot(xx, np.abs(yy), line_style, c=color, alpha=alpha)
     opt.ax.xaxis.set_major_locator(MaxNLocator(integer=True)) # force int x-axis
     opt.fig.canvas.draw()
-    time.sleep(1)
 
     '''if iters > delay:
         # Cut plot (y-axis)
@@ -164,6 +163,9 @@ def plot_progress(opt, cut=.25, delay=10):
 
         opt.ax.set_ylim(min(y_min, y_max)-dy, max(y_min, y_max)+dy)
         opt.fig.canvas.draw()'''
+
+    if opt.is_finished:
+        time.sleep(1)
 
 
 

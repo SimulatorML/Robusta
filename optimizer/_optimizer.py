@@ -146,13 +146,14 @@ class BaseOptimizer(BaseEstimator):
     '''
     def __init__(self, estimator, cv=5, scoring=None, param_space=None,
                  clone=True, warm_start=False, timeout=None, n_trials=None,
-                 verbose=1, plot=False):
+                 n_jobs=-1, verbose=1, plot=False):
 
         self.param_space = param_space
 
         self.estimator = estimator
         self.clone = clone
 
+        self.n_jobs = n_jobs
         self.scoring = scoring
         self.cv = cv
 
@@ -356,7 +357,7 @@ class BaseOptimizer(BaseEstimator):
         self._init_space()
 
         self.eval = lambda estimator: crossval_score(estimator, self.cv,
-            X, y, groups, self.scoring, n_jobs=-1, verbose=0).values
+            X, y, groups, self.scoring, n_jobs=self.n_jobs, verbose=0).values
 
         self.time_start = time.time()
         self.is_finished = False
