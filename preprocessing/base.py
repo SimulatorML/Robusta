@@ -74,7 +74,7 @@ class PandasTransformer(BaseEstimator, TransformerMixin):
 
         """
         Xt = self.transformer.transform(X)
-        
+
         if Xt.shape[1] == len(self.columns):
             Xt = pd.DataFrame(Xt, index=X.index, columns=self.columns)
         else:
@@ -204,7 +204,9 @@ class TypeConverter(BaseEstimator, TransformerMixin):
 
     Parameters
     ----------
-    dtypes : type or
+    dtypes : str or dict
+        Types to convert
+
 
     Attributes
     ----------

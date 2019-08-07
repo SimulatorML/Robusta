@@ -28,11 +28,11 @@ class ColumnTransformer(_BaseComposition, TransformerMixin):
     transformer_list : list
         List of (string, transformer, columns) tuples (implementing fit/transform).
 
-    remainder : {'drop', 'passthrough'} or estimator, default 'drop'
+    remainder : {'drop', 'pass'} or estimator, default 'drop'
         By default, only the specified columns in `transformer_list` are
         transformed and combined in the output, and the non-specified
         columns are dropped. (default of ``'drop'``).
-        By specifying ``remainder='passthrough'``, all remaining columns that
+        By specifying ``remainder='pass'``, all remaining columns that
         were not specified in `transformer_list` will be automatically passed
         through. This subset of columns is concatenated with the output of
         the transformers.
@@ -115,7 +115,7 @@ class ColumnTransformer(_BaseComposition, TransformerMixin):
             if hasattr(self.remainder, 'fit') and hasattr(self.remainder, 'transform'):
                 fitted_transformer = clone(self.remainder).fit(X[cols], y)
 
-            elif self.remainder is 'passthrough':
+            elif self.remainder is 'pass':
                 fitted_transformer = Identity().fit(X[cols], y)
 
             elif self.remainder is 'drop':
@@ -214,12 +214,12 @@ def make_column_transformer(*transformers, **kwargs):
     ----------
     *transformers : tuples of transformers and column selections
 
-    remainder : {'drop', 'passthrough'} or estimator, default 'drop'
+    remainder : {'drop', 'pass'} or estimator, default 'drop'
         By default, only the specified columns in `transformers` are
         transformed and combined in the output, and the non-specified
         columns are dropped. (default of ``'drop'``).
 
-        By specifying ``remainder='passthrough'``, all remaining columns that
+        By specifying ``remainder='pass'``, all remaining columns that
         were not specified in `transformers` will be automatically passed
         through. This subset of columns is concatenated with the output of
         the transformers.
