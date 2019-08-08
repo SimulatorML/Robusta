@@ -647,7 +647,7 @@ def _fit_pred_score(estimator, method, scorer, X, y, trn=None, oof=None, X_new=N
     # Get indices
     trn = np.arange(len(X)) if trn is None else trn
     oof = np.arange(0) if oof is None else oof
-    #result['fold'] = (trn, oof)
+    result['fold'] = (trn, oof)
 
     new = np.arange(len(X_new)) if X_new is not None else np.arange(0)
 
