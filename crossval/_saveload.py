@@ -13,7 +13,8 @@ __all__ = ['save_result', 'load_result', 'remove_result']
 
 
 
-def save_result(result, name, idx=None, detach_preds=True, path='./output'):
+def save_result(result, name, idx=None, detach_preds=True, path='./output'
+                force_rewrite=False):
 
     result = dict(result)
 
@@ -63,6 +64,10 @@ def load_result(idx, path='./output'):
                 result['{}_pred'.format(prefix)] = pd.read_csv(fpath, index_col=0)
 
     return result
+
+
+
+
 
 
 
