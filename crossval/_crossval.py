@@ -121,7 +121,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
     Returns
     -------
-    results : dict of array, float or Series
+    result : dict of array, float or Series
         Array of scores/predictions/time of the estimator for each run of the
         cross validation. If test_avg=True, arrays has shape [n_splits],
         otherwise [n_splits+1] except score & score_time.
@@ -227,18 +227,18 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
     if test_avg:
 
         # Stacking Type A (test averaging = True)
-        results = parallel(
+        result = parallel(
             (delayed(_fit_pred_score)(clone(estimator), method, scorer, X, y,
                 trn, oof, X_new, return_pred, return_estimator, return_score,
                 return_importance, i, logger)
             for i, (trn, oof) in enumerate(folds)))
 
-        results = _ld_to_dl(results)
+        result = _ld_to_dl(result)
 
     else:
 
         # Stacking Type B (test_averaging = False)
-        results = parallel(
+        result = parallel(
             (delayed(_fit_pred_score)(clone(estimator), method, scorer, X, y,
                 trn, oof, None, return_pred, return_estimator, return_score,
                 return_importance, i, logger)
@@ -252,72 +252,72 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
             None, None, X_new, return_pred, return_estimator, False,
             return_importance, -1, None)
 
-        results = _ld_to_dl(results)
+        result = _ld_to_dl(result)
         for key, val in result_new.items():
-            if key in results:
-                results[key].append(val)
+            if key in result:
+                result[key].append(val)
             else:
-                results[key] = [val]
+                result[key] = [val]
 
 
     # Concat Predictions (& Feature Importances)
     needs_concat = ['oof_pred', 'new_pred', 'importance', 'score']
-    if np.any(np.in1d(needs_concat, list(results))):
+    if np.any(np.in1d(needs_concat, list(result))):
 
         start_time = time.time()
 
-        if 'oof_pred' in results:
-            oof_preds = results['oof_pred']
+        if 'oof_pred' in result:
+            oof_preds = result['oof_pred']
             oof_pred = _concat_preds(oof_preds, avg, encoder, y.name, X.index)
-            results['oof_pred'] = oof_pred
+            result['oof_pred'] = oof_pred
 
-        if 'new_pred' in results:
-            new_preds = results['new_pred']
+        if 'new_pred' in result:
+            new_preds = result['new_pred']
             new_pred = _concat_preds(new_preds, avg, encoder, y.name, X_new.index)
-            results['new_pred'] = new_pred
+            result['new_pred'] = new_pred
 
-        if 'importance' in results:
-            importances = results['importance']
+        if 'importance' in result:
+            importances = result['importance']
             importance = pd.DataFrame(importances).reset_index(drop=True)
-            results['importance'] = importance
+            result['importance'] = importance
 
-        if 'score' in results:
-            scores = results['score']
+        if 'score' in result:
+            scores = result['score']
             scores = _ld_to_dl(scores)
             scores = pd.DataFrame(scores)
-            results['score'] = scores
+            result['score'] = scores
 
         for key in ['fit_time', 'score_time', 'pred_time']:
-            if key in results:
-                results[key] = np.array(results[key])
+            if key in result:
+                result[key] = np.array(result[key])
 
         concat_time = time.time() - start_time
-        results['concat_time'] = concat_time
+        result['concat_time'] = concat_time
 
     # Save encoder
     if return_encoder:
-        results['encoder'] = encoder
+        result['encoder'] = encoder
 
     # Save folds
     if not return_folds:
-        results.pop('fold')
+        result.pop('fold')
 
     # Final score
     if verbose >= 2:
         print()
-        for metric, scores in results['score'].items():
+        for metric, scores in result['score'].items():
             mean, std = scores.mean(), scores.std()
             msg = '{}: {:.4f} ± {:.4f}'.format(metric, mean, std)
             _log_msg(msg)
         print()
 
     if verbose == 1:
-        for metric, scores in results['score'].items():
+        for metric, scores in result['score'].items():
             mean, std = scores.mean(), scores.std()
             msg = '{}: {:.4f} ± {:.4f} ({})'.format(metric, mean, std, est_name)
             _log_msg(msg)
 
-    return results
+    return result
 
 
 
@@ -374,10 +374,10 @@ def crossval_score(estimator, cv, X, y, groups=None, scoring=None,
         represents different metric.
 
     """
-    results = crossval(estimator, cv=cv, X=X, y=y, groups=groups,
+    result = crossval(estimator, cv=cv, X=X, y=y, groups=groups,
         scoring=scoring, return_score=True, n_jobs=n_jobs, verbose=verbose)
 
-    scores = results['score']
+    scores = result['score']
     return scores
 
 
@@ -472,13 +472,13 @@ def crossval_predict(estimator, cv, X, y, groups=None, X_new=None,
         None if X_new is not defined
 
     """
-    results = crossval(estimator, cv=cv, X=X, y=y, groups=groups, X_new=X_new,
+    result = crossval(estimator, cv=cv, X=X, y=y, groups=groups, X_new=X_new,
         scoring=scoring, voting=voting, method=method, test_avg=test_avg,
         return_estimator=False, return_pred=True, return_score=False,
         n_jobs=n_jobs, verbose=verbose)
 
-    oof_pred = results['oof_pred'] if 'oof_pred' in results else None
-    new_pred = results['new_pred'] if 'new_pred' in results else None
+    oof_pred = result['oof_pred'] if 'oof_pred' in result else None
+    new_pred = result['new_pred'] if 'new_pred' in result else None
 
     return oof_pred, new_pred
 
@@ -647,7 +647,7 @@ def _fit_pred_score(estimator, method, scorer, X, y, trn=None, oof=None, X_new=N
     # Get indices
     trn = np.arange(len(X)) if trn is None else trn
     oof = np.arange(0) if oof is None else oof
-    result['fold'] = (trn, oof)
+    #result['fold'] = (trn, oof)
 
     new = np.arange(len(X_new)) if X_new is not None else np.arange(0)
 
