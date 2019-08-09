@@ -279,6 +279,11 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
         if 'importance' in result:
             importances = result['importance']
             importance = pd.DataFrame(importances).reset_index(drop=True)
+            
+            importance = importance.stack().reset_index()
+            importance.columns = ['fold', 'feature', 'importance']
+            importance.set_index('feature', inplace=True)
+
             result['importance'] = importance
 
         if 'score' in result:
@@ -668,8 +673,8 @@ def _fit_pred_score(estimator, method, scorer, X, y, trn=None, oof=None, X_new=N
 
     # Feature importances
     if return_importance:
-        imporance = _imp(estimator, X.columns)
-        result['importance'] = imporance
+        importance = _imp(estimator, X.columns)
+        result['importance'] = importance
 
     # Predict
     if return_pred and (len(oof) or len(new)):
