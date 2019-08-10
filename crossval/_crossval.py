@@ -80,13 +80,14 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
         If None, the estimator's default scorer (if available) is used.
         Ignored if return_score=False.
 
-    voting : string, {'soft', 'hard', 'auto'} (default='auto')
+    voting : string, {'soft', 'hard', 'auto'} or None (default='auto')
         If 'hard', uses predicted class labels for majority rule voting.
         Else if 'soft', predicts the class label based on the argmax of
         the sums of the predicted probabilities, which is recommended for
         an ensemble of well-calibrated classifiers. If 'auto', select 'soft'
         for estimators that has <predict_proba>, otherwise 'hard'.
-        Ignored if return_pred=False or estimator type is not 'classifier'.
+        Ignored if return_pred=False. If estimator type is not 'classifier',
+        any string value means simple averaging. None means
 
     method : string, optional, default: 'predict'
         Invokes the passed method name of the passed estimator. For
@@ -181,6 +182,8 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
     # Check validation scheme
     cv = check_cv(cv, y, classifier=is_classifier(estimator))
+    if hasattr(cv, 'random_state') and cv.random_state is None:
+        cv.random_state = 0
     folds = list(cv.split(X, y, groups))
 
     # Check scorer(s)
@@ -191,7 +194,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
     return_score = True if verbose else return_score
 
     # Check voting strategy & method
-    method, avg = _check_voting(estimator, voting, method, return_pred)
+    method, mean = _check_voting(estimator, voting, method, return_pred)
 
     # Init estimator
     est_name = extract_model_name(estimator, short=True)
@@ -268,22 +271,17 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
         if 'oof_pred' in result:
             oof_preds = result['oof_pred']
-            oof_pred = _concat_preds(oof_preds, avg, encoder, y.name, X.index)
+            oof_pred = _concat_preds(oof_preds, mean, encoder, y.name, X.index)
             result['oof_pred'] = oof_pred
 
         if 'new_pred' in result:
             new_preds = result['new_pred']
-            new_pred = _concat_preds(new_preds, avg, encoder, y.name, X_new.index)
+            new_pred = _concat_preds(new_preds, mean, encoder, y.name, X_new.index)
             result['new_pred'] = new_pred
 
         if 'importance' in result:
             importances = result['importance']
-            importance = pd.DataFrame(importances).reset_index(drop=True)
-            
-            importance = importance.stack().reset_index()
-            importance.columns = ['fold', 'feature', 'importance']
-            importance.set_index('feature', inplace=True)
-
+            importance = _concat_imp(importances)
             result['importance'] = importance
 
         if 'score' in result:
@@ -489,23 +487,20 @@ def crossval_predict(estimator, cv, X, y, groups=None, X_new=None,
 
 
 
-def _avg_preds(preds):
-    pred = pd.concat(preds)
+def _mean_pred(pred):
+    pred = pred.drop(columns='fold')
     return pred.groupby(pred.index).mean()
 
-
-
-def _hard_vote(preds):
-    pred = pd.concat(preds)
-    return pred.groupby(pred.index).apply(lambda x: x.value_counts().index[0])
-    # FIXME: old version crashes when there are more then one modes
-    #return pred.groupby(pred.index).agg(pd.Series.mode)
-
-
-
-def _soft_vote(preds):
-    pred = pd.concat(preds)
+def _soft_vote(pred):
+    pred = pred.drop(columns='fold')
     return pred.groupby(pred.index).mean().idxmax(axis=1)
+
+def _hard_vote(pred):
+    pred = pred.drop(columns='fold')
+    return pred.idxmax(axis=1).groupby(pred.index).apply(lambda x: x.mode()[0])
+
+def _pass_pred(pred):
+    return pred
 
 
 
@@ -521,7 +516,7 @@ def _check_voting(estimator, voting, method, return_pred=True):
             raise ValueError("<method> should be in {}".format(set(methods)) \
                 + "\n\t\tPassed '{}'".format(method))
 
-        votings = ['soft', 'hard', 'auto']
+        votings = ['soft', 'hard', 'auto', None]
         if voting not in votings:
             raise ValueError("<voting> should be in {}".format(set(votings)) \
                 + "\n\t\tPassed '{}'".format(voting))
@@ -544,24 +539,37 @@ def _check_voting(estimator, voting, method, return_pred=True):
     if is_classifier(estimator):
 
         if method is 'predict_proba':
-            avg = _avg_preds
+            if voting is None:
+                mean = _pass_pred
+            else:
+                mean = _mean_pred
+
+        elif voting is None:
+            mean = _pass_pred
 
         elif voting is 'hard':
-            avg = _hard_vote
+            mean = _hard_vote
 
         elif voting is 'soft':
-            avg = _soft_vote
+            mean = _soft_vote
             method = 'predict_proba'
 
-        else:
-            avg = _avg_preds
+        elif voting is 'auto':
+            mean = _mean_pred
             method = 'predict'
 
-    else:
-        avg = _avg_preds
+        else:
+            raise AttributeError('Unknown error! Write to the developer.')
+
+    elif voting is None:
+        mean = _pass_pred
         method = 'predict'
 
-    return method, avg
+    else:
+        mean = _mean_pred
+        method = 'predict'
+
+    return method, mean
 
 
 
@@ -802,7 +810,7 @@ def _concat_preds(preds, mean, encoder, name, ind):
     Parameters
     ----------
     preds : list of Series or DataFrame
-        Fitted estimator
+        Estimators predictions by fold
 
     mean : callable
         Function, which used to concatenate predictions
@@ -824,16 +832,25 @@ def _concat_preds(preds, mean, encoder, name, ind):
         Computed predictions
 
     """
-    # Averaging predictions
-    pred = mean(preds)
+    for i, pred in enumerate(preds):
+        pred = pd.DataFrame(pred.copy())
 
-    # Target Decoding
-    if encoder is not None:
-        if len(pred.shape) is 1:
-            pred = encoder.inverse_transform(pred)
-            pred = pred.rename(name)
-        else:
-            pred.columns = encoder.inverse_transform(pred.columns)
+        # Target Decoding
+        if encoder is not None:
+            if pred.shape[1] is 1:
+                pred.iloc[:,0] = encoder.inverse_transform(pred.iloc[:,0])
+                pred.columns = [name]
+            else:
+                pred.columns = encoder.inverse_transform(pred.columns)
+
+        # Add fold index
+        pred.insert(0, 'fold', i)
+        preds[i] = pred
+
+    pred = pd.concat(preds)
+
+    # Averaging predictions
+    pred = mean(pred)
 
     # Binary Classification
     if len(pred.shape) is 2 and set(pred.columns) == {0, 1}:
@@ -845,6 +862,30 @@ def _concat_preds(preds, mean, encoder, name, ind):
 
     return pred
 
+
+
+def _concat_imp(importances):
+    """Concatenate importances
+
+    Parameters
+    ----------
+    importances : list of Series
+        Estimators feature importances by fold
+
+
+    Returns
+    -------
+    importance : DataFrame, shape [n_features, 2]
+        DataFrame with columns ['fold', 'importance'] and index 'feature'
+
+    """
+    importance = pd.DataFrame(importances).reset_index(drop=True)
+    importance = importance.stack().reset_index()
+
+    importance.columns = ['fold', 'feature', 'importance']
+    importance.set_index('feature', inplace=True)
+
+    return importance
 
 
 def _ld_to_dl(l):

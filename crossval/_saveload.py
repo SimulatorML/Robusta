@@ -13,7 +13,7 @@ __all__ = ['save_result', 'load_result', 'remove_result']
 
 
 
-def save_result(result, name, idx=None, detach_preds=True, path='./output'
+def save_result(result, name, idx=None, detach_preds=True, path='./output',
                 force_rewrite=False):
 
     result = dict(result)
