@@ -23,7 +23,7 @@ def get_model(name, task='regressor', **params):
     Parameters
     ----------
     model : string or estimator object
-        Model's short name ('XGB', 'LGBM', 'RF' & etc) or an estimator object.
+        Model's short name ('XGB', 'LGB', 'RF' & etc) or an estimator object.
 
     task : string, {'regressor', 'classifier', 'ranker'} (default='regressor')
         Model type. Ignored if name is not string.
@@ -214,7 +214,7 @@ MODELS = {
         'regressor': XGBRegressor,
         'classifier': XGBClassifier
     },
-    'LGBM': {
+    'LGB': {
         'regressor': LGBMRegressor,
         'classifier': LGBMClassifier
     },
@@ -320,7 +320,7 @@ MODEL_TYPE = {
         'MARS', 'ARD', 'OMP', 'RANSAC', 'TheilSen', 'SGD', 'PLS'],
 
     # Tree-Based models
-    'tree': ['XGB', 'LGBM', 'CatBoost', 'GBM', 'ADA', 'RF', 'ET', 'RGF',
+    'tree': ['XGB', 'LGB', 'CatBoost', 'GBM', 'ADA', 'RF', 'ET', 'RGF',
         'FastRGF', 'BART'],
 
     # Distance-Based models
@@ -356,7 +356,7 @@ MODEL_PARAMS = {
         #'lambda': (1e-6, 1e6, 'log'),
     },
 
-    'LGBM': {
+    'LGB': {
     # https://lightgbm.readthedocs.io/en/latest/Parameters.html
         'learning_rate': 0.1,
         # Once your learning rate is fixed, do not change it.
@@ -668,7 +668,7 @@ MODEL_PARAMS = {
     'CatBoost': {
         'cat_features': lambda X: get_cats(X, as_idx=True)
     },
-    'LGBM': {
+    'LGB': {
         'categorical_feature': lambda X: get_cats(X, as_idx=True)
     },
 }'''
@@ -676,5 +676,5 @@ MODEL_PARAMS = {
 
 '''CAT_PARAMS = {
     'CatBoost': 'cat_features',
-    'LGBM': 'categorical_feature'
+    'LGB': 'categorical_feature'
 }'''
