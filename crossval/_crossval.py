@@ -4,7 +4,7 @@ import numpy as np
 from joblib import Parallel, delayed
 import time
 
-from sklearn.base import BaseEstimator, clone, is_classifier
+from sklearn.base import BaseEstimator, clone, is_classifier, is_regressor
 from sklearn.metrics.scorer import _check_multimetric_scoring
 from sklearn.model_selection._validation import _score
 from sklearn.model_selection._split import check_cv
@@ -23,7 +23,7 @@ __all__ = ['crossval', 'crossval_score', 'crossval_predict']
 
 
 def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
-             scoring=None, voting='auto', method='predict', return_pred=True,
+             scoring=None, averaging='auto', method='predict', return_pred=True,
              return_estimator=True, return_score=True, return_importance=False,
              return_encoder=False, return_folds=True, n_jobs=-1, verbose=1):
     """Evaluate metric(s) by cross-validation and also record fit/score time,
@@ -80,14 +80,37 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
         If None, the estimator's default scorer (if available) is used.
         Ignored if return_score=False.
 
-    voting : string, {'soft', 'hard', 'auto'} or None (default='auto')
-        If 'hard', uses predicted class labels for majority rule voting.
-        Else if 'soft', predicts the class label based on the argmax of
-        the sums of the predicted probabilities, which is recommended for
-        an ensemble of well-calibrated classifiers. If 'auto', select 'soft'
-        for estimators that has <predict_proba>, otherwise 'hard'.
-        Ignored if return_pred=False. If estimator type is not 'classifier',
-        any string value means simple averaging. None means
+    averaging : string, {'soft', 'hard', 'auto', 'pass'} (default='auto')
+        Averaging strategy for aggregating different CV folds predictions
+
+        - 'hard' : use predicted class labels for majority rule voting.
+
+                   Ignored if estimator type is 'regressor'.
+                   Ignored if <return_pred> set to False.
+                   Ignored if <method> is not 'predict'.
+
+        - 'soft' : predicts the class label based on the argmax of the sums
+                   of the predicted probabilities, which is recommended for
+                   an ensemble of well-calibrated classifiers.
+
+                   Ignored if estimator type is 'regressor'.
+                   Ignored if <return_pred> set to False.
+                   Ignored if <method> is not 'predict'.
+
+        - 'auto' : use simple averaging for regressor's predcitions and for
+                   classifier's probabilities (if <method> is 'predict_proba');
+
+                   if estimator type is 'classifier' and <method> is 'predict',
+                   set <averaging> to 'soft' for classifier with <predict_proba>
+                   attribute, set <averaging> to 'hard' for other.
+
+                   Ignored if <return_pred> set to False.
+
+        - 'pass' : leave predictions of different folds separated.
+
+                   Column 'fold' will be added.
+
+        Ignored if <return_pred> set to False, or <method> is not 'predict'.
 
     method : string, optional, default: 'predict'
         Invokes the passed method name of the passed estimator. For
@@ -193,8 +216,11 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
     scorer, _ = _check_multimetric_scoring(estimator, scoring=scoring)
     return_score = True if verbose else return_score
 
-    # Check voting strategy & method
-    method, mean = _check_voting(estimator, voting, method, return_pred)
+    # Check averaging strategy & method
+    if return_pred:
+        method, avg = _check_avg(estimator, averaging, method)
+    else:
+        method, avg = None, None
 
     # Init estimator
     est_name = extract_model_name(estimator, short=True)
@@ -262,7 +288,6 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
             else:
                 result[key] = [val]
 
-
     # Concat Predictions (& Feature Importances)
     needs_concat = ['oof_pred', 'new_pred', 'importance', 'score']
     if np.any(np.in1d(needs_concat, list(result))):
@@ -271,12 +296,14 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
         if 'oof_pred' in result:
             oof_preds = result['oof_pred']
-            oof_pred = _concat_preds(oof_preds, mean, encoder, y.name, X.index)
+            oof_pred = _avg_preds(oof_preds, avg, X.index)
+            oof_pred = _rename_pred(oof_pred, encoder, y.name)
             result['oof_pred'] = oof_pred
 
         if 'new_pred' in result:
             new_preds = result['new_pred']
-            new_pred = _concat_preds(new_preds, mean, encoder, y.name, X_new.index)
+            new_pred = _avg_preds(new_preds, avg, X_new.index)
+            new_pred = _rename_pred(new_pred, encoder, y.name)
             result['new_pred'] = new_pred
 
         if 'importance' in result:
@@ -386,7 +413,7 @@ def crossval_score(estimator, cv, X, y, groups=None, scoring=None,
 
 
 def crossval_predict(estimator, cv, X, y, groups=None, X_new=None,
-                     test_avg=True, voting='auto', method='predict',
+                     test_avg=True, averaging='auto', method='predict',
                      scoring=None, n_jobs=-1, verbose=0):
     """Get Out-of-Fold and Test predictions.
 
@@ -438,13 +465,37 @@ def crossval_predict(estimator, cv, X, y, groups=None, X_new=None,
 
         Ignored if return_pred=False or X_new is not defined.
 
-    voting : string, {'soft', 'hard', 'auto'} (default='auto')
-        If 'hard', uses predicted class labels for majority rule voting.
-        Else if 'soft', predicts the class label based on the argmax of
-        the sums of the predicted probabilities, which is recommended for
-        an ensemble of well-calibrated classifiers. If 'auto', select 'soft'
-        for estimators that has <predict_proba>, otherwise 'hard'.
-        Ignored if return_pred=False or estimator type is not 'classifier'.
+    averaging : string, {'soft', 'hard', 'auto', 'pass'} (default='auto')
+        Averaging strategy for aggregating different CV folds predictions
+
+        - 'hard' : use predicted class labels for majority rule voting.
+
+                   Ignored if estimator type is 'regressor'.
+                   Ignored if <return_pred> set to False.
+                   Ignored if <method> is not 'predict'.
+
+        - 'soft' : predicts the class label based on the argmax of the sums
+                   of the predicted probabilities, which is recommended for
+                   an ensemble of well-calibrated classifiers.
+
+                   Ignored if estimator type is 'regressor'.
+                   Ignored if <return_pred> set to False.
+                   Ignored if <method> is not 'predict'.
+
+        - 'auto' : use simple averaging for regressor's predcitions and for
+                   classifier's probabilities (if <method> is 'predict_proba');
+
+                   if estimator type is 'classifier' and <method> is 'predict',
+                   set <averaging> to 'soft' for classifier with <predict_proba>
+                   attribute, set <averaging> to 'hard' for other.
+
+                   Ignored if <return_pred> set to False.
+
+        - 'pass' : leave predictions of different folds separated.
+
+                   Column 'fold' will be added.
+
+        Ignored if <return_pred> set to False, or <method> is not 'predict'.
 
     method : string, optional, default: 'predict'
         Invokes the passed method name of the passed estimator. For
@@ -476,7 +527,7 @@ def crossval_predict(estimator, cv, X, y, groups=None, X_new=None,
 
     """
     result = crossval(estimator, cv=cv, X=X, y=y, groups=groups, X_new=X_new,
-        scoring=scoring, voting=voting, method=method, test_avg=test_avg,
+        scoring=scoring, averaging=averaging, method=method, test_avg=test_avg,
         return_estimator=False, return_pred=True, return_score=False,
         n_jobs=n_jobs, verbose=verbose)
 
@@ -486,91 +537,113 @@ def crossval_predict(estimator, cv, X, y, groups=None, X_new=None,
     return oof_pred, new_pred
 
 
-
-def _mean_pred(pred):
-    pred = pred.drop(columns='fold')
-    return pred.groupby(pred.index).mean()
-
-def _soft_vote(pred):
-    pred = pred.drop(columns='fold')
-    return pred.groupby(pred.index).mean().idxmax(axis=1)
-
-def _hard_vote(pred):
-    pred = pred.drop(columns='fold')
-    return pred.idxmax(axis=1).groupby(pred.index).apply(lambda x: x.mode()[0])
-
 def _pass_pred(pred):
     return pred
 
+def _mean_pred(pred):
+    pred.reset_index('fold', inplace=True, drop=True)
+    return pred.groupby(pred.index).mean()
+
+def _soft_vote(pred):
+    pred.reset_index('fold', inplace=True, drop=True)
+    return pred.groupby(pred.index).mean().idxmax(axis=1)
+
+def _hard_vote(pred):
+    pred.reset_index('fold', inplace=True, drop=True)
+    return pred.idxmax(axis=1).groupby(pred.index).agg(pd.Series.mode)
 
 
-def _check_voting(estimator, voting, method, return_pred=True):
+def _check_avg(estimator, averaging, method):
 
     name = extract_model_name(estimator)
 
-    # Method & averaging strategy (voting type) check
-    if return_pred:
+    # Basic <method> and <averaging> values check
+    methods = ['predict', 'predict_proba']
+    if method not in methods:
+        raise ValueError("<method> should be in {}".format(set(methods)) \
+            + "\n\t\tPassed '{}'".format(method))
 
-        methods = ['predict', 'predict_proba', 'predict_log_proba']
-        if method not in methods:
-            raise ValueError("<method> should be in {}".format(set(methods)) \
-                + "\n\t\tPassed '{}'".format(method))
+    averagings = ['soft', 'hard', 'auto', 'pass']
+    if averaging not in averagings:
+        raise ValueError("<averaging> should be in {}".format(set(averagings)) \
+            + "\n\t\tPassed '{}'".format(averaging))
 
-        votings = ['soft', 'hard', 'auto', None]
-        if voting not in votings:
-            raise ValueError("<voting> should be in {}".format(set(votings)) \
-                + "\n\t\tPassed '{}'".format(voting))
-
-        if voting is 'auto':
-            voting = 'soft' if hasattr(estimator, 'predict_proba') else 'hard'
-
-        if is_classifier(estimator):
-
-            if not hasattr(estimator, method):
-                msg = "<{}> is not available for <{}>".format(method, name)
-                raise AttributeError(msg)
-
-            if not hasattr(estimator, 'predict_proba') and voting is 'soft':
-                msg = "'{}' voting is not available for <{}> ".format(voting, name) \
-                    + "\n\t\tIt has not <predict_proba> method"
-                raise AttributeError(msg)
-
-    # Method & averaging strategy selection
-    if is_classifier(estimator):
-
+    # Compatibility check
+    if is_classifier(estimator) and hasattr(estimator, 'predict_proba'):
+        # classifier (probabilistic)
         if method is 'predict_proba':
-            if voting is None:
-                mean = _pass_pred
+
+            if averaging is 'pass':
+                avg = _pass_pred
+
+            elif averaging is 'auto':
+                avg = _mean_pred
+
             else:
-                mean = _mean_pred
+                good_vals = {'auto', 'pass'}
+                bad_vals = {'soft', 'hard'}
+                msg = "Selected <method> value is {}.".format(method) \
+                    + "\n\t\tAvailable <averaging> options are: {}.".format(good_vals) \
+                    + "\n\t\tBut current <averaging> value set to '{}'.".format(averaging) \
+                    + "\n\t\t" \
+                    + "\n\t\tNote: {} are voting strategies, so".format(bad_vals) \
+                    + "\n\t\tthey are available only for method='predict'."
+                raise ValueError(msg)
 
-        elif voting is None:
-            mean = _pass_pred
+        elif method is 'predict':
 
-        elif voting is 'hard':
-            mean = _hard_vote
-
-        elif voting is 'soft':
-            mean = _soft_vote
             method = 'predict_proba'
 
-        elif voting is 'auto':
-            mean = _mean_pred
+            if averaging in ['soft', 'auto']:
+                avg = _soft_vote
+
+            elif averaging is 'hard':
+                avg = _hard_vote
+
+            elif averaging is 'pass':
+                avg = _pass_pred
+
+
+    elif is_classifier(estimator) and not hasattr(estimator, 'predict_proba'):
+        # classifier (non-probabilistic)
+        if method is 'predict_proba':
+
+            msg = "<{}> is not available for <{}>".format(method, name)
+            raise AttributeError(msg)
+
+        elif method is 'predict':
+
+            if averaging in ['hard', 'auto']:
+                avg = _hard_vote
+
+            elif averaging is 'pass':
+                avg = _pass_pred
+
+            else:
+                vals = {'auto', 'hard', 'pass'}
+                msg = "<{}> is a {}. ".format(name, 'non-probabilistic classifier') \
+                    + "\n\t\tAvailable <averaging> options are: {}".format(vals) \
+                    + "\n\t\tCurrent value set to '{}'".format(averaging)
+                raise ValueError(msg)
+
+    elif is_regressor(estimator):
+        # regressor
+        if averaging is 'pass':
+            avg = _pass_pred
+            method = 'predict'
+
+        elif averaging is 'auto':
+            avg = _mean_pred
             method = 'predict'
 
         else:
-            raise AttributeError('Unknown error! Write to the developer.')
+            vals = {'auto', 'pass'}
+            msg = "<{}> is a {}. ".format(name, 'regressor') \
+                + "\n\t\tAvailable <averaging> options are: {}".format(vals) \
+                + "\n\t\tCurrent value set to '{}'".format(averaging)
+            raise ValueError(msg)
 
-    elif voting is None:
-        mean = _pass_pred
-        method = 'predict'
-
-    else:
-        mean = _mean_pred
-        method = 'predict'
-
-    return method, mean
-
+    return method, avg
 
 
 def _fit_pred_score(estimator, method, scorer, X, y, trn=None, oof=None, X_new=None,
@@ -719,7 +792,6 @@ def _fit_pred_score(estimator, method, scorer, X, y, trn=None, oof=None, X_new=N
     return result
 
 
-
 def _imp(estimator, cols):
     """Extract <feature_importances_> or <coef_> from fitted estimator.
 
@@ -757,7 +829,6 @@ def _imp(estimator, cols):
     imp = pd.Series(imp, index=cols, name=attr)
 
     return imp
-
 
 
 def _pred(estimator, method, X, target):
@@ -803,24 +874,16 @@ def _pred(estimator, method, X, target):
     return pred
 
 
-
-def _concat_preds(preds, mean, encoder, name, ind):
-    """Concatenate predictions, using <mean> function
+def _avg_preds(preds, avg, ind):
+    """Concatenate predictions, using <avg> function
 
     Parameters
     ----------
     preds : list of Series or DataFrame
         Estimators predictions by fold
 
-    mean : callable
-        Function, which used to concatenate predictions
-
-    encoder : transformer object or None
-        Transformer, used to encode target labels. Must has <inverse_transform>
-        method. If None, interpreted as non-classification task.
-
-    name : string
-        Name of target column
+    avg : callable
+        Function, used to aggregate predictions (averaging or voting)
 
     ind : iterable
         Original indices order of data, used to compute predictions
@@ -832,36 +895,68 @@ def _concat_preds(preds, mean, encoder, name, ind):
         Computed predictions
 
     """
+    # Add fold index
     for i, pred in enumerate(preds):
-        pred = pd.DataFrame(pred.copy())
-
-        # Target Decoding
-        if encoder is not None:
-            if pred.shape[1] is 1:
-                pred.iloc[:,0] = encoder.inverse_transform(pred.iloc[:,0])
-                pred.columns = [name]
-            else:
-                pred.columns = encoder.inverse_transform(pred.columns)
-
-        # Add fold index
+        pred = pd.DataFrame(pred)
         pred.insert(0, 'fold', i)
         preds[i] = pred
 
+    # Concatenate & sort
     pred = pd.concat(preds)
-
-    # Averaging predictions
-    pred = mean(pred)
-
-    # Binary Classification
-    if len(pred.shape) is 2 and set(pred.columns) == {0, 1}:
-        pred = pred[1]
-        pred = pred.rename(name)
-
-    # Original indices order
     pred = pred.loc[ind]
+
+    # Average predictions
+    pred = pred.set_index('fold', append=True)
+    pred = avg(pred)
 
     return pred
 
+
+def _rename_pred(pred, encoder, target):
+    """Decode columns (or labels) back and rename target column
+
+    Parameters
+    ----------
+    pred : Series or DataFrame
+        Predictions
+
+    encoder : transformer object or None
+        Transformer, used to encode target labels. Must has <inverse_transform>
+        method. If None, interpreted as non-classification task.
+
+    target : string
+        Name of target column
+
+
+    Returns
+    -------
+    pred : Series or DataFrame, shape [n_features] or [n_features, n_classes]
+        Computed predictions
+
+    """
+
+    pred = pd.DataFrame(pred)
+
+    # Target Decoding
+    if encoder:
+        if len(pred.columns) is 1:
+            # regression or non-probabilistic classification
+            pred.columns = [target]
+            pred[target] = encoder.inverse_transform(pred[target])
+        else:
+            # probabilistic classification
+            pred.columns = encoder.inverse_transform(pred.columns)
+
+    # Binary Classification
+    if set(pred.columns) == {0, 1}:
+        pred.drop(columns=0, inplace=True)
+        pred.columns = [target]
+
+    # Single Column DataFrame to Series
+    if len(pred.columns) is 1:
+        pred = pred.iloc[:,0]
+
+    return pred
 
 
 def _concat_imp(importances):
@@ -883,7 +978,7 @@ def _concat_imp(importances):
     importance = importance.stack().reset_index()
 
     importance.columns = ['fold', 'feature', 'importance']
-    importance.set_index('feature', inplace=True)
+    importance.set_index(['feature','fold'], inplace=True)
 
     return importance
 
