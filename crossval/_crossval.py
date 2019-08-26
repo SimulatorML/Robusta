@@ -25,7 +25,8 @@ __all__ = ['crossval', 'crossval_score', 'crossval_predict']
 def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
              scoring=None, averaging='auto', method='predict', return_pred=True,
              return_estimator=True, return_score=True, return_importance=False,
-             return_encoder=False, return_folds=True, n_jobs=-1, verbose=1):
+             return_encoder=False, return_folds=True, n_jobs=-1, verbose=1,
+             n_digits=4):
     """Evaluate metric(s) by cross-validation and also record fit/score time,
     feature importances and compute out-of-fold and test predictions.
 
@@ -139,8 +140,11 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
     n_jobs : int or None, optional (default=-1)
         The number of jobs to run in parallel. None means 1.
 
-    verbose : int
+    verbose : int (default=1)
         Verbosity level
+
+    n_digits : int (default=4)
+        Verbose score(s) precision
 
 
     Returns
@@ -211,7 +215,12 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
     # Check scorer(s)
     # FIXME: fails on multiple scorers
-    if not (type(scoring) in [dict, list, set] or scoring is None):
+    if scoring is None:
+        if is_classifier(estimator):
+            scoring = ['roc_auc']
+        else:
+            scoring = ['mean_squared_error']
+    elif type(scoring) not in [dict, list, set]:
         scoring = [scoring]
     scorer, _ = _check_multimetric_scoring(estimator, scoring=scoring)
     return_score = True if verbose else return_score
@@ -222,12 +231,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
     else:
         method, avg = None, None
 
-    # Init estimator
-    est_name = extract_model_name(estimator, short=True)
-
-    if verbose >= 2:
-        _log_msg(est_name)
-
+    # Init Estimator
     params = estimator.get_params()
     params_update = {}
 
@@ -241,6 +245,10 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
     estimator = estimator.set_params(**params_update)
 
+    # Init Logger
+    logger = CVLogger(folds, verbose, prec=n_digits)
+    logger.log_start(estimator, scorer)
+
     # Target Encoding
     if is_classifier(estimator):
         encoder = LabelEncoder1D()
@@ -249,7 +257,6 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
         encoder = None
 
     # Fit & predict
-    logger = CVLogger(folds, verbose)
     parallel = Parallel(max_nbytes='256M', pre_dispatch='2*n_jobs',
                         n_jobs=n_jobs, require='sharedmem')
 
@@ -333,26 +340,14 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
         result.pop('fold')
 
     # Final score
-    if verbose >= 2:
-        print()
-        for metric, scores in result['score'].items():
-            mean, std = scores.mean(), scores.std()
-            msg = '{}: {:.4f} ± {:.4f}'.format(metric, mean, std)
-            _log_msg(msg)
-        print()
-
-    if verbose == 1:
-        for metric, scores in result['score'].items():
-            mean, std = scores.mean(), scores.std()
-            msg = '{}: {:.4f} ± {:.4f} ({})'.format(metric, mean, std, est_name)
-            _log_msg(msg)
+    logger.log_final(result)
 
     return result
 
 
 
 def crossval_score(estimator, cv, X, y, groups=None, scoring=None,
-                   n_jobs=-1, verbose=1):
+                   n_jobs=-1, verbose=1, n_digits=4):
     """Evaluate metric(s) by cross-validation and also record fit/score time,
     feature importances and compute out-of-fold and test predictions.
 
@@ -393,8 +388,11 @@ def crossval_score(estimator, cv, X, y, groups=None, scoring=None,
     n_jobs : int or None, optional (default=-1)
         The number of jobs to run in parallel. None means 1.
 
-    verbose : int
+    verbose : int (default=1)
         Verbosity level
+
+    n_digits : int (default=4)
+        Verbose score(s) precision
 
 
     Returns
@@ -414,7 +412,7 @@ def crossval_score(estimator, cv, X, y, groups=None, scoring=None,
 
 def crossval_predict(estimator, cv, X, y, groups=None, X_new=None,
                      test_avg=True, averaging='auto', method='predict',
-                     scoring=None, n_jobs=-1, verbose=0):
+                     scoring=None, n_jobs=-1, verbose=0, n_digits=4):
     """Get Out-of-Fold and Test predictions.
 
     Parameters
@@ -512,8 +510,11 @@ def crossval_predict(estimator, cv, X, y, groups=None, X_new=None,
     n_jobs : int or None, optional (default=-1)
         The number of jobs to run in parallel. None means 1.
 
-    verbose : int
+    verbose : int (default=1)
         Verbosity level
+
+    n_digits : int (default=4)
+        Verbose score(s) precision
 
 
     Returns
