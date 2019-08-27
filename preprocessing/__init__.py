@@ -40,6 +40,7 @@ __all__ = [
     'WOEEncoderCV',
 
     # Numeric
+    'NumericDowncast',
     'GaussRank',
     'RankTransform',
     'MaxAbsScaler',

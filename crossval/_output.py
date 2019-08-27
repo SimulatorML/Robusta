@@ -71,29 +71,36 @@ class CVLogger(object):
         means = {metric: scores.mean() for metric, scores in scores.items()}
         stds = {metric: scores.std() for metric, scores in scores.items()}
 
-        if self.verbose >= 2:
+        if self.verbose > 1:
             print()
 
-            # Mean Score
-            msg = _agg_scores('MEAN  :', means, self.prec, colored=True)
+        '''for metric in scores:
+
+            mean, std = means[metric], stds[metric]
+
+            m = '{:.{prec}f}'.format(mean, prec=self.prec)
+            s = '{:.{prec}f}'.format(std, prec=self.prec)
+
+            m = termcolor.colored(m, 'yellow')
+            gap = ' '*(2-1*(mean < 0))
+
+            msg = 'MEAN  : ' + gap + '{} ± {} ({})'.format(m, s, metric)
+            _log_msg(msg)'''
+
+        for metric in scores:
+
+            mean, std = means[metric], stds[metric]
+
+            m = '{:.{prec}f}'.format(mean, prec=self.prec)
+            s = '{:.{prec}f}'.format(std, prec=self.prec)
+
+            m = termcolor.colored(m, 'yellow')
+            gap = ' '*(mean >= 0)
+
+            msg = '{}{} ± {} ({})'.format(gap, m, s, metric)
             _log_msg(msg)
 
-            # Std Score
-            msg = _agg_scores('STD   :', stds, self.prec)
-            _log_msg(msg)
-
-            print()
-
-        elif self.verbose == 1:
-
-            for metric in scores:
-
-                mean, std = means[metric], stds[metric]
-                m = '{:.{prec}f}'.format(mean, prec=self.prec)
-                s = '{:.{prec}f}'.format(std, prec=self.prec)
-
-                msg = '{} ± {}'.format(m, s) + ' ({})'.format(metric)
-                _log_msg(msg)
+        print()
 
 
     def _log_ind(self, ind):

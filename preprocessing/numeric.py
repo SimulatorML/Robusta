@@ -2,18 +2,163 @@ import pandas as pd
 import numpy as np
 import scipy
 
-from sklearn.base import BaseEstimator, TransformerMixin
+
 from sklearn import preprocessing
+from sklearn.base import BaseEstimator, TransformerMixin
 
 from .base import PandasTransformer
 
 
 __all__ = [
+    'NumericDowncast',
     'GaussRank',
     'RankTransform',
     'MaxAbsScaler',
     'SyntheticFeatures',
 ]
+
+
+
+
+INT_DTYPES = ['Int64', 'Int32', 'Int16', 'Int8', 'UInt32', 'UInt16', 'UInt8']
+FLOAT_DTYPES = ['float64', 'float32', 'float16']
+
+
+class NumericDowncast(BaseEstimator, TransformerMixin):
+    """Downcast numeric columns to the smallest numerical dtype possible
+    according to the following rules:
+
+        - ‘integer’ or ‘signed’: smallest signed int dtype (min.: np.int8)
+        - ‘unsigned’: smallest unsigned int dtype (min.: np.uint8)
+        - ‘float’: smallest float dtype (min.: np.float32)
+
+
+    Parameters
+    ----------
+    errors : {‘ignore’, ‘raise’, ‘coerce’}, default ‘raise’
+        If ‘raise’, then invalid parsing will raise an exception
+        If ‘ignore’, then invalid parsing will return the input
+
+
+    Attributes
+    ----------
+    dtypes_old_ : type or iterable of type
+        Original type(s) of data
+
+    dtypes_new_ : type or iterable of type
+        Downcasted type(s) of data
+
+    """
+    def __init__(self, errors='raise'):
+        self.errors = errors
+
+
+    def fit(self, X, y=None):
+        '''Determine each column's efficient dtype
+
+        Parameters
+        ----------
+        X : DataFrame, shape [n_samples, n_features]
+            The data to transform. Each column must be numeric (int or float).
+
+        Returns
+        -------
+        self
+
+        '''
+        self.dtypes_old_ = X.dtypes.copy()
+        self.dtypes_new_ = X.dtypes.copy()
+
+        for col in X:
+
+            x = X[col]
+
+            if np.issubdtype(x.dtype, np.number):
+                # Numeric type
+                x_min = x.min()
+                x_max = x.max()
+
+                try:
+                    # Integer type
+                    x = x.astype('Int64')
+
+                    col_type = 'Int64'
+                    col_bits = np.iinfo(col_type).bits
+
+                    for int_type in INT_DTYPES:
+                        int_info = np.iinfo(int_type)
+
+                        if (x_min >= int_info.min) \
+                        and (x_max <= int_info.max) \
+                        and (col_bits > int_info.bits):
+
+                            col_bits = int_info.bits
+                            col_type = int_type
+
+                except:
+                    # Float type
+                    col_type = 'float64'
+                    col_bits = np.finfo(col_type).bits
+
+                    for float_type in FLOAT_DTYPES:
+                        float_info = np.finfo(float_type)
+
+                        if (x_min >= float_info.min) \
+                        and (x_max <= float_info.max) \
+                        and (col_bits > float_info.bits):
+
+                            col_bits = float_info.bits
+                            col_type = float_type
+
+            else:
+                # Non-numeric type
+                errors_vals = ['raise', 'ignore']
+                if errors in errors_vals:
+                    if errors is 'ignore':
+                        continue
+                    else:
+                        raise ValueError("Found non-numeric column '{}'".format(col))
+                else:
+                    raise ValueError('<errors> must be in {}'.format(errors_vals))
+
+            self.dtypes_new_[col] = col_type
+
+        return self
+
+
+    def transform(self, X):
+        """Downcast numeric data.
+
+        Parameters
+        ----------
+        X : DataFrame, shape [n_samples, n_features]
+            The data to transform. Each column must be numeric (int or float).
+
+        Returns
+        -------
+        Xt : DataFrame, shape [n_samples, n_features]
+            Transformed input.
+
+        """
+
+        return X.astype(self.dtypes_new_)
+
+
+    def inverse_transform(self, X):
+        """Convert features type to original.
+
+        Parameters
+        ----------
+        X : DataFrame, shape [n_samples, n_features]
+            The data to transform. Each column must be numeric (int or float).
+
+        Returns
+        -------
+        Xt : DataFrame, shape [n_samples, n_features]
+            Inverse transformed input.
+
+        """
+        return X.astype(self.dtypes_old_)
 
 
 

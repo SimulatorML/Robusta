@@ -8,10 +8,19 @@ from ..preprocessing import *
 from ._pipeline import *
 
 
+mem_reduce_pipe = FeatureUnion([
+    ("numeric", make_pipeline(
+        TypeSelector(np.number),
+        NumericDowncast(),
+    )),
+    ("category", make_pipeline(
+        TypeSelector("object"),
+        TypeConverter("category"),
+    )),
+])
 
 
 prep_pipe = make_pipeline(
-    ColumnSelector(columns=features),
     FeatureUnion([
         ("numeric", make_pipeline(
             TypeSelector(np.number),
@@ -24,9 +33,5 @@ prep_pipe = make_pipeline(
             LabelEncoder(),
             ColumnRenamer(prefix='le_'),
         )),
-        #("boolean", make_pipeline(
-        #    TypeSelector("bool"),
-        #    Imputer(strategy="most_frequent")
-        #)),
     ])
 )
