@@ -110,7 +110,7 @@ class NumericDowncast(BaseEstimator, TransformerMixin):
 
         """
 
-        return X.astype(self.dtypes_new_)
+        return X.astype(self.dtypes_new_, errors=self.errors)
 
 
     def inverse_transform(self, X):
