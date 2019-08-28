@@ -38,11 +38,6 @@ class NumericDowncast(BaseEstimator, TransformerMixin):
         If ‘raise’, then invalid parsing will raise an exception
         If ‘ignore’, then invalid parsing will return the input
 
-    n_jobs : int or None, optional (default=-1)
-        The number of jobs to run in parallel for both fit and transform. None
-        means 1 unless in a joblib.parallel_backend context. -1 means using all
-        processors.
-
 
     Attributes
     ----------
@@ -53,9 +48,8 @@ class NumericDowncast(BaseEstimator, TransformerMixin):
         Downcasted type(s) of data
 
     """
-    def __init__(self, errors='raise', n_jobs=-1):
+    def __init__(self, errors='raise'):
         self.errors = errors
-        self.n_jobs = n_jobs
 
 
     def fit(self, X, y=None):
