@@ -74,15 +74,17 @@ class NumericDowncast(BaseEstimator, TransformerMixin):
         if self.errors not in errors_vals:
             raise ValueError('<errors> must be in {}'.format(errors_vals))
 
+        # Select numeric
+        X_num = X.select_dtypes(np.number)
+
+        if X_num.shape[1] < X.shape[1] and self.errors is 'raise':
+            raise ValueError("Found non-numeric column '{}'".format(col))
+
         # fit
-        for col, x in X.items():
+        for col, x in X_num.items():
 
-            if np.issubdtype(x.dtype, np.number):
-                col_type = self._fit_downcast(x)
-                self.dtypes_new_[col] = col_type
-
-            elif self.errors is 'raise':
-                raise ValueError("Found non-numeric column '{}'".format(col))
+            col_type = self._fit_downcast(x)
+            self.dtypes_new_[col] = col_type
 
         return self
 
