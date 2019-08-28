@@ -364,7 +364,7 @@ class EncoderCV(BaseEstimator):
         multiclass, StratifiedKFold is used. In all other cases, KFold is used.
 
     n_jobs : int or None, optional (default=-1)
-        The number of jobs to run in parallel for both fit and predict. None
+        The number of jobs to run in parallel for both fit and transform. None
         means 1 unless in a joblib.parallel_backend context. -1 means using all
         processors.
 

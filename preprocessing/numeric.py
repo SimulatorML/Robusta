@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import scipy
 
+from joblib import Parallel, delayed
 
 from sklearn import preprocessing
 from sklearn.base import BaseEstimator, TransformerMixin
@@ -16,8 +17,6 @@ __all__ = [
     'MaxAbsScaler',
     'SyntheticFeatures',
 ]
-
-
 
 
 INT_DTYPES = ['Int64', 'Int32', 'Int16', 'Int8', 'UInt32', 'UInt16', 'UInt8']
@@ -39,6 +38,11 @@ class NumericDowncast(BaseEstimator, TransformerMixin):
         If ‘raise’, then invalid parsing will raise an exception
         If ‘ignore’, then invalid parsing will return the input
 
+    n_jobs : int or None, optional (default=-1)
+        The number of jobs to run in parallel for both fit and transform. None
+        means 1 unless in a joblib.parallel_backend context. -1 means using all
+        processors.
+
 
     Attributes
     ----------
@@ -49,8 +53,9 @@ class NumericDowncast(BaseEstimator, TransformerMixin):
         Downcasted type(s) of data
 
     """
-    def __init__(self, errors='raise'):
+    def __init__(self, errors='raise', n_jobs=-1):
         self.errors = errors
+        self.n_jobs = n_jobs
 
 
     def fit(self, X, y=None):
@@ -69,59 +74,24 @@ class NumericDowncast(BaseEstimator, TransformerMixin):
         self.dtypes_old_ = X.dtypes.copy()
         self.dtypes_new_ = X.dtypes.copy()
 
-        for col in X:
+        # Check <errors> value
+        errors_vals = ['raise', 'ignore']
 
-            x = X[col]
+        if self.errors not in errors_vals:
+            raise ValueError('<errors> must be in {}'.format(errors_vals))
 
-            if np.issubdtype(x.dtype, np.number):
-                # Numeric type
-                x_min = x.min()
-                x_max = x.max()
+        # fit
+        jobs = (delayed(self._fit_downcast)(x) for col, x in X.items())
+        col_types = Parallel(backend='multiprocessing', max_nbytes='512M',
+                             n_jobs=self.n_jobs)(jobs)
 
-                try:
-                    # Integer type
-                    x = x.astype('Int64')
+        for col, col_type in zip(X.columns, col_types):
 
-                    col_type = 'Int64'
-                    col_bits = np.iinfo(col_type).bits
-
-                    for int_type in INT_DTYPES:
-                        int_info = np.iinfo(int_type)
-
-                        if (x_min >= int_info.min) \
-                        and (x_max <= int_info.max) \
-                        and (col_bits > int_info.bits):
-
-                            col_bits = int_info.bits
-                            col_type = int_type
-
-                except:
-                    # Float type
-                    col_type = 'float64'
-                    col_bits = np.finfo(col_type).bits
-
-                    for float_type in FLOAT_DTYPES:
-                        float_info = np.finfo(float_type)
-
-                        if (x_min >= float_info.min) \
-                        and (x_max <= float_info.max) \
-                        and (col_bits > float_info.bits):
-
-                            col_bits = float_info.bits
-                            col_type = float_type
-
+            if col_type:
+                self.dtypes_new_[col] = col_type
             else:
-                # Non-numeric type
-                errors_vals = ['raise', 'ignore']
-                if errors in errors_vals:
-                    if errors is 'ignore':
-                        continue
-                    else:
-                        raise ValueError("Found non-numeric column '{}'".format(col))
-                else:
-                    raise ValueError('<errors> must be in {}'.format(errors_vals))
-
-            self.dtypes_new_[col] = col_type
+                if self.errors is 'raise':
+                    raise ValueError("Found non-numeric column '{}'".format(col))
 
         return self
 
@@ -159,6 +129,47 @@ class NumericDowncast(BaseEstimator, TransformerMixin):
 
         """
         return X.astype(self.dtypes_old_)
+
+
+    def _fit_downcast(self, x):
+
+        if not np.issubdtype(x.dtype, np.number):
+            return
+
+        x_min = x.min()
+        x_max = x.max()
+
+        try:
+            x = x.astype('Int64')
+
+            col_type = 'Int64'
+            col_bits = np.iinfo(col_type).bits
+
+            for int_type in INT_DTYPES:
+                int_info = np.iinfo(int_type)
+
+                if (x_min >= int_info.min) \
+                and (x_max <= int_info.max) \
+                and (col_bits > int_info.bits):
+
+                    col_bits = int_info.bits
+                    col_type = int_type
+
+        except:
+            col_type = 'float64'
+            col_bits = np.finfo(col_type).bits
+
+            for float_type in FLOAT_DTYPES:
+                float_info = np.finfo(float_type)
+
+                if (x_min >= float_info.min) \
+                and (x_max <= float_info.max) \
+                and (col_bits > float_info.bits):
+
+                    col_bits = float_info.bits
+                    col_type = float_type
+
+        return col_type
 
 
 
