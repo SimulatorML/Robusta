@@ -81,17 +81,16 @@ class NumericDowncast(BaseEstimator, TransformerMixin):
             raise ValueError('<errors> must be in {}'.format(errors_vals))
 
         # fit
-        jobs = (delayed(self._fit_downcast)(x) for col, x in X.items())
-        col_types = Parallel(backend='multiprocessing', max_nbytes='512M',
-                             n_jobs=self.n_jobs)(jobs)
+        for col, x in X.items():
 
-        for col, col_type in zip(X.columns, col_types):
+            col_type = self._fit_downcast(x)
 
-            if col_type:
+            if np.issubdtype(x.dtype, np.number):
+                col_type = self._fit_downcast(x)
                 self.dtypes_new_[col] = col_type
-            else:
-                if self.errors is 'raise':
-                    raise ValueError("Found non-numeric column '{}'".format(col))
+
+            elif self.errors is 'raise':
+                raise ValueError("Found non-numeric column '{}'".format(col))
 
         return self
 
@@ -132,9 +131,6 @@ class NumericDowncast(BaseEstimator, TransformerMixin):
 
 
     def _fit_downcast(self, x):
-
-        if not np.issubdtype(x.dtype, np.number):
-            return
 
         x_min = x.min()
         x_max = x.max()
