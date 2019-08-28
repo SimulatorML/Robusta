@@ -77,8 +77,6 @@ class NumericDowncast(BaseEstimator, TransformerMixin):
         # fit
         for col, x in X.items():
 
-            col_type = self._fit_downcast(x)
-
             if np.issubdtype(x.dtype, np.number):
                 col_type = self._fit_downcast(x)
                 self.dtypes_new_[col] = col_type
