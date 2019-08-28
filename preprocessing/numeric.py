@@ -76,6 +76,7 @@ class NumericDowncast(BaseEstimator, TransformerMixin):
 
         # Select numeric
         X_num = X.select_dtypes(np.number)
+<<<<<<< HEAD
 
         if X_num.shape[1] < X.shape[1] and self.errors is 'raise':
             raise ValueError("Found non-numeric column '{}'".format(col))
@@ -83,6 +84,15 @@ class NumericDowncast(BaseEstimator, TransformerMixin):
         # Fit
         for col, x in X_num.items():
 
+=======
+
+        if X_num.shape[1] < X.shape[1] and self.errors is 'raise':
+            raise ValueError("Found non-numeric column '{}'".format(col))
+
+        # fit
+        for col, x in X_num.items():
+
+>>>>>>> e7a7525ace19f732150aa1412afa1f18a87e5972
             col_type = self._fit_downcast(x)
             self.dtypes_new_[col] = col_type
 
