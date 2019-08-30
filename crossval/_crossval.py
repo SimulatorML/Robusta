@@ -644,6 +644,8 @@ def _check_avg(estimator, averaging, method):
                 + "\n\t\tCurrent value set to '{}'".format(averaging)
             raise ValueError(msg)
 
+    # FIXME: Crashes on estimators without <_estimator_type> attribute.
+
     return method, avg
 
 
