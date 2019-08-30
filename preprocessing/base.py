@@ -155,6 +155,12 @@ class TypeSelector(BaseEstimator, TransformerMixin):
     ----------
     dtype : type
 
+
+    Attributes
+    ----------
+    columns_ : list of string
+        Columns of the determined type
+
     '''
     def __init__(self, dtype):
         self.dtype = dtype
@@ -177,7 +183,7 @@ class TypeSelector(BaseEstimator, TransformerMixin):
             self.dtypes = self.dtype
         else:
             self.dtypes = [self.dtype]
-        self.columns = X.select_dtypes(include=self.dtypes).columns
+        self.columns_ = list(X.select_dtypes(include=self.dtypes).columns)
         return self
 
 
@@ -195,7 +201,7 @@ class TypeSelector(BaseEstimator, TransformerMixin):
             Transformed input.
 
         """
-        return X[self.columns]
+        return X[self.columns_]
 
 
 
