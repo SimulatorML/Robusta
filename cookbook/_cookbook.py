@@ -18,13 +18,12 @@ __all__ = [
 
 
 memory_reduce_pipeline = FeatureUnion([
-    ("numeric", make_pipeline(
+    ('numeric', make_pipeline(
         TypeSelector(np.number),
-        NumericDowncast(errors='ignore'),
+        NumericDowncast(),
     )),
-    ("category", make_pipeline(
-        TypeSelector(["object", "category"]),
-        TypeConverter("category"),
+    ('category', make_pipeline(
+        TypeSelector('object'),
     )),
 ])
 

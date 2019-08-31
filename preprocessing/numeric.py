@@ -19,6 +19,8 @@ __all__ = [
 ]
 
 
+
+
 INT_DTYPES = ['Int64', 'Int32', 'Int16', 'Int8', 'UInt32', 'UInt16', 'UInt8']
 FLOAT_DTYPES = ['float64', 'float32', 'float16']
 
@@ -34,39 +36,37 @@ class NumericDowncast(BaseEstimator, TransformerMixin):
 
     Parameters
     ----------
-    errors : {‘ignore’, ‘raise’, ‘coerce’}, default ‘raise’
-        If ‘raise’, then invalid parsing will raise an exception
-        If ‘ignore’, then invalid parsing will return the input
+    errors : {‘ignore’, ‘raise’}, default ‘raise’
+        If ‘raise’, then non-numeric columns will raise an exception
+        If ‘ignore’, then non-numeric columns will be passed with no changes
 
-
-    Attributes
-    ----------
-    dtypes_old_ : type or iterable of type
-        Original type(s) of data
-
-    dtypes_new_ : type or iterable of type
-        Downcasted type(s) of data
+    copy : bool, default True
+        If False, change original dataframe
 
     """
-    def __init__(self, errors='raise'):
+    def __init__(self, errors='raise', copy=True):
         self.errors = errors
+        self.copy = copy
 
 
     def fit(self, X, y=None):
-        '''Determine each column's efficient dtype
+        '''Only checks <errors> & <copy> parameters
 
         Parameters
         ----------
         X : DataFrame, shape [n_samples, n_features]
-            The data to transform. Each column must be numeric (int or float).
+            The data to transform
 
         Returns
         -------
         self
 
         '''
-        self.dtypes_old_ = X.dtypes.copy()
-        self.dtypes_new_ = X.dtypes.copy()
+
+        # Select numeric
+        self.cols = list(X.columns)
+        self.nums = list(X.select_dtypes(np.number))
+        self.dtypes = X.dtypes.copy()
 
         # Check <errors> value
         errors_vals = ['raise', 'ignore']
@@ -74,28 +74,21 @@ class NumericDowncast(BaseEstimator, TransformerMixin):
         if self.errors not in errors_vals:
             raise ValueError('<errors> must be in {}'.format(errors_vals))
 
-        # Select numeric
-        X_num = X.select_dtypes(np.number)
-
-        if X_num.shape[1] < X.shape[1] and self.errors is 'raise':
-            cols = list(set(X.columns) - set(X_num.columns))
-            raise ValueError("Found non-numeric columns {}".format(cols))
-
-        # Fit
-        for col, x in X_num.items():
-            col_type = self._fit_downcast(x)
-            self.dtypes_new_[col] = col_type
+        if len(self.nums) < len(self.cols) and self.errors is 'raise':
+            cols_diff = list(set(self.cols) - set(self.nums))
+            raise ValueError("Found non-numeric columns {}".format(cols_diff))
 
         return self
 
 
     def transform(self, X):
-        """Downcast numeric data.
+        """Downcast each column to the efficient dtype
 
         Parameters
         ----------
         X : DataFrame, shape [n_samples, n_features]
-            The data to transform. Each column must be numeric (int or float).
+            The data to transform
+
 
         Returns
         -------
@@ -104,24 +97,22 @@ class NumericDowncast(BaseEstimator, TransformerMixin):
 
         """
 
-        return X.astype(self.dtypes_new_, errors=self.errors)
+        # Check columns
+        cols_diff = set(self.cols) ^ set(X.columns)
+        nums_diff = set(self.nums) ^ set(X.select_dtypes(np.number))
 
+        if len(cols_diff) > 0:
+            raise ValueError("Found new columns {}".format(cols_diff))
 
-    def inverse_transform(self, X):
-        """Convert features type to original.
+        if len(nums_diff) > 0:
+            raise ValueError("Found new numeric columns {}".format(nums_diff))
 
-        Parameters
-        ----------
-        X : DataFrame, shape [n_samples, n_features]
-            The data to transform. Each column must be numeric (int or float).
+        # Fit & transform
+        for col, x in X[self.nums].items():
+            col_type = self._fit_downcast(x)
+            self.dtypes[col] = col_type
 
-        Returns
-        -------
-        Xt : DataFrame, shape [n_samples, n_features]
-            Inverse transformed input.
-
-        """
-        return X.astype(self.dtypes_old_)
+        return X.astype(self.dtypes, errors=self.errors, copy=self.copy)
 
 
     def _fit_downcast(self, x):
