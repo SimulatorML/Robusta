@@ -11,6 +11,8 @@ from .base import PandasTransformer
 
 
 __all__ = [
+    'INT_DTYPES',
+    'FLOAT_DTYPES',
     'NumericDowncast',
     'GaussRank',
     'RankTransform',

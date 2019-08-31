@@ -3,7 +3,8 @@ import pandas as pd
 
 from pympler.asizeof import asizeof
 
-from ..preprocessing import *
+from ..preprocessing.category import *
+from ..preprocessing.numeric import *
 from ..pipeline import *
 
 
