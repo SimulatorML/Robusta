@@ -5,6 +5,7 @@ from pympler.asizeof import asizeof
 
 from ..preprocessing.category import *
 from ..preprocessing.numeric import *
+from ..preprocessing.base import *
 from ..pipeline import *
 
 
