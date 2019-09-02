@@ -10,8 +10,8 @@ from ..pipeline import *
 
 
 __all__ = [
-    'memory_reduce_pipeline',
-    'preprocessing_pipeline',
+    'mem_reduce_pipe',
+    'prep_pipe',
     'bytefmt',
     'sizeof',
 ]
@@ -19,7 +19,7 @@ __all__ = [
 
 
 
-memory_reduce_pipeline = FeatureUnion([
+mem_reduce_pipe = FeatureUnion([
     ('numeric', make_pipeline(
         TypeSelector(np.number),
         NumericDowncast(),
@@ -31,7 +31,7 @@ memory_reduce_pipeline = FeatureUnion([
 
 
 
-preprocessing_pipeline = make_pipeline(
+prep_pipe = make_pipeline(
     FeatureUnion([
         ("numeric", make_pipeline(
             TypeSelector(np.number),

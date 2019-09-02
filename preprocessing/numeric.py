@@ -133,7 +133,7 @@ class NumericDowncast(BaseEstimator, TransformerMixin):
 
                 if (x_min >= int_info.min) \
                 and (x_max <= int_info.max) \
-                and (col_bits > int_info.bits):
+                and (col_bits >= int_info.bits):
 
                     col_bits = int_info.bits
                     col_type = int_type

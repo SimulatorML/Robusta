@@ -2,8 +2,8 @@ from ._cookbook import *
 
 
 __all__ = [
-    'memory_reduce_pipeline',
-    'preprocessing_pipeline',
+    'mem_reduce_pipe',
+    'prep_pipe',
     'bytefmt',
     'sizeof',
 ]
