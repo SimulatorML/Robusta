@@ -345,6 +345,9 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
     if not return_folds:
         result.pop('fold')
 
+    # Save cols
+    result['use_cols'] = use_cols
+
     # Final score
     logger.log_final(result)
 

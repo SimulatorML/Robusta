@@ -22,7 +22,7 @@ __all__ = [
 mem_reduce_pipe = FeatureUnion([
     ('numeric', make_pipeline(
         TypeSelector(np.number),
-        NumericDowncast(),
+        NumDowncast(),
     )),
     ('category', make_pipeline(
         TypeSelector('object'),

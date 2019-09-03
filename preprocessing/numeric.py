@@ -13,7 +13,7 @@ from .base import PandasTransformer
 __all__ = [
     'INT_DTYPES',
     'FLOAT_DTYPES',
-    'NumericDowncast',
+    'NumDowncast',
     'GaussRank',
     'RankTransform',
     'MaxAbsScaler',
@@ -27,7 +27,7 @@ INT_DTYPES = ['Int64', 'Int32', 'Int16', 'Int8', 'UInt32', 'UInt16', 'UInt8']
 FLOAT_DTYPES = ['float64', 'float32', 'float16']
 
 
-class NumericDowncast(BaseEstimator, TransformerMixin):
+class NumDowncast(BaseEstimator, TransformerMixin):
     """Downcast numeric columns to the smallest numerical dtype possible
     according to the following rules:
 
