@@ -26,7 +26,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
              scoring=None, averaging='auto', method='predict', return_pred=True,
              return_estimator=True, return_score=True, return_importance=False,
              return_encoder=False, return_folds=True, n_jobs=-1, verbose=1,
-             n_digits=4, use_cols=None):
+             n_digits=4):
     """Evaluate metric(s) by cross-validation and also record fit/score time,
     feature importances and compute out-of-fold and test predictions.
 
@@ -146,9 +146,6 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
     n_digits : int (default=4)
         Verbose score(s) precision
 
-    use_cols : list-like or None (default: None)
-        Columns to select. If None, select all.
-
 
     Returns
     -------
@@ -210,8 +207,8 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
     use_cols = list(X.columns) if use_cols is None else list(use_cols)
 
     # Check data
-    X, y, groups = indexable(X.loc[:, use_cols], y, groups)
-    X_new, _ = indexable(X_new.loc[:, use_cols], None)
+    X, y, groups = indexable(X, y, groups)
+    X_new, _ = indexable(X_new, None)
 
     # Check validation scheme
     cv = check_cv(cv, y, classifier=is_classifier(estimator))
@@ -337,16 +334,16 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
         concat_time = time.time() - start_time
         result['concat_time'] = concat_time
 
-    # Save encoder
-    if return_encoder:
-        result['encoder'] = encoder
+    # Save cols
+    result['use_cols'] = X.columns.copy()
 
     # Save folds
     if not return_folds:
         result.pop('fold')
 
-    # Save cols
-    result['use_cols'] = use_cols
+    # Save encoder
+    if return_encoder:
+        result['encoder'] = encoder
 
     # Final score
     logger.log_final(result)

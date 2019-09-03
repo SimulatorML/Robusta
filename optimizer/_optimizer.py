@@ -274,7 +274,7 @@ class BaseOptimizer(BaseEstimator):
     def _init_trials(self):
         '''Reset trials (if needed) and set iterations limit.
         '''
-        if not (self.warm_start and hasattr(self, 'trials_')):
+        if not hasattr(self, 'trials_') or not self.warm_start:
             # Reset optimization
             # max trials = new trials
             self.max_trials = self.n_trials
