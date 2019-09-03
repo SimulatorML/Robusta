@@ -66,6 +66,9 @@ class CVLogger(object):
 
     def log_final(self, results):
 
+        if not self.verbose:
+            return
+
         scores = results['score']
 
         means = {metric: scores.mean() for metric, scores in scores.items()}
