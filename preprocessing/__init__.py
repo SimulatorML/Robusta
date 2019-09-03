@@ -15,6 +15,8 @@ __all__ = [
     # Categorical
     'LabelEncoder1D',
     'LabelEncoder',
+    'CatConverter1D',
+    'CatConverter',
     'OneHotEncoder',
     'BackwardDifferenceEncoder',
     'BinaryEncoder',

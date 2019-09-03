@@ -18,6 +18,8 @@ from .base import TypeSelector, ColumnSelector
 __all__ = [
     'LabelEncoder1D',
     'LabelEncoder',
+    'CatConverter1D',
+    'CatConverter',
     'OneHotEncoder',
     'BackwardDifferenceEncoder',
     'BinaryEncoder',
@@ -42,6 +44,7 @@ __all__ = [
     'WOEEncoder',
     'WOEEncoderCV',
 ]
+
 
 
 
@@ -290,6 +293,97 @@ class LabelEncoder(BaseEstimator, TransformerMixin):
 
         for col, transformer in self.transformers.items():
             Xt[col] = transformer.inverse_transform(X[col])
+
+        return Xt
+
+
+
+class CatConverter1D(BaseEstimator, TransformerMixin):
+    """Convert categories to 'category' dtype of the same range.
+    """
+    def __init__(self):
+        pass
+
+
+    def fit(self, y):
+        """Learn categories
+
+        Parameters
+        ----------
+        y : Series
+
+        Returns
+        -------
+        self
+
+        """
+        self.cats_ = y.astype('category').values.categories
+
+        return self
+
+
+    def transform(self, y):
+        """Convert y to fitted categories
+
+        Parameters
+        ----------
+        y : Series
+
+        Returns
+        -------
+        yt : Series
+            Transformed input.
+
+        """
+        return pd.Categorical(y, categories=self.cats_)
+
+
+
+class CatConverter(BaseEstimator, TransformerMixin):
+    """Convert categories to 'category' dtype of the same range.
+    """
+    def __init__(self):
+        pass
+
+
+    def fit(self, X, y=None):
+        """Learn categories
+
+        Parameters
+        ----------
+        X : DataFrame, shape [n_samples, n_features]
+            The data to determine the categories of each feature.
+
+        Returns
+        -------
+        self
+
+        """
+        self.transformers = {}
+        for col in X.columns:
+            self.transformers[col] = CatConverter1D().fit(X[col])
+
+        return self
+
+
+    def transform(self, X):
+        """Convert X to fitted categories
+
+        Parameters
+        ----------
+        X : DataFrame, shape [n_samples, n_features]
+            The data to transform.
+
+        Returns
+        -------
+        Xt : DataFrame, shape [n_samples, n_features]
+            Transformed input.
+
+        """
+        Xt = pd.DataFrame(index=X.index)
+
+        for col, transformer in self.transformers.items():
+            Xt[col] = transformer.transform(X[col])
 
         return Xt
 
