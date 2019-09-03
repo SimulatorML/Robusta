@@ -79,11 +79,6 @@ class BaseOptimizer(BaseEstimator):
                 Constant value.
                 Pass single value (int, float, string, None, ...).
 
-    clone : boolean (default: True)
-        Whether to clone estimator on each iteration or refit original
-        estimator instance. Can be useful for Pipeline with cached
-        transformation steps.
-
     max_time : int or NoneType (default: None)
         Stop optimization after given number of seconds.
         None means no time limitation. If n_trials is also set to None,
@@ -96,9 +91,9 @@ class BaseOptimizer(BaseEstimator):
         the optimization continues to create trials until it receives a
         termination signal such as Ctrl+C or SIGTERM.
 
-    warm_start : boolean (default: False)
-        Whether to continue optimization and start with previos optimal params
-        when calling <fit>. Otherwise drop old trials and start new optimization.
+    n_jobs : int or None, optional (default=None)
+        The number of jobs to run in parallel (for inner cross-validation).
+        None means 1.
 
     verbose : int, optional (default: 1)
         Verbosity level:
@@ -110,11 +105,11 @@ class BaseOptimizer(BaseEstimator):
     plot : bool, optional (default: False)
         Plot scores if True
 
-    debug_mode : bool (default: False)
-        Whether to print full error messages
-
     Attributes
     ----------
+
+    X_, y_, groups_ : ndarray-like, array-like, array-like
+        Last fit data
 
     best_estimator_ : estimator
         Estimator with best params
@@ -151,20 +146,19 @@ class BaseOptimizer(BaseEstimator):
 
     '''
     def __init__(self, estimator, cv=5, scoring=None, param_space=None,
-                 clone=True, max_time=None, max_trials=None, n_jobs=-1,
+                 max_time=None, max_trials=None, n_jobs=None,
                  verbose=1, plot=False):
 
+        self.estimator = estimator
         self.param_space = param_space
 
-        self.estimator = estimator
-        self.clone = clone
-
-        self.n_jobs = n_jobs
-        self.scoring = scoring
         self.cv = cv
+        self.scoring = scoring
 
         self.max_time = max_time
         self.max_trials = max_trials
+
+        self.n_jobs = n_jobs
 
         self.verbose = verbose
         self.plot = plot
@@ -191,6 +185,7 @@ class BaseOptimizer(BaseEstimator):
             return
 
         time_start = time.time()
+
         params = fix_params(params, self.param_space)
 
         trial = {
@@ -202,8 +197,7 @@ class BaseOptimizer(BaseEstimator):
 
         try:
             # Check if max_time reached
-            if not self._check_time():
-                raise TimeoutError
+            self._check_time()
 
             # Get estimator with new params
             estimator = self._get_estimator(params)
@@ -263,25 +257,27 @@ class BaseOptimizer(BaseEstimator):
         self.n_trials_ = len(self.trials_)
 
         # Check if last
-        if self.n_trials_ >= self.max_trials_:
+        if self.n_trials_ >= self.max_trials:
             self.is_finished = True
 
         # Update best trial
         # (if better, than previous)
-        if trial['status'] is 'ok' and
-        (not hasattr(self, 'best_score_') or trial['score'] > self.best_score_):
+        if trial['status'] is 'ok':
 
-            self.best_trial_ = self.n_trials_ - 1
-            self.best_score_ = self.trials_.loc[self.best_trial_, 'score']
-            self.best_params_ = self.trials_.loc[self.best_trial_, 'params']
+            if self.best_score_ and trial['score'] > self.best_score_ \
+            or self.best_score_ is None:
 
-            self.best_estimator_ = self._get_estimator(self.best_params_)
+                self.best_trial_ = self.n_trials_ - 1
+                self.best_score_ = self.trials_.loc[self.best_trial_, 'score']
+                self.best_params_ = self.trials_.loc[self.best_trial_, 'params']
+
+                self.best_estimator_ = self._get_estimator(self.best_params_)
 
 
 
     def _check_time(self):
-        '''Return time left. If timeout is None, always returns 1.
-        Otherwise return time left to (time_start + timeout).
+        '''Check if <total_time_> less then <max_time> or if <max_time> is not
+        defined (limited).
 
         Return
         ------
@@ -290,12 +286,10 @@ class BaseOptimizer(BaseEstimator):
 
         '''
 
-        self.total_time_ = self.trials_['time'].sum()
+        self.total_time_ = self.trials_['time'].sum() if self.n_trials_ else .0
 
-        if self.timeout:
-            return self.timeout > self.total_time_
-        else:
-            return True
+        if self.max_time and (self.max_time < self.total_time_):
+            raise TimeoutError
 
 
 
@@ -314,14 +308,11 @@ class BaseOptimizer(BaseEstimator):
 
         '''
 
-        # Continue optimization from previos best estimator (if warm_start)
-        if self.warm_start and hasattr(self, 'best_estimator_'):
-            estimator = self.best_estimator_
+        # Continue optimization from previos best estimator
+        if self.best_estimator_:
+            estimator = clone(self.best_estimator_)
         else:
-            estimator = self.estimator
-
-        # Clone estimator (if needed)
-        estimator = clone(estimator) if self.clone else estimator
+            estimator = clone(self.estimator)
 
         # Set params
         estimator = estimator.set_params(**params)
@@ -343,7 +334,7 @@ class BaseOptimizer(BaseEstimator):
 
     def partial_fit(self, X, y, groups=None):
 
-        self._partial_fit_start(X, y, groups)
+        self._fit_start(X, y, groups, partial_fit=True)
 
         self._fit(X, y, groups) # defined individualy
         self._fit_end()
@@ -352,7 +343,7 @@ class BaseOptimizer(BaseEstimator):
 
 
 
-    def _fit_start(self, X, y, groups):
+    def _fit_start(self, X, y, groups=None, partial_fit=False):
         '''Starting routine. Initialize trials, space, starting time and define
         evaluator function (estimator -> score).
 
@@ -368,25 +359,38 @@ class BaseOptimizer(BaseEstimator):
                 Group labels for the samples used while splitting the dataset
                 into train/test set
 
+            partial_fit : boolean
+                Whether to update existent trials
+
         '''
 
+        # Init data
+        self.X_, self.y_, self.groups_ = X, y, groups
+
+        # Init optimization
         self.is_finished = False
         self._init_space()
 
-        self.trials_ = pd.DataFrame()
-        self.n_trials_ = 0
+        if not hasattr(self, 'trials_') \
+        or partial_fit is False:
+
+            # Reset trials
+            self.trials_ = pd.DataFrame()
+            self.n_trials_ = 0
+
+            # Reset best
+            self.best_trial_ = None
+            self.best_score_ = None
+            self.best_params_ = None
+
+            self.best_estimator_ = None
 
 
-    def _partial_fit_start(self, X, y, groups):
 
-        self.is_finished = False
-        self._init_space()
+    def _eval(self, estimator):
 
-
-
-    def _eval(estimator):
-        scores = crossval_score(estimator, self.cv, X, y, groups, self.scoring,
-                                n_jobs=self.n_jobs, verbose=0).values
+        scores = crossval_score(estimator, self.cv, self.X_, self.y_, self.groups_,
+                                self.scoring, n_jobs=self.n_jobs, verbose=0).values
         return scores
 
 

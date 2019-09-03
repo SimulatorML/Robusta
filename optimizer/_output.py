@@ -47,7 +47,7 @@ def print_progress(opt):
         # ETA (estimated time to arrival)
         iters_time = np.array(opt.trials_['time'])
 
-        if opt.timeout:
+        if opt.max_time:
             eta_time = max(0, opt._time_left())
         else:
             eta_time = np.nan

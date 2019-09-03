@@ -72,8 +72,9 @@ class OptunaCV(BaseOptimizer):
         try:
             if not hasattr(self, 'study'):
                 # TODO: set seed & other params
-                tpe = optuna.samplers.TPESampler(seed=0)
-                self.study = optuna.create_study(direction='maximize', sampler=tpe)
+                sampler = optuna.samplers.TPESampler(seed=0)
+                self.study = optuna.create_study(direction='maximize',
+                                                 sampler=sampler)
 
             self.study.optimize(self.objective)
 
