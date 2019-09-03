@@ -107,8 +107,11 @@ class BaseOptimizer(BaseEstimator):
         2: Also print trial's parameters
         3: Also print cv output for each fold
 
-    plot : bool, optional (defautl: False)
+    plot : bool, optional (default: False)
         Plot scores if True
+
+    debug : bool (default: False)
+        Whether to print full error messages
 
     Attributes
     ----------
@@ -146,7 +149,7 @@ class BaseOptimizer(BaseEstimator):
     '''
     def __init__(self, estimator, cv=5, scoring=None, param_space=None,
                  clone=True, warm_start=False, timeout=None, n_trials=None,
-                 n_jobs=-1, verbose=1, plot=False):
+                 n_jobs=-1, verbose=1, plot=False, debug=False):
 
         self.param_space = param_space
 
@@ -163,6 +166,7 @@ class BaseOptimizer(BaseEstimator):
 
         self.verbose = verbose
         self.plot = plot
+        self.debug = debug
 
 
 
