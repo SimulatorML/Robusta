@@ -203,9 +203,6 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
     """
 
-    # Check <use_cols>
-    use_cols = list(X.columns) if use_cols is None else list(use_cols)
-
     # Check data
     X, y, groups = indexable(X, y, groups)
     X_new, _ = indexable(X_new, None)
