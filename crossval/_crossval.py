@@ -26,7 +26,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
              scoring=None, averaging='auto', method='predict', return_pred=True,
              return_estimator=True, return_score=True, return_importance=False,
              return_encoder=False, return_folds=True, n_jobs=-1, verbose=1,
-             n_digits=4):
+             n_digits=4, use_cols=None):
     """Evaluate metric(s) by cross-validation and also record fit/score time,
     feature importances and compute out-of-fold and test predictions.
 
@@ -146,6 +146,9 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
     n_digits : int (default=4)
         Verbose score(s) precision
 
+    use_cols : list-like or None (default: None)
+        Columns to select. If None, select all.
+
 
     Returns
     -------
@@ -203,9 +206,12 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
     """
 
+    # Check <use_cols>
+    use_cols = list(X.columns) if use_cols is None else list(use_cols)
+
     # Check data
-    X, y, groups = indexable(X, y, groups)
-    X_new, _ = indexable(X_new, None)
+    X, y, groups = indexable(X.loc[:, use_cols], y, groups)
+    X_new, _ = indexable(X_new.loc[:, use_cols], None)
 
     # Check validation scheme
     cv = check_cv(cv, y, classifier=is_classifier(estimator))
