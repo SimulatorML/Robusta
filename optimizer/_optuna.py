@@ -63,31 +63,22 @@ class OptunaCV(BaseOptimizer):
             return score
 
 
-    def fit(self, X, y, groups=None):
-
-        # Starting routine
-        self._fit_start(X, y, groups)
+    def _fit(self, X, y, groups=None):
 
         # Disable inbuilt logger
         optuna.logging.disable_default_handler()
 
         # Optimization loop
         try:
-            if not (self.warm_start and hasattr(self, 'study')):
+            if not hasattr(self, 'study'):
                 # TODO: set seed & other params
-                sampler = optuna.samplers.TPESampler(seed=0)
-                self.study = optuna.create_study(direction='maximize',
-                    sampler=sampler)
+                tpe = optuna.samplers.TPESampler(seed=0)
+                self.study = optuna.create_study(direction='maximize', sampler=tpe)
 
-            self.study.optimize(self.objective, n_trials=self.n_trials)
+            self.study.optimize(self.objective)
 
         except KeyboardInterrupt:
             pass
-
-        # Ending routine
-        self._fit_end()
-
-        return self
 
 
 

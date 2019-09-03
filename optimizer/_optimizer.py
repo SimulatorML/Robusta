@@ -84,13 +84,13 @@ class BaseOptimizer(BaseEstimator):
         estimator instance. Can be useful for Pipeline with cached
         transformation steps.
 
-    timeout : int or NoneType (default: None)
+    max_time : int or NoneType (default: None)
         Stop optimization after given number of seconds.
         None means no time limitation. If n_trials is also set to None,
         the optimization continues to create trials until it receives a
         termination signal such as Ctrl+C or SIGTERM.
 
-    n_trials : int or NoneType (default: None)
+    max_trials : int or NoneType (default: None)
         Stop optimization after given number of evaluations (iterations).
         None means no iterations limitation. If timeout is also set to None,
         the optimization continues to create trials until it receives a
@@ -110,7 +110,7 @@ class BaseOptimizer(BaseEstimator):
     plot : bool, optional (default: False)
         Plot scores if True
 
-    debug : bool (default: False)
+    debug_mode : bool (default: False)
         Whether to print full error messages
 
     Attributes
@@ -146,10 +146,13 @@ class BaseOptimizer(BaseEstimator):
     best_trial_ : int
         Index of best trial
 
+    total_time_ : float
+        Total optimization time
+
     '''
     def __init__(self, estimator, cv=5, scoring=None, param_space=None,
-                 clone=True, warm_start=False, timeout=None, n_trials=None,
-                 n_jobs=-1, verbose=1, plot=False, debug=False):
+                 clone=True, max_time=None, max_trials=None, n_jobs=-1,
+                 verbose=1, plot=False):
 
         self.param_space = param_space
 
@@ -160,13 +163,11 @@ class BaseOptimizer(BaseEstimator):
         self.scoring = scoring
         self.cv = cv
 
-        self.warm_start = warm_start
-        self.timeout = timeout
-        self.n_trials = n_trials
+        self.max_time = max_time
+        self.max_trials = max_trials
 
         self.verbose = verbose
         self.plot = plot
-        self.debug = debug
 
 
 
@@ -200,20 +201,21 @@ class BaseOptimizer(BaseEstimator):
         }
 
         try:
-            # Check if timeout reached
-            if self._time_left() < 0:
+            # Check if max_time reached
+            if not self._check_time():
                 raise TimeoutError
 
             # Get estimator with new params
             estimator = self._get_estimator(params)
 
             # Fit & evaluate new estimator
-            scores = self.eval(estimator)
+            scores = self._eval(estimator)
             trial['score'] = np.mean(scores)
 
             # TODO: score for each fold & std
             # TODO: multiple scoring
             # TODO: ranking
+
 
         except KeyboardInterrupt:
             trial['status'] = 'interrupt'
@@ -221,17 +223,19 @@ class BaseOptimizer(BaseEstimator):
             self.is_finished = True
             raise KeyboardInterrupt
 
+
         except TimeoutError:
             trial['status'] = 'timeout'
 
             self.is_finished = True
             raise KeyboardInterrupt
 
+
         except Exception as ex:
             trial['status'] = 'fail'
 
-            if self.debug:
-                print('[{}] {}'.format(type(ex).__name__, ex))
+            print('[{}] {}'.format(type(ex).__name__, ex))
+
 
         finally:
             # Calculate time difference
@@ -258,10 +262,14 @@ class BaseOptimizer(BaseEstimator):
         self.trials_ = self.trials_.append(trial, ignore_index=True)
         self.n_trials_ = len(self.trials_)
 
+        # Check if last
+        if self.n_trials_ >= self.max_trials_:
+            self.is_finished = True
+
         # Update best trial
         # (if better, than previous)
-        if trial['status'] is 'ok' and (not hasattr(self, 'best_score_') or
-                                        trial['score'] > self.best_score_):
+        if trial['status'] is 'ok' and
+        (not hasattr(self, 'best_score_') or trial['score'] > self.best_score_):
 
             self.best_trial_ = self.n_trials_ - 1
             self.best_score_ = self.trials_.loc[self.best_trial_, 'score']
@@ -271,28 +279,7 @@ class BaseOptimizer(BaseEstimator):
 
 
 
-    def _init_trials(self):
-        '''Reset trials (if needed) and set iterations limit.
-        '''
-        if not hasattr(self, 'trials_') or not self.warm_start:
-            # Reset optimization
-            # max trials = new trials
-            self.max_trials = self.n_trials
-            self.trials_ = pd.DataFrame()
-
-        elif self.n_trials is None:
-            # Continue optimization (with no limits)
-            # max trials = current trials + new trials
-            self.max_trials = None
-
-        else:
-            # Continue optimization (with limits)
-            # max trials = current trials + new trials
-            self.max_trials = len(self.trials_) + self.n_trials
-
-
-
-    def _time_left(self):
+    def _check_time(self):
         '''Return time left. If timeout is None, always returns 1.
         Otherwise return time left to (time_start + timeout).
 
@@ -302,10 +289,13 @@ class BaseOptimizer(BaseEstimator):
                 Time left (in seconds). Negative values means timeout reached.
 
         '''
-        if self.timeout is None:
-            return 1
+
+        self.total_time_ = self.trials_['time'].sum()
+
+        if self.timeout:
+            return self.timeout > self.total_time_
         else:
-            return self.time_start + self.timeout - time.time()
+            return True
 
 
 
@@ -340,6 +330,28 @@ class BaseOptimizer(BaseEstimator):
 
 
 
+    def fit(self, X, y, groups=None):
+
+        self._fit_start(X, y, groups)
+
+        self._fit(X, y, groups) # defined individualy
+        self._fit_end()
+
+        return self
+
+
+
+    def partial_fit(self, X, y, groups=None):
+
+        self._partial_fit_start(X, y, groups)
+
+        self._fit(X, y, groups) # defined individualy
+        self._fit_end()
+
+        return self
+
+
+
     def _fit_start(self, X, y, groups):
         '''Starting routine. Initialize trials, space, starting time and define
         evaluator function (estimator -> score).
@@ -357,28 +369,35 @@ class BaseOptimizer(BaseEstimator):
                 into train/test set
 
         '''
-        self._init_trials()
+
+        self.is_finished = False
         self._init_space()
 
-        self.eval = lambda estimator: crossval_score(estimator, self.cv,
-            X, y, groups, self.scoring, n_jobs=self.n_jobs, verbose=0).values
+        self.trials_ = pd.DataFrame()
+        self.n_trials_ = 0
 
-        self.time_start = time.time()
+
+    def _partial_fit_start(self, X, y, groups):
+
         self.is_finished = False
+        self._init_space()
 
+
+
+    def _eval(estimator):
+        scores = crossval_score(estimator, self.cv, X, y, groups, self.scoring,
+                                n_jobs=self.n_jobs, verbose=0).values
+        return scores
 
 
 
     def _fit_end(self):
         '''Fit ending routine: ranking, "is finished", ...
         '''
-        self.is_finished = True
-
-        if self.n_trials_ and (self.trials_['status'] == 'ok').any():
+        if (self.trials_['status'] == 'ok').any():
 
             scores = self.trials_['score']
             self.trials_['rank'] = ranking(scores)
-
 
 
 
