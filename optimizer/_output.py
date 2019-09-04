@@ -1,12 +1,14 @@
 from IPython import display
+
 from matplotlib.ticker import MaxNLocator
 import matplotlib.pylab as plt
+
 import numpy as np
 import time, datetime
 
 from scipy import signal, stats
 
-#from robusta import utils, metrics
+import termcolor
 
 
 
@@ -68,16 +70,24 @@ def print_progress(opt):
         t = datetime.datetime.now().strftime("[%H:%M:%S]")
 
         if trial['status'] is 'ok':
+
             score = trial['score']
             best_score = opt.trials_['score'].max()
             metric_name = opt.scoring if isinstance(opt.scoring, str) else 'score'
-            star = '(*)' if score == best_score else '   '
 
-            msg = (t, iters, metric_name, score, best_score, star, eta)
-            print('%s iter: %s      %s: %.4f      best: %.4f %s   %s' % msg)
+            is_best = opt.n_trials_ == (opt.best_trial_ + 1)
+
+            score = '{:.4f}'.format(score)
+            # FIXME: optuna library blocks colored output (termcolor)
+            #score = termcolor.colored(score, 'yellow') if is_best else score
+            score = '[{}]'.format(score) if is_best else ' {} '.format(score)
+
+            msg = (t, iters, metric_name, score, eta)
+            print('{} iter: {}      {}: {}      {}'.format(*msg))
+
         else:
             msg = (t, iters, trial['status'])
-            print('%s iter: %s      status: %s' % msg)
+            print('{} iter: {}      status: {}'.format(*msg))
 
     if opt.verbose >= 2:
         # current hyperparams

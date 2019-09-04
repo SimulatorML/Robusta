@@ -196,7 +196,7 @@ class BaseOptimizer(BaseEstimator):
         }
 
         try:
-            # Check if max_time reached
+            # Check if <max_time> reached
             self._check_time()
 
             # Get estimator with new params
@@ -364,13 +364,7 @@ class BaseOptimizer(BaseEstimator):
 
         '''
 
-        # Init data
-        self.X_, self.y_, self.groups_ = X, y, groups
-
-        # Init optimization
-        self.is_finished = False
-        self._init_space()
-
+        # Init trials
         if not hasattr(self, 'trials_') \
         or partial_fit is False:
 
@@ -384,6 +378,19 @@ class BaseOptimizer(BaseEstimator):
             self.best_params_ = None
 
             self.best_estimator_ = None
+
+        # Init data
+        self.X_, self.y_, self.groups_ = X, y, groups
+
+        # Init space
+        self._init_space()
+
+        # Check if <max_trials> is reached
+        if self.max_trials and (self.max_trials > self.n_trials_) \
+        or self.max_trials in [0, None]:
+            self.is_finished = False
+        else:
+            self.is_finished = True
 
 
 
