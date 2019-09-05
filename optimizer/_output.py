@@ -64,7 +64,7 @@ def print_progress(opt):
 
         eta = np.nanmin([eta_time, eta_iter])
         if not np.isnan(eta):
-            eta = 'eta: {}'.format(utils.sec_to_str(eta))
+            eta = 'eta: {}'.format(utils.secfmt(eta))
         else:
             eta = ''
 
@@ -74,22 +74,21 @@ def print_progress(opt):
         if trial['status'] is 'ok':
 
             score = trial['score']
-            best_score = opt.trials_['score'].max()
-            metric_name = opt.scoring if isinstance(opt.scoring, str) else 'score'
+            scoring = opt.scoring if isinstance(opt.scoring, str) else 'score'
 
             is_best = opt.n_trials_ == (opt.best_trial_ + 1)
 
-            score = '{:.4f}'.format(score)
+            s = '{:.4f}'.format(s) # TODO: custom <n_digits>
+            #s = termcolor.colored(s, 'yellow') if is_best else s
             # FIXME: optuna library blocks colored output (termcolor)
-            #score = termcolor.colored(score, 'yellow') if is_best else score
-            score = '[{}]'.format(score) if is_best else ' {} '.format(score)
+            s = '[{}]'.format(s) if is_best else ' {} '.format(s)
 
-            msg = (t, iters, metric_name, score, eta)
-            print('{} iter: {}      {}: {}      {}'.format(*msg))
+            msg = 'iter: {}      {}: {}      {}'.format(iters, scoring, s, eta)
+            utils.logmsg(msg)
 
         else:
-            msg = (t, iters, trial['status'])
-            print('{} iter: {}      status: {}'.format(*msg))
+            msg = 'iter: {}      status: {}'.format(iters, trial['status'])
+            utils.logmsg(msg)
 
     if opt.verbose >= 2:
         # current hyperparams

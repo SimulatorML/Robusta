@@ -6,6 +6,8 @@ import termcolor
 
 from ..model import extract_model_name, extract_model
 
+import ..utils
+
 
 __all__ = ['CVLogger']
 

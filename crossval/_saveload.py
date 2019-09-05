@@ -1,8 +1,6 @@
 import pandas as pd
 import numpy as np
 
-from pympler.asizeof import asizeof
-
 import joblib
 import os
 import regex
@@ -67,10 +65,6 @@ def load_result(idx, path='./output'):
 
 
 
-
-
-
-
 def remove_result(idx, path='./output'):
 
     for fname in os.listdir(path):
@@ -95,36 +89,3 @@ def last_result_idx(path='./output'):
     int_indices = [int(idx) for idx in str_indices if idx.isdigit()]
     last_idx = max(int_indices) if len(int_indices) > 0 else 0
     return last_idx
-
-
-
-byte_sizes = {
-    'GB': 2**30,
-    'MB': 2**20,
-    'KB': 2**10,
-    'B': 2**0,
-}
-
-
-
-def bytes_format(n, full=False):
-    arr = []
-    for key, base in byte_sizes.items():
-        if n // base > 0:
-            k = n // base
-            n = n % base
-
-            if full is False:
-                k += round(n / base, 1)
-                n = 0
-
-            arr.append('{} {}'.format(k, key))
-
-    return '  '.join(arr)
-
-
-
-def sizeof_format(obj, full=False):
-    n = asizeof(obj)
-    s = bytes_format(n, full)
-    return s

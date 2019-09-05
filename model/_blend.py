@@ -9,6 +9,8 @@ from scipy.optimize import minimize
 
 from ..preprocessing import LabelEncoder1D
 
+import ..utils
+
 import time, datetime
 
 __all__ = ['BlendRegressor', 'BlendClassifier']
@@ -148,7 +150,7 @@ class Blend(LinearModel):
     def _print_last(self):
         i = self.n_iters_
         s = self.scores_[-1]
-        t = sec_to_str(sum(self.times_))
+        t = utils.secfmt(sum(self.times_))
 
         msg = 'iters: {}      score: {:.6f}      elapsed: {}'.format(i, s, t)
         _log_msg(msg)
@@ -267,17 +269,3 @@ def _log_msg(msg):
     t = datetime.datetime.now().strftime("[%H:%M:%S]")
     print(t, msg)
     time.sleep(0.1)
-
-
-def sec_to_str(s):
-    # TODO: move to the utils
-    H, r = divmod(s, 3600)
-    M, S = divmod(r, 60)
-    if H:
-        return '{} h {} min {} sec'.format(int(H), int(M), int(S))
-    elif M:
-        return '{} min {} sec'.format(int(M), int(S))
-    elif S >= 1:
-        return '{} sec'.format(int(S))
-    else:
-        return '{} ms'.format(int(S*1000))
