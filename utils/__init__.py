@@ -1,4 +1,4 @@
 from ._utils import *
 
 
-__all__ = ['secfmt', 'bytefmt', 'sizeof']
+__all__ = ['secfmt', 'bytefmt', 'sizeof', 'logmsg']
