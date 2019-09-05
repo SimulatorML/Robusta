@@ -14,7 +14,9 @@ from sklearn.utils import indexable
 from ..preprocessing import LabelEncoder1D
 from ..model import extract_model_name, extract_model
 
-from ._output import CVLogger, _log_msg
+from ._output import CVLogger
+
+import ..utils
 
 
 __all__ = ['crossval', 'crossval_score', 'crossval_predict']
@@ -269,7 +271,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
                 return_importance, i, logger)
             for i, (trn, oof) in enumerate(folds)))
 
-        result = _ld_to_dl(result)
+        result = utils.ld2dl(result)
 
     else:
 
@@ -282,13 +284,13 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
         if verbose >= 2:
             print()
-            _log_msg('Fitting full train set...')
+            utils.logmsg('Fitting full train set...')
 
         result_new = _fit_pred_score(clone(estimator), method, None, X, y,
             None, None, X_new, return_pred, return_estimator, False,
             return_importance, -1, None)
 
-        result = _ld_to_dl(result)
+        result = utils.ld2dl(result)
         for key, val in result_new.items():
             if key in result:
                 result[key].append(val)
@@ -320,7 +322,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
         if 'score' in result:
             scores = result['score']
-            scores = _ld_to_dl(scores)
+            scores = utils.ld2dl(scores)
             scores = pd.DataFrame(scores)
             result['score'] = scores
 
@@ -987,7 +989,3 @@ def _concat_imp(importances):
     importance.set_index(['feature','fold'], inplace=True)
 
     return importance
-
-
-def _ld_to_dl(l):
-    return {key: [d[key] for d in l] for key in l[0].keys()}

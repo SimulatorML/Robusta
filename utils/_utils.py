@@ -110,3 +110,22 @@ def logmsg(msg):
         t = datetime.datetime.now().strftime("[%H:%M:%S]")
         print(t, m)
         time.sleep(0.01)
+
+
+
+def ld2dl(ld):
+    '''Convert list of dict to dict of list
+
+    Parameters
+    ----------
+    ld : list of dict
+        List of homogeneous dictionaries
+
+    Returns
+    -------
+    dl : dict of list
+        Dictionary of list of equal length
+
+    '''
+    dl = {key: [d[key] for d in ld] for key in ld[0].keys()}
+    return dl
