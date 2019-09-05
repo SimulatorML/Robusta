@@ -10,6 +10,8 @@ from scipy import signal, stats
 
 import termcolor
 
+import ..utils
+
 
 
 
@@ -62,7 +64,7 @@ def print_progress(opt):
 
         eta = np.nanmin([eta_time, eta_iter])
         if not np.isnan(eta):
-            eta = 'eta: {}'.format(sec_to_str(eta))
+            eta = 'eta: {}'.format(utils.sec_to_str(eta))
         else:
             eta = ''
 
@@ -176,17 +178,3 @@ def plot_progress(opt, cut=.25, delay=10):
 
     if opt.is_finished:
         time.sleep(1)
-
-
-
-def sec_to_str(s):
-    H, r = divmod(s, 3600)
-    M, S = divmod(r, 60)
-    if H:
-        return '{} h {} min {} sec'.format(int(H), int(M), int(S))
-    elif M:
-        return '{} min {} sec'.format(int(M), int(S))
-    elif S >= 1:
-        return '{} sec'.format(int(S))
-    else:
-        return '{} ms'.format(int(S*1000))
