@@ -62,7 +62,7 @@ class CVLogger(object):
 
         if self.verbose >= 2:
             est_name = extract_model_name(estimator, short=False)
-            _log_msg(est_name)
+            utils.logmsg(msg)
             print()
 
 
@@ -103,22 +103,16 @@ class CVLogger(object):
             gap = ' '*(mean >= 0)
 
             msg = '{}{} ± {} ({})'.format(gap, m, s, metric)
-            _log_msg(msg)
+            utils.logmsg(msg)
 
         print()
 
 
     def _log_ind(self, ind):
         msg = self.messages[ind]
-        _log_msg(msg)
+        utils.logmsg(msg)
 
 
-
-def _log_msg(msg):
-    for m in msg.split('\n'):
-        t = datetime.datetime.now().strftime("[%H:%M:%S]")
-        print(t, m)
-        time.sleep(0.01)
 
 
 def _agg_scores(msg, scores, prec, colored=False):
