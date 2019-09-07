@@ -9,29 +9,30 @@ import pandas as pd
 import numpy as np
 
 
-# Original: sklearn.inspection.permutation_importance.py
 
-def _calculate_permutation_scores(estimator, X, y, col_idx, random_state,
-                                  n_repeats, scorer):
-    """Calculate score when `col_idx` is permuted."""
+# Original:
+# sklearn.inspection.permutation_importance.py
+# eli5.sklearn.permutation_importance
 
-    x = X.iloc[:, col_idx].copy()
+def get_col_importance(estimator, X, y, col, random_state, n_repeats, scorer):
+    """Calculate score when `col` is permuted."""
+
+    feature = X[col].copy()
     scores = np.zeros(n_repeats)
 
     for n_round in range(n_repeats):
 
-        X.iloc[:, col_idx] = random_state.permutation(x)
-        X.iloc[:, col_idx] = X.iloc[:, col_idx].astype(x.dtype)
+        X[col] = random_state.permutation(feature)
+        X[col] = X[col].astype(feature.dtype)
 
-        scores[n_round] = scorer(estimator, X, y)
+        scores[n_round] = scorer(estimator, X, y) # bottleneck
 
     return scores
 
 
 
-
-def permutation_importance(estimator, X, y, scoring=None, n_repeats=5,
-                           n_jobs=-1, random_state=0, progress_bar=False):
+def permutation_importance(estimator, X, y, scoring=None, n_repeats=5, n_jobs=-1,
+                           random_state=0, progress_bar=False):
     """Permutation importance for feature evaluation [BRE].
 
     The 'estimator' is required to be a fitted estimator. 'X' can be the
@@ -88,18 +89,19 @@ def permutation_importance(estimator, X, y, scoring=None, n_repeats=5,
 
     """
 
+    cols = tqdm_notebook(X.columns) if progress_bar else X.columns
+
     random_state = check_random_state(random_state)
     scorer = check_scoring(estimator, scoring=scoring)
 
     baseline_score = scorer(estimator, X, y)
-    scores = np.zeros((X.shape[1], n_repeats))
+    scores = np.zeros((len(cols), n_repeats))
 
-
-    parallel = Parallel(n_jobs=n_jobs, max_nbytes='256M') # FIXME: avoid <max_nbytes>
-
-    scores = parallel(delayed(_calculate_permutation_scores)(estimator, X, y, col_idx,
-        random_state, n_repeats, scorer) for col_idx in tqdm_notebook(range(X.shape[1])))
-
+    # FIXME: avoid <max_nbytes>
+    scores = Parallel(n_jobs=n_jobs, max_nbytes='256M')(
+        delayed(get_col_importance)(estimator, X, y, col,
+            random_state, n_repeats, scorer)
+        for col in X.columns)
 
     importances = baseline_score - np.array(scores)
 
@@ -108,3 +110,7 @@ def permutation_importance(estimator, X, y, scoring=None, n_repeats=5,
               'importances': importances}
 
     return result
+
+
+
+class PermutationImportance():
