@@ -30,6 +30,9 @@ class FeatureUnion(_BaseComposition, TransformerMixin):
         List of transformer objects to be applied to the data. The first
         half of each tuple is the name of the transformer.
 
+    n_jobs : int or None, optional (default=-1)
+        The number of jobs to run in parallel. None means 1.
+
     Attributes
     ----------
 
@@ -37,8 +40,9 @@ class FeatureUnion(_BaseComposition, TransformerMixin):
         Access the fitted transformer by name.
 
     '''
-    def __init__(self, transformers, **kwargs):
+    def __init__(self, transformers, n_jobs=-1, **kwargs):
         self.transformers = transformers
+        self.n_jobs = n_jobs
 
 
     def fit(self, X, y=None):
@@ -58,11 +62,13 @@ class FeatureUnion(_BaseComposition, TransformerMixin):
             This estimator
 
         """
-        self.named_transformers_ = {}
+        names = [name for name, _ in self.transformers]
 
-        for name, transformer in self.transformers:
-            fitted_transformer = clone(transformer).fit(X, y)
-            self.named_transformers_[name] = fitted_transformer
+        transformers = Parallel(n_jobs=self.n_jobs, require='sharedmem')(
+            delayed(clone(transformer).fit)(X, y)
+                for _, transformer in self.transformers)
+
+        self.named_transformers_ = dict(zip(names, transformers))
 
         return self
 
@@ -82,9 +88,9 @@ class FeatureUnion(_BaseComposition, TransformerMixin):
             sum of n_components (output dimension) over transformers.
 
         """
-        Xt_list = []
-        for transformer in self.named_transformers_.values():
-            Xt_list.append(transformer.transform(X))
+        Xt_list = Parallel(n_jobs=self.n_jobs, require='sharedmem')(
+            delayed(transformer.transform)(X)
+                for transformer in self.named_transformers_.values())
 
         Xt = pd.concat(Xt_list, axis=1)
         return Xt

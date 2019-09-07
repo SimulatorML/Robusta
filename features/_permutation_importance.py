@@ -5,6 +5,9 @@ from sklearn.metrics.scorer import check_scoring
 
 from tqdm import tqdm_notebook
 
+import pandas as pd
+import numpy as np
+
 
 # Original: sklearn.inspection.permutation_importance.py
 
