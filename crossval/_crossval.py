@@ -11,12 +11,11 @@ from sklearn.model_selection._split import check_cv
 from sklearn.utils.metaestimators import _safe_split
 from sklearn.utils import indexable
 
-from ..preprocessing import LabelEncoder1D
-from ..model import extract_model_name, extract_model
+from robusta.preprocessing import LabelEncoder1D
+from robusta.model import extract_model_name, extract_model
+from robusta import utils
 
 from ._output import CVLogger
-
-import ..utils
 
 
 __all__ = ['crossval', 'crossval_score', 'crossval_predict']

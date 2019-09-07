@@ -14,7 +14,7 @@ import numpy as np
 
 from ._output import plot_progress, print_progress
 
-from ..crossval import crossval_score
+from robusta.crossval import crossval_score
 #from ..model._model import MODEL_PARAMS, PREP_PARAMS, FIT_PARAMS
 
 

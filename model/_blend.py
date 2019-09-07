@@ -7,9 +7,8 @@ from sklearn.metrics import get_scorer
 
 from scipy.optimize import minimize
 
-from ..preprocessing import LabelEncoder1D
-
-import ..utils
+from robusta.preprocessing import LabelEncoder1D
+from robusta import utils
 
 import time, datetime
 

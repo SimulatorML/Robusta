@@ -4,9 +4,8 @@ import numpy as np
 import datetime, time
 import termcolor
 
-from ..model import extract_model_name, extract_model
-
-import ..utils
+from robusta.model import extract_model_name, extract_model
+from robusta import utils
 
 
 __all__ = ['CVLogger']

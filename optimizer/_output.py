@@ -10,7 +10,7 @@ from scipy import signal, stats
 
 import termcolor
 
-import ..utils
+from robusta import utils
 
 
 
