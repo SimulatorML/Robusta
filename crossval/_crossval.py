@@ -265,10 +265,10 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
         # Stacking Type A (test averaging = True)
         result = parallel(
-            (delayed(_fit_pred_score)(clone(estimator), method, scorer, X, y,
+            delayed(_fit_pred_score)(clone(estimator), method, scorer, X, y,
                 trn, oof, X_new, return_pred, return_estimator, return_score,
                 return_importance, i, logger)
-            for i, (trn, oof) in enumerate(folds)))
+            for i, (trn, oof) in enumerate(folds))
 
         result = utils.ld2dl(result)
 
