@@ -1,15 +1,14 @@
 from joblib import Parallel, delayed
 
-from sklearn.utils.metaestimators import if_delegate_has_method
-from sklearn.utils.random import check_random_state
-
-from sklearn.metrics.scorer import check_scoring
-
 from tqdm import tqdm_notebook
 
 import pandas as pd
 import numpy as np
 
+from sklearn.utils.metaestimators import if_delegate_has_method
+from sklearn.utils.random import check_random_state
+from sklearn.metrics.scorer import check_scoring
+from sklearn.model_selection import check_cv
 from sklearn.base import (
     BaseEstimator,
     MetaEstimatorMixin,
@@ -160,6 +159,20 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
         ``scorer(estimator, X, y)``.
         If ``None``, the ``score`` method of the estimator is used.
 
+    cv : int, cross-validation generator, iterable or "prefit"
+        Determines the cross-validation splitting strategy.
+        Possible inputs for cv are:
+
+            - None, to disable cross-validation and compute feature importances
+              on the same data as used for training.
+            - integer, to specify the number of folds.
+            - An object to be used as a cross-validation generator.
+            - An iterable yielding train/test splits.
+            - "prefit" string constant (default).
+
+        If "prefit" is passed, it is assumed that ``estimator`` has been
+        fitted already and all data is used for computing feature importances.
+
     n_iter : int, default 5
         The number of random shuffle iterations. Decrease to improve speed,
         increase to get more precise estimates.
@@ -176,23 +189,23 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
 
     Attributes
     ----------
-    feature_importances_ : Series
+    feature_importances_ : Series, shape (n_features, )
         Feature importances, computed as mean decrease of the score when
         a feature is permuted (i.e. becomes noise).
 
-    feature_importances_std_ : Series
+    feature_importances_std_ : Series, shape (n_features, )
         Standard deviations of feature importances.
 
-    scores_ : list of arrays
-        A list of score decreases for all experiments.
+    raw_importances_ : list of Dataframes, shape (n_folds, n_features, n_iter)
 
     """
-    def __init__(self, estimator, scoring=None, n_iter=5, n_jobs=-1,
+    def __init__(self, estimator, scoring=None, cv='prefit', n_iter=5, n_jobs=-1,
                  random_state=None, progress_bar=False):
 
         self.estimator = estimator
         self.scoring = scoring
         self.n_iter = n_iter
+        self.cv = cv
 
         self.random_state = random_state
         self.progress_bar = progress_bar
@@ -223,18 +236,34 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
             Returns self.
 
         """
-        result = permutation_importance(self.estimator, X, y, n_iter=self.n_iter,
+
+        if self.cv in ['prefit', None]:
+            ii = np.arange(X.shape[0]) # full dataset
+            cv = check_cv(np.array((ii, ii)))
+        else:
+            cv = check_cv(self.cv)
+
+        self.raw_importances_ = []
+
+        for trn, oof in cv.split(X, y, groups):
+
+            X_trn, y_trn = X.iloc[trn], y.iloc[trn]
+            X_oof, y_oof = X.iloc[oof], y.iloc[oof]
+
+            estimator = self.estimator if self.cv is 'prefit' else clone(self.estimator)
+            estimator.fit(X_trn, y_trn)
+
+            pi = permutation_importance(estimator, X, y, n_iter=self.n_iter,
                                         scoring=self.scoring, n_jobs=self.n_jobs,
                                         random_state=self.random_state,
                                         progress_bar=self.progress_bar)
 
-        fi_mean, fi_std = result['importances_mean'], result['importances_std']
+            imp = pd.DataFrame(pi['importances'], index=X.columns)
+            self.raw_importances_.append(imp)
 
-        self.feature_importances_ = pd.Series(fi_mean, index=X.columns)
-        self.feature_importances_std_ = pd.Series(fi_std, index=X.columns)
+        imps = pd.concat(self.raw_importances_, axis=1)
 
-        fi = result['importances']
-
-        self.scores_ = pd.DataFrame(fi, index=X.columns)
+        self.feature_importances_ = imps.mean(axis=1)
+        self.feature_importances_std_ = imps.std(axis=1)
 
         return self

@@ -330,7 +330,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
     result['use_cols'] = X.columns.copy()
 
-    is not return_score and 'score' in result:
+    if not return_score and 'score' in result:
         result.pop('score')
 
     if not return_folds:
