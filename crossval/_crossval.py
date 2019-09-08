@@ -6,7 +6,7 @@ import time
 
 from sklearn.base import BaseEstimator, clone, is_classifier, is_regressor
 from sklearn.metrics.scorer import _check_multimetric_scoring
-from sklearn.model_selection._split import check_cv
+from sklearn.model_selection import check_cv
 from sklearn.utils.metaestimators import _safe_split
 from sklearn.utils import indexable
 
