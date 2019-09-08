@@ -238,39 +238,3 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
         self.scores_ = pd.DataFrame(fi, index=X.columns)
 
         return self
-
-    # ============= Exposed methods of a wrapped estimator:
-
-    @if_delegate_has_method(delegate='wrapped_estimator_')
-    def score(self, X, y=None, *args, **kwargs):
-        return self.wrapped_estimator_.score(X, y, *args, **kwargs)
-
-    @if_delegate_has_method(delegate='wrapped_estimator_')
-    def predict(self, X):
-        return self.wrapped_estimator_.predict(X)
-
-    @if_delegate_has_method(delegate='wrapped_estimator_')
-    def predict_proba(self, X):
-        return self.wrapped_estimator_.predict_proba(X)
-
-    @if_delegate_has_method(delegate='wrapped_estimator_')
-    def predict_log_proba(self, X):
-        return self.wrapped_estimator_.predict_log_proba(X)
-
-    @if_delegate_has_method(delegate='wrapped_estimator_')
-    def decision_function(self, X):
-        return self.wrapped_estimator_.decision_function(X)
-
-    @property
-    def wrapped_estimator_(self):
-        if self.cv == "prefit" or not self.refit:
-            return self.estimator
-        return self.estimator_
-
-    @property
-    def _estimator_type(self):
-        return self.estimator._estimator_type
-
-    @property
-    def classes_(self):
-        return self.wrapped_estimator_.classes_

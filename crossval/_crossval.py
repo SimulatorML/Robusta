@@ -6,7 +6,6 @@ import time
 
 from sklearn.base import BaseEstimator, clone, is_classifier, is_regressor
 from sklearn.metrics.scorer import _check_multimetric_scoring
-from sklearn.model_selection._validation import _score
 from sklearn.model_selection._split import check_cv
 from sklearn.utils.metaestimators import _safe_split
 from sklearn.utils import indexable
@@ -212,18 +211,15 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
     cv = check_cv(cv, y, classifier=is_classifier(estimator))
     if hasattr(cv, 'random_state') and cv.random_state is None:
         cv.random_state = 0
+
     folds = list(cv.split(X, y, groups))
 
     # Check scorer(s)
-    # FIXME: fails on multiple scorers
-    if scoring is None:
-        if is_classifier(estimator):
-            scoring = ['roc_auc']
-        else:
-            scoring = ['mean_squared_error']
-    elif type(scoring) not in [dict, list, set]:
-        scoring = [scoring]
-    scorer, _ = _check_multimetric_scoring(estimator, scoring=scoring)
+    scorers, _ = _check_multimetric_scoring(estimator, scoring)
+
+    if isinstance(scoring, str): # single metric case
+        scorers = {scoring: scorers['score']}
+
     return_score = True if verbose else return_score
 
     # Check averaging strategy & method
@@ -265,7 +261,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
         # Stacking Type A (test averaging = True)
         result = parallel(
-            delayed(_fit_pred_score)(clone(estimator), method, scorer, X, y,
+            delayed(_fit_pred_score)(clone(estimator), method, scorers, X, y,
                 trn, oof, X_new, return_pred, return_estimator, return_score,
                 return_importance, i, logger)
             for i, (trn, oof) in enumerate(folds))
@@ -276,7 +272,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
         # Stacking Type B (test_averaging = False)
         result = parallel(
-            (delayed(_fit_pred_score)(clone(estimator), method, scorer, X, y,
+            (delayed(_fit_pred_score)(clone(estimator), method, scorers, X, y,
                 trn, oof, None, return_pred, return_estimator, return_score,
                 return_importance, i, logger)
             for i, (trn, oof) in enumerate(folds)))
@@ -332,14 +328,14 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
         concat_time = time.time() - start_time
         result['concat_time'] = concat_time
 
-    # Save cols
     result['use_cols'] = X.columns.copy()
 
-    # Save folds
+    is not return_score and 'score' in result:
+        result.pop('score')
+
     if not return_folds:
         result.pop('fold')
 
-    # Save encoder
     if return_encoder:
         result['encoder'] = encoder
 
@@ -653,7 +649,7 @@ def _check_avg(estimator, averaging, method):
     return method, avg
 
 
-def _fit_pred_score(estimator, method, scorer, X, y, trn=None, oof=None, X_new=None,
+def _fit_pred_score(estimator, method, scorers, X, y, trn=None, oof=None, X_new=None,
                     return_pred=False, return_estimator=False, return_score=True,
                     return_importance=False, fold_ind=None, logger=None):
     """Fit estimator and evaluate metric(s), compute OOF predictions & etc.
@@ -781,13 +777,12 @@ def _fit_pred_score(estimator, method, scorer, X, y, trn=None, oof=None, X_new=N
         result['pred_time'] = pred_time
 
     # Score
-    if return_score and scorer and len(oof):
+    if return_score and scorers and len(oof):
 
         start_time = time.time()
 
-        is_multimetric = not callable(scorer)
-        score = _score(estimator, X_oof, y_oof, scorer, is_multimetric)
-        result['score'] = score
+        scores = _score(estimator, X_oof, y_oof, scorers)
+        result['score'] = scores
 
         score_time = time.time() - start_time
         result['score_time'] = score_time
@@ -879,6 +874,22 @@ def _pred(estimator, method, X, target):
         pred = pd.DataFrame(pred, index=X.index)
 
     return pred
+
+
+def _score(estimator, X, y, scorers):
+
+    scores = {}
+
+    for name, scorer in scorers.items():
+
+        if y_test is None:
+            score = scorer(estimator, X_test)
+        else:
+            score = scorer(estimator, X_test, y_test)
+
+        scores[name] = score
+
+    return scores
 
 
 def _avg_preds(preds, avg, ind):
