@@ -128,7 +128,7 @@ def permutation_importance(estimator, X, y, scoring=None, n_iter=5, n_jobs=-1,
     scores = np.zeros((len(cols), n_iter))
 
     # FIXME: avoid <max_nbytes>
-    scores = Parallel(n_jobs=n_jobs, max_nbytes='256M')(
+    scores = Parallel(n_jobs=n_jobs, max_nbytes='512M', backend='multiprocessing')(
         delayed(_get_col_score)(estimator, X, y, col, n_iter, scorer, rstate)
         for col in cols)
 
