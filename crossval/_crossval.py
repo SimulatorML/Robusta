@@ -11,7 +11,8 @@ from sklearn.utils.metaestimators import _safe_split
 from sklearn.utils import indexable
 
 from robusta.preprocessing import LabelEncoder1D
-from robusta.model import extract_model_name, extract_model
+from robusta.importance import extract_importance
+from robusta.model import extract_model_name
 from robusta import utils
 
 from ._output import CVLogger
@@ -757,7 +758,7 @@ def _fit_pred_score(estimator, method, scorers, X, y, trn=None, oof=None, X_new=
 
     # Feature importances
     if return_importance:
-        importance = _imp(estimator, X.columns)
+        importance = extract_importance(estimator, X)
         result['importance'] = importance
 
     # Predict
@@ -794,45 +795,6 @@ def _fit_pred_score(estimator, method, scorers, X, y, trn=None, oof=None, X_new=
     return result
 
 
-def _imp(estimator, cols):
-    """Extract <feature_importances_> or <coef_> from fitted estimator.
-
-    Parameters
-    ----------
-    estimator : estimator object
-        Fitted estimator
-
-    cols : iterable of string
-        Feature names
-
-
-    Returns
-    -------
-    importance : Series, shape [n_features]
-        Feature importances of fitted estimator
-
-    """
-    # Extract model from estimator
-    model = extract_model(estimator)
-
-    # Get importances
-    if hasattr(model, 'coef_'):
-        attr = 'coef_'
-    elif hasattr(model, 'feature_importances_'):
-        attr = 'feature_importances_'
-    else:
-        name = extract_model_name(model)
-        msg = "<{}> has neither <feature_importances_>, nor <coef_>".format(name)
-        raise AttributeError(msg)
-
-    imp = getattr(model, attr)
-
-    # Convert numpy to pandas
-    imp = pd.Series(imp, index=cols, name=attr)
-
-    return imp
-
-
 def _pred(estimator, method, X, target):
     """Call <method> of fitted <estimator> on data <X>.
 
@@ -857,6 +819,7 @@ def _pred(estimator, method, X, target):
         Computed predictions
 
     """
+    
     # Check Attribute
     if hasattr(estimator, method):
         action = getattr(estimator, method)

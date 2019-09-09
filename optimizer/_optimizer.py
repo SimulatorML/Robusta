@@ -208,7 +208,7 @@ class BaseOptimizer(BaseEstimator):
 
             # TODO: score for each fold & std
             # TODO: multiple scoring
-            # TODO: ranking
+            # TODO: params ranking
 
 
         except KeyboardInterrupt:
