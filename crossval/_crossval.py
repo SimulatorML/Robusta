@@ -11,9 +11,9 @@ from sklearn.utils.metaestimators import _safe_split
 from sklearn.utils import indexable
 
 from robusta.preprocessing import LabelEncoder1D
-from robusta.importance import extract_importance
+from robusta.importance import extract_importances
 from robusta.model import extract_model_name
-from robusta import utils
+from robusta.utils import logmsg, ld2dl
 
 from ._output import CVLogger
 
@@ -267,7 +267,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
                 return_importance, i, logger)
             for i, (trn, oof) in enumerate(folds))
 
-        result = utils.ld2dl(result)
+        result = ld2dl(result)
 
     else:
 
@@ -280,13 +280,13 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
         if verbose >= 2:
             print()
-            utils.logmsg('Fitting full train set...')
+            logmsg('Fitting full train set...')
 
         result_new = _fit_pred_score(clone(estimator), method, None, X, y,
             None, None, X_new, return_pred, return_estimator, False,
             return_importance, -1, None)
 
-        result = utils.ld2dl(result)
+        result = ld2dl(result)
         for key, val in result_new.items():
             if key in result:
                 result[key].append(val)
@@ -318,7 +318,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
         if 'score' in result:
             scores = result['score']
-            scores = utils.ld2dl(scores)
+            scores = ld2dl(scores)
             scores = pd.DataFrame(scores)
             result['score'] = scores
 
@@ -819,7 +819,7 @@ def _pred(estimator, method, X, target):
         Computed predictions
 
     """
-    
+
     # Check Attribute
     if hasattr(estimator, method):
         action = getattr(estimator, method)
