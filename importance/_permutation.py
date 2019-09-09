@@ -239,10 +239,11 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
 
         if self.cv in ['prefit', None]:
             ii = np.arange(X.shape[0]) # full dataset
-            aa = np.array([(ii, ii)])
-            cv = check_cv(aa)
+            cv = np.array([(ii, ii)])
         else:
-            cv = check_cv(self.cv)
+            cv = self.cv
+
+        cv = check_cv(cv, y, classifier=is_classifier(self.estimator))
 
         self.raw_importances_ = []
 
