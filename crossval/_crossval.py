@@ -11,7 +11,7 @@ from sklearn.utils.metaestimators import _safe_split
 from sklearn.utils import indexable
 
 from robusta.preprocessing import LabelEncoder1D
-from robusta.importance import extract_importances
+from robusta.importance import extract_importance
 from robusta.model import extract_model_name
 from robusta.utils import logmsg, ld2dl
 

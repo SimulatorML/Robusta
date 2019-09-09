@@ -27,7 +27,7 @@ def extract_importance(estimator, X=None):
     '''
     model = extract_model(estimator)
 
-    if hasattr(model, 'feature_importances_')
+    if hasattr(model, 'feature_importances_'):
         attr = 'feature_importances_'
     elif hasattr(model, 'coef_'):
         attr = 'coef_'
