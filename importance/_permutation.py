@@ -239,7 +239,8 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
 
         if self.cv in ['prefit', None]:
             ii = np.arange(X.shape[0]) # full dataset
-            cv = check_cv(np.array((ii, ii)))
+            aa = np.array([(ii, ii)])
+            cv = check_cv(aa)
         else:
             cv = check_cv(self.cv)
 
@@ -253,7 +254,7 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
             estimator = self.estimator if self.cv is 'prefit' else clone(self.estimator)
             estimator.fit(X_trn, y_trn)
 
-            pi = permutation_importance(estimator, X, y, n_iter=self.n_iter,
+            pi = permutation_importance(estimator, X_oof, y_oof, n_iter=self.n_iter,
                                         scoring=self.scoring, n_jobs=self.n_jobs,
                                         random_state=self.random_state,
                                         progress_bar=self.progress_bar)
