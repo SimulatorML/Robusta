@@ -252,8 +252,10 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
             X_trn, y_trn = X.iloc[trn], y.iloc[trn]
             X_oof, y_oof = X.iloc[oof], y.iloc[oof]
 
-            estimator = self.estimator if self.cv is 'prefit' else clone(self.estimator)
-            estimator.fit(X_trn, y_trn)
+            if self.cv is 'prefit':
+                estimator = self.estimator
+            else:
+                estimator = clone(self.estimator).fit(X_trn, y_trn)
 
             pi = permutation_importance(estimator, X_oof, y_oof, n_iter=self.n_iter,
                                         scoring=self.scoring, n_jobs=self.n_jobs,

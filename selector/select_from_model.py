@@ -70,4 +70,4 @@ class SelectFromModel(Selector):
 
     def fit(self, X, y, groups=None):
 
-        
+        self.use_cols_ = list(cols)
