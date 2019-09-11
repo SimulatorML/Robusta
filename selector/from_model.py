@@ -1,16 +1,14 @@
 import pandas as pd
 import numpy as np
 
+from sklearn.model_selection import check_cv
 from sklearn.exceptions import NotFittedError
-from sklearn.base import clone
+from sklearn.base import clone, is_classifier
 
 from robusta.importance import extract_importance
 from robusta.crossval import crossval
 
 from .base import Selector
-
-
-__all__ = ['SelectFromModel']
 
 # Original: sklearn.feature_selection.SelectFromModel
 
@@ -99,7 +97,7 @@ class SelectFromModel(Selector):
 
             for trn, _ in cv.split(X, y, groups):
                 X_trn, y_trn = X.iloc[trn], y.iloc[trn]
-                
+
                 estimator = clone(self.estimator).fit(X_trn, y_trn)
                 self.estimator_.append(estimator)
 
