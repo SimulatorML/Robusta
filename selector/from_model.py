@@ -56,13 +56,6 @@ class SelectFromModel(Selector):
         If "prefit" is passed, it is assumed that <estimator> has been
         fitted already and <fit> function will raise error.
 
-    n_jobs : int or None, optional (default=None)
-        The number of jobs to run in parallel (for cross-validation).
-        None means 1.
-
-    verbose : int (default=1)
-        Verbosity level (for cross-validation)
-
     Attributes
     ----------
     estimator_ : list of fitted estimators, or single fitted estimator
@@ -83,16 +76,12 @@ class SelectFromModel(Selector):
 
     """
 
-    def __init__(self, estimator, threshold=None, max_features=None,
-                 cv=None, n_jobs=None, verbose=0):
+    def __init__(self, estimator, threshold=None, max_features=None, cv=None):
 
         self.estimator = estimator
         self.threshold = threshold
         self.max_features = max_features
         self.cv = cv
-
-        self.verbose = verbose
-        self.n_jobs = n_jobs
 
 
     def fit(self, X, y, groups=None):
@@ -105,13 +94,14 @@ class SelectFromModel(Selector):
             self.estimator_ = clone(self.estimator).fit(X, y)
 
         else:
-            cv_result = crossval(self.estimator, self.cv, X, y, groups,
-                                 return_pred=False, return_estimator=True,
-                                 return_score=False, return_importance=False,
-                                 return_encoder=False, return_folds=False,
-                                 n_jobs=self.n_jobs, verbose=self.verbose)
+            self.estimator_ = []
+            cv = check_cv(self.cv, y, is_classifier(self.estimator_))
 
-            self.estimator_ = cv_result['estimator']
+            for trn, _ in cv.split(X, y, groups):
+                X_trn, y_trn = X.iloc[trn], y.iloc[trn]
+                
+                estimator = clone(self.estimator).fit(X_trn, y_trn)
+                self.estimator_.append(estimator)
 
         return self
 
