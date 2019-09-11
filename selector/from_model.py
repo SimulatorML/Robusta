@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 
 from sklearn.exceptions import NotFittedError
+from sklearn.base import clone
 
 from robusta.importance import extract_importance
 from robusta.crossval import crossval
@@ -46,11 +47,11 @@ class SelectFromModel(Selector):
         Possible inputs for cv are:
 
             - None, to disable cross-validation and train single estimator
-            on whole dataset.
+            on whole dataset (default).
             - integer, to specify the number of folds.
             - An object to be used as a cross-validation generator.
             - An iterable yielding train/test splits.
-            - "prefit" string constant (default).
+            - "prefit" string constant.
 
         If "prefit" is passed, it is assumed that <estimator> has been
         fitted already and <fit> function will raise error.
@@ -83,7 +84,7 @@ class SelectFromModel(Selector):
     """
 
     def __init__(self, estimator, threshold=None, max_features=None,
-                 cv='prefit', n_jobs=None, verbose=0):
+                 cv=None, n_jobs=None, verbose=0):
 
         self.estimator = estimator
         self.threshold = threshold
@@ -101,7 +102,7 @@ class SelectFromModel(Selector):
             raise NotFittedError("Since 'cv=prefit', call transform directly")
 
         elif self.cv is None:
-            self.estimator_ = clone(self.estimator).fit(X_trn, y_trn)
+            self.estimator_ = clone(self.estimator).fit(X, y)
 
         else:
             cv_result = crossval(self.estimator, self.cv, X, y, groups,
