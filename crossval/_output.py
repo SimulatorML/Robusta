@@ -8,9 +8,6 @@ from robusta.model import extract_model_name, extract_model
 from robusta import utils
 
 
-__all__ = ['CVLogger']
-
-
 
 
 class CVLogger(object):

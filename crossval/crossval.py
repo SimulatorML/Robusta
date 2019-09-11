@@ -403,7 +403,7 @@ def crossval_score(estimator, cv, X, y, groups=None, scoring=None,
         represents different metric.
 
     """
-    result = crossval(estimator, cv=cv, X=X, y=y, groups=groups,
+    result = crossval(estimator, cv=cv, X=X, y=y, groups=groups, n_digits=n_digits,
         scoring=scoring, return_score=True, n_jobs=n_jobs, verbose=verbose)
 
     scores = result['score']
@@ -531,7 +531,7 @@ def crossval_predict(estimator, cv, X, y, groups=None, X_new=None,
     result = crossval(estimator, cv=cv, X=X, y=y, groups=groups, X_new=X_new,
         scoring=scoring, averaging=averaging, method=method, test_avg=test_avg,
         return_estimator=False, return_pred=True, return_score=False,
-        n_jobs=n_jobs, verbose=verbose)
+        n_jobs=n_jobs, verbose=verbose, n_digits=n_digits)
 
     oof_pred = result['oof_pred'] if 'oof_pred' in result else None
     new_pred = result['new_pred'] if 'new_pred' in result else None
