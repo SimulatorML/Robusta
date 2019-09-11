@@ -26,7 +26,7 @@ class SelectFromModel(Selector):
         The estimator must have either a <feature_importances_> or <coef_>
         attribute after fitting.
 
-    threshold : string, float, optional default None
+    threshold : string, float, optional (default None)
         The threshold value to use for feature selection. Features whose
         importance is greater or equal are kept while the others are
         discarded. If "median" (resp. "mean"), then the <threshold> value is
@@ -34,8 +34,10 @@ class SelectFromModel(Selector):
         factor (e.g., "1.25*mean") may also be used. If None, drop features
         only based on <max_features>.
 
-    max_features : int, none or None, optional
+    max_features : int, float or None, optional (default 0.5)
         The maximum number of features selected scoring above <threshold>.
+        If float, interpreted as proportion of all features.
+
         To disable <threshold> and only select based on <max_features>,
         set <threshold> to -np.inf.
 
@@ -70,7 +72,10 @@ class SelectFromModel(Selector):
         Feature importances, extracted from estimator(s)
 
     threshold_ : float
-        The threshold value used for feature selection.
+        The threshold value used for feature selection
+
+    max_features_ : int
+        Maximum number of features for feature selection
 
     use_cols_ : list of str
         Columns to select
@@ -137,31 +142,42 @@ class SelectFromModel(Selector):
 
         imp = self._extract_importance()
 
-        if isinstance(self.threshold, (str, int, float)):
-            self.threshold_ = _calculate_threshold(imp, self.threshold)
-            threshold_mask = (imp >= self.threshold_)
-        else:
-            raise TypeError("Invalid parameters passed: " + self.threshold)
+        self.threshold_ = _check_threshold(imp, self.threshold)
+        threshold_mask = (imp >= self.threshold_)
 
-        if isinstance(self.max_features, int):
-            ranking = imp.rank(ascending=False)
-            ranking_mask = (ranks <= self.max_features)
-        else:
-            raise TypeError("Invalid parameters passed: " + self.max_features)
+        self.max_features_ = _check_max_features(imp, self.max_features)
+        ranking_mask = (imp.rank(ascending=False) <= self.max_features_)
 
         use_cols = imp.index[threshold_mask & ranking_mask]
         return use_cols
 
 
 
+def _check_max_features(importances, max_features):
+    """Interpret the max_features value"""
 
-def _calculate_threshold(importances, threshold):
+    n_features = len(importances)
+
+    if max_features is None:
+        max_features = n_features
+
+    elif isinstance(max_features, int):
+        max_features = min(n_features, max_features)
+
+    elif isinstance(max_features, float):
+        max_features = int(n_features * max_features)
+
+    return max_features
+
+
+
+def _check_threshold(importances, threshold):
     """Interpret the threshold value"""
 
     if threshold is None:
         threshold = -np.inf
 
-    if isinstance(threshold, str):
+    elif isinstance(threshold, str):
         if "*" in threshold:
             scale, reference = threshold.split("*")
             scale = float(scale.strip())
