@@ -28,8 +28,7 @@ def non_negative_garotte(X, y, alpha, tol=1e-6, max_iter=1000):
 
 
 class NonNegativeGarrote(LinearModel):
-    """
-    Non-Negative Garrote
+    """Non-Negative Garrote
 
     Code source : https://gist.github.com/agramfort/2351057
 
