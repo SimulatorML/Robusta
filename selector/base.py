@@ -1,13 +1,23 @@
 import pandas as pd
 import numpy as np
 
+import abc
+
 from sklearn.base import TransformerMixin
 
 
 
+class Shape(object):
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
+    def method_to_implement(self, input):
+        """Method documentation"""
+        return
+
 
 class Selector(TransformerMixin):
-    
+
 
     def transform(self, X):
         """Reduce X to the selected features.
@@ -23,53 +33,21 @@ class Selector(TransformerMixin):
             The input samples with only the selected features.
 
         """
-        Xt = X[self.use_cols_]
+        use_cols = self._select_columns(X)
+
+        Xt = X[use_cols]
         return Xt
 
 
-    def inverse_transform(self, X):
+    @abc.abstractmethod
+    def _select_features(self):
         """
-        Reverse the transformation operation
-
-        Parameters
-        ----------
-        X : DataFrame of shape [n_samples, n_selected_features]
-            The input samples.
+        Get list of columns to select
 
         Returns
         -------
-        Xt : DataFrame of shape [n_samples, n_original_features]
-            `X` with columns of NaNs inserted where features would have
-            been removed by `transform`.
+        use_cols : list of string, shape (k_features, )
+            Columns to selct
 
         """
-        Xt = pd.DataFrame(index=X.index, columns=self.base_cols_)
-        Xt = Xt.astype(self.base_dtypes_)
-        Xt[X.columns] = X
-        return Xt
-
-    #def __init__(self, estimator, cv=5, scoring=None,
-    #             max_time=None, max_trials=None, n_jobs=None,
-    #             verbose=1, plot=False):
-
-
-
-    #def fit(self, X, y, groups=None):
-
-    #    self._fit_start(X, y, groups)
-
-    #    self._fit(X, y, groups) # defined individualy
-    #    self._fit_end()
-
-    #    return self
-
-
-
-    #def partial_fit(self, X, y, groups=None):
-
-    #    self._fit_start(X, y, groups, partial_fit=True)
-
-    #    self._fit(X, y, groups) # defined individualy
-    #    self._fit_end()
-
-    #    return self
+        return X.columns
