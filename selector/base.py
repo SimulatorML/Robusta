@@ -33,7 +33,7 @@ class Selector(TransformerMixin):
             The input samples with only the selected features.
 
         """
-        use_cols = self._select_columns(X)
+        use_cols = self._select_features()
 
         Xt = X[use_cols]
         return Xt
@@ -50,4 +50,4 @@ class Selector(TransformerMixin):
             Columns to selct
 
         """
-        return X.columns
+        return []

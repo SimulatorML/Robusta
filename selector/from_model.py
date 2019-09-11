@@ -34,7 +34,7 @@ class SelectFromModel(Selector):
         factor (e.g., "1.25*mean") may also be used. If None, drop features
         only based on <max_features>.
 
-    max_features : int or None, optional
+    max_features : int, none or None, optional
         The maximum number of features selected scoring above <threshold>.
         To disable <threshold> and only select based on <max_features>,
         set <threshold> to -np.inf.
@@ -54,10 +54,11 @@ class SelectFromModel(Selector):
         fitted already and <fit> function will raise error.
 
     n_jobs : int or None, optional (default=None)
-        The number of jobs to run in parallel (during cv). None means 1.
+        The number of jobs to run in parallel (for cross-validation).
+        None means 1.
 
     verbose : int (default=1)
-        Verbosity level (during cv)
+        Verbosity level (for cross-validation)
 
     Attributes
     ----------
@@ -102,79 +103,11 @@ class SelectFromModel(Selector):
                                  return_pred=False, return_estimator=True,
                                  return_score=False, return_importance=False,
                                  return_encoder=False, return_folds=False,
-                                 n_jobs=self.n_jobs, verbose=self.verbose):
+                                 n_jobs=self.n_jobs, verbose=self.verbose)
 
             self.estimator_ = cv_result['estimator']
 
         return self
-
-
-    def _fit(self, X, y, groups=None):
-
-        self.estimator_ = clone(self.estimator).fit(X_trn, y_trn)
-
-        return self
-
-        # Check Cross-Validation
-        if self.cv is None:
-            ii = np.arange(X.shape[0]) # full dataset
-            cv = np.array([(ii, ii)])
-        else:
-            cv = self.cv
-
-        cv = check_cv(cv, y, classifier=is_classifier(self.estimator))
-
-        # Fit & calculate importances
-        self.estimator_ = []
-        imps = []
-
-        for trn, oof in cv.split(X, y, groups):
-
-            X_trn, y_trn = X.iloc[trn], y.iloc[trn]
-            X_oof, y_oof = X.iloc[oof], y.iloc[oof]
-
-            estimator = clone(self.estimator).fit(X_trn, y_trn)
-
-            self.estimators_.append(estimator)
-
-        return self
-
-
-    def _cv_fit(self, X, y, groups=None):
-
-        # Check Cross-Validation
-        if self.cv is None:
-            ii = np.arange(X.shape[0]) # full dataset
-            cv = np.array([(ii, ii)])
-        else:
-            cv = self.cv
-
-        cv = check_cv(cv, y, classifier=is_classifier(self.estimator))
-
-        # Fit & calculate importances
-        self.estimators_ = []
-        imps = []
-
-        for trn, oof in cv.split(X, y, groups):
-
-            X_trn, y_trn = X.iloc[trn], y.iloc[trn]
-            X_oof, y_oof = X.iloc[oof], y.iloc[oof]
-
-            if self.cv is 'prefit':
-                estimator = self.estimator
-            else:
-                estimator = clone(self.estimator).fit(X_trn, y_trn)
-
-            self.estimators_.append(estimator)
-
-            imp = extract_importance(estimator)
-            imps.append(imp)
-
-        imp = pd.concat(imps, axis=1).mean(axis=1)
-        self.feature_importances_ = imp
-
-        return self
-
 
 
     def _extract_importance(self):
@@ -204,14 +137,17 @@ class SelectFromModel(Selector):
 
         imp = self._extract_importance()
 
-        if isinstance(self.threshold, np.number)
-        or isinstance(self.threshold, 'str'):
+        if isinstance(self.threshold, (str, int, float)):
             self.threshold_ = _calculate_threshold(imp, self.threshold)
             threshold_mask = (imp >= self.threshold_)
+        else:
+            raise TypeError("Invalid parameters passed: " + self.threshold)
 
-        if isinstance(self.max_features, np.number):
+        if isinstance(self.max_features, int):
             ranking = imp.rank(ascending=False)
             ranking_mask = (ranks <= self.max_features)
+        else:
+            raise TypeError("Invalid parameters passed: " + self.max_features)
 
         use_cols = imp.index[threshold_mask & ranking_mask]
         return use_cols

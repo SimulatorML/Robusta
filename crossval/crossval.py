@@ -242,7 +242,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
             params_update[key] = 0 if val is None else val
         # Verbosity level
         if key.endswith('verbose'):
-            params_update[key] = 0 if verbose < 10
+            params_update[key] = 0 if verbose < 10 else val
 
     estimator = estimator.set_params(**params_update)
 
