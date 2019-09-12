@@ -172,7 +172,7 @@ def _check_step(step, n_features):
 
     elif isinstance(step, float):
         if 0 < step < 1:
-            step = max(1, step * n_features)
+            step = max(step * n_features, 1)
             step = int(step)
         else:
             raise ValueError('Float <step> must be from interval (0, 1)')
