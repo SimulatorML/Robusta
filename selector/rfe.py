@@ -6,7 +6,7 @@ from sklearn.exceptions import NotFittedError
 from sklearn.base import clone, is_classifier
 
 from robusta.importance import extract_importance
-from robusta.crossval import crossval
+#from robusta.crossval import crossval
 
 from .base import Selector
 
@@ -57,7 +57,7 @@ class RFE(Selector):
 
     """
 
-    def __init__(self, estimator, min_features=None, step=1, cv=None):
+    def __init__(self, estimator, min_features=0.5, step=1, cv=None):
 
         self.estimator = estimator
         self.min_features = min_features
@@ -103,7 +103,7 @@ class RFE(Selector):
 
     def _cv_fit_importance(self, X, y, groups=None):
 
-        cv = check_cv(self.cv, y, is_classifier(self.estimator_))
+        cv = check_cv(self.cv, y, is_classifier(self.estimator))
         imps = []
 
         for trn, _ in cv.split(X, y, groups):
@@ -119,7 +119,11 @@ class RFE(Selector):
 
 
     def _select_features(self):
-        return self.use_cols_
+
+        if hasattr(self, 'use_cols_'):
+            return self.use_cols_
+        else:
+            raise NotFittedError('RFE is not fitted')
 
 
 
