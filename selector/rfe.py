@@ -49,8 +49,11 @@ class RFE(Selector):
     use_cols_ : list of string
         Feature names to select
 
-    n_features_ : Series of shape (n_features, )
+    n_features_ : int
         Number of selected features
+
+    min_features_ : int
+        Minimum number of features
 
     """
 
@@ -68,6 +71,8 @@ class RFE(Selector):
         self.use_cols_ = list(X.columns)
         self.n_features_ = len(self.use_cols_)
 
+        self.min_features_ = _check_min_features(self.min_features, self.n_features_)
+
         while True:
 
             if self.cv is None:
@@ -75,10 +80,12 @@ class RFE(Selector):
             else:
                 imp = self._cv_fit_importance(X[self.use_cols_], y, groups)
 
-            self.use_cols_ = _select_k_best(imp, self.step, self.min_features)
+            step = _check_step(self.step, self.n_features_)
+
+            self.use_cols_ = _select_k_best(imp, step, self.min_features_)
             self.n_features_ = len(self.use_cols_)
 
-            if self.n_features_ <= self.min_features:
+            if self.n_features_ <= self.min_features_:
                 break
 
         return self
@@ -119,7 +126,6 @@ class RFE(Selector):
 def _select_k_best(scores, step, min_features):
 
     n_features = len(scores)
-    step = _check_step(step, n_features)
     k_best = max(n_features - step, min_features)
 
     sort_scores = scores.sort_values(ascending=False)
@@ -127,6 +133,28 @@ def _select_k_best(scores, step, min_features):
 
     use_cols = list(best_scores.index)
     return use_cols
+
+
+
+def _check_min_features(min_features, n_features):
+
+    if isinstance(min_features, int):
+        if min_features > 0:
+            min_features = min_features
+        else:
+            raise ValueError('Integer <min_features> must be greater than 0')
+
+    elif isinstance(min_features, float):
+        if 0 < min_features < 1:
+            min_features = max(1, min_features * n_features)
+        else:
+            raise ValueError('Float <min_features> must be from interval (0, 1)')
+
+    else:
+        raise ValueError('Parameter <min_features> must be int or float, \
+                         got {}'.format(min_features))
+
+    return min_features
 
 
 
@@ -145,6 +173,7 @@ def _check_step(step, n_features):
             raise ValueError('Float <step> must be from interval (0, 1)')
 
     else:
-        raise ValueError('Parameter <step> must be int or float, got {}'.format(step))
+        raise ValueError('Parameter <step> must be int or float, \
+                         got {}'.format(step))
 
     return step
