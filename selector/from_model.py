@@ -84,7 +84,6 @@ class SelectFromModel(Selector):
 
     def fit(self, X, y, groups=None):
 
-        # Check Cross-Validation
         if self.cv is 'prefit':
             raise NotFittedError("Since 'cv=prefit', call transform directly")
 
