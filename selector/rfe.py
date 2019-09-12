@@ -15,13 +15,13 @@ from .base import Selector
 
 
 class RFE(Selector):
-    """Meta-transformer for selecting features based on importance weights.
+    """Feature ranking with recursive feature elimination (RFE) and
+    cross-validated selection of the best number of features.
 
     Parameters
     ----------
     estimator : object
         The base estimator from which the transformer is built.
-        This can be both a fitted (if cv='prefit') or a non-fitted estimator.
         The estimator must have either a <feature_importances_> or <coef_>
         attribute after fitting.
 
