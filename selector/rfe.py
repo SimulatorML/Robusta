@@ -25,22 +25,16 @@ class RFE(Selector):
         The estimator must have either a <feature_importances_> or <coef_>
         attribute after fitting.
 
-    threshold : string, float, optional (default None)
-        The threshold value to use for feature selection. Features whose
-        importance is greater or equal are kept while the others are
-        discarded. If "median" (resp. "mean"), then the <threshold> value is
-        the median (resp. the mean) of the feature importances. A scaling
-        factor (e.g., "1.25*mean") may also be used. If None, drop features
-        only based on <max_features>.
+    min_features : int or float, optional (default=0.5)
+        The number of features to select. Float values means percentage of
+        features to select. E.g. value 0.5 (by default) means 50% of features.
 
-    max_features : int, float or None, optional (default 0.5)
-        The maximum number of features selected scoring above <threshold>.
-        If float, interpreted as proportion of all features.
+    step : int or float, optional (default=1)
+        The number of features to remove on each step. Float values means
+        percentage of left features. E.g. 0.2 means 20% reduction on each step:
+        500 => 400 => 320 => ...
 
-        To disable <threshold> and only select based on <max_features>,
-        set <threshold> to -np.inf.
-
-    cv : int, cross-validation generator, iterable or "prefit"
+    cv : int, cross-validation generator or iterable
         Determines the cross-validation splitting strategy.
         Possible inputs for cv are:
 
@@ -49,28 +43,14 @@ class RFE(Selector):
             - integer, to specify the number of folds.
             - An object to be used as a cross-validation generator.
             - An iterable yielding train/test splits.
-            - "prefit" string constant.
-
-        If "prefit" is passed, it is assumed that <estimator> has been
-        fitted already and <fit> function will raise error.
 
     Attributes
     ----------
-    estimator_ : list of fitted estimators, or single fitted estimator
-        If <cv> is 'prefit'. If <cv> is None, return single estimator.
-        Otherwise return list of fitted estimators, length (n_folds, ).
+    use_cols_ : list of string
+        Feature names to select
 
-    feature_importances_ : Series of shape (n_features, )
-        Feature importances, extracted from estimator(s)
-
-    threshold_ : float
-        The threshold value used for feature selection
-
-    max_features_ : int
-        Maximum number of features for feature selection
-
-    use_cols_ : list of str
-        Columns to select
+    n_features_ : Series of shape (n_features, )
+        Number of selected features
 
     """
 
