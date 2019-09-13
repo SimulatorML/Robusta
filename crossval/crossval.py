@@ -233,7 +233,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
     params = estimator.get_params()
     params_update = {}
 
-    for key, val in params.items():
+    '''for key, val in params.items():
         # Parallel CV vs Parallel Model
         if key.endswith('n_jobs'):
             params_update[key] = 1 if n_jobs not in [None, 1] else val
@@ -242,7 +242,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
             params_update[key] = 0 if val is None else val
         # Verbosity level
         if key.endswith('verbose'):
-            params_update[key] = 0 if verbose < 10 else val
+            params_update[key] = 0 if verbose < 10 else val'''
 
     estimator = estimator.set_params(**params_update)
 
