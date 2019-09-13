@@ -125,8 +125,8 @@ class RandomSubset(EmbeddedSelector):
 
         while True:
             try:
-                k_features = weighted_choice(self.weights_, self.rstate_)
-                subset = rstate.choice(self.features_, k_features, replace=False)
+                k = weighted_choice(self.weights_, self.rstate_)
+                subset = self.rstate_.choice(self.features_, k, replace=False)
 
                 score = self._eval_subset(subset, X, y, groups)
 
@@ -138,21 +138,12 @@ class RandomSubset(EmbeddedSelector):
 
     def partial_fit(self, X, y, groups=None):
 
-        X_cols = list(X.columns)
-        n_features = len(X_cols)
-
-        self.min_features_ = _check_k_features(self.min_features, n_features)
-        self.max_features_ = _check_k_features(self.max_features, n_features)
-
-        if self.min_features_ > self.max_features_:
-            raise ValueError('<max_features> must not be less than <min_features>')
-
-        weights = nCk_range(self.min_features_, self.max_features_, n_features)
+        self._fit(X, partial=True)
 
         while True:
             try:
-                k_cols = weighted_choice(weights, rstate)
-                subset = rstate.choice(X_cols, k_cols, replace=False)
+                k = weighted_choice(self.weights_, self.rstate_)
+                subset = self.rstate_.choice(self.features_, k, replace=False)
 
                 score = self._eval_subset(subset, X, y, groups)
 
@@ -182,8 +173,8 @@ class RandomSubset(EmbeddedSelector):
         self.features_ = list(X.columns)
         self.n_features_ = len(self.features_)
 
-        self.min_features_ = _check_k_features(self.min_features, n_features)
-        self.max_features_ = _check_k_features(self.max_features, n_features)
+        self.min_features_ = _check_k_features(self.min_features, self.n_features_)
+        self.max_features_ = _check_k_features(self.max_features, self.n_features_)
 
         if self.min_features_ > self.max_features_:
             raise ValueError('<max_features> must not be less than <min_features>')
