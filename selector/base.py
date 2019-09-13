@@ -5,15 +5,9 @@ import abc
 
 from sklearn.base import TransformerMixin
 
+from robusta.crossval import crossval_score
 
 
-class Shape(object):
-    __metaclass__ = abc.ABCMeta
-
-    @abc.abstractmethod
-    def method_to_implement(self, input):
-        """Method documentation"""
-        return
 
 
 class Selector(TransformerMixin):
@@ -51,3 +45,21 @@ class Selector(TransformerMixin):
 
         """
         return []
+
+
+
+class AgnosticSelector(Selector):
+
+    def _eval_subset(self, subset, X, y, groups):
+
+        scores = crossval_score(estimator, self.cv, X[subset], y, groups,
+                                scoring=self.scoring, n_jobs=self.n_jobs)
+        score = np.mean(scores)
+
+        if hasattr(self, 'best_score_') is True and (score > self.best_score_) \
+        or hasattr(self, 'best_score_') is False:
+
+            self.best_subset_ = subset
+            self.best_score_ = score
+
+        return score
