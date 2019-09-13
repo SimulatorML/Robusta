@@ -248,7 +248,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
     # Init Logger
     logger = CVLogger(folds, verbose, prec=n_digits)
-    logger.log_start(estimator, scorer)
+    logger.log_start(estimator, scorers)
 
     # Target Encoding
     if is_classifier(estimator):
@@ -848,10 +848,10 @@ def _score(estimator, X, y, scorers):
 
     for name, scorer in scorers.items():
 
-        if y_test is None:
-            score = scorer(estimator, X_test)
+        if y is None:
+            score = scorer(estimator, X)
         else:
-            score = scorer(estimator, X_test, y_test)
+            score = scorer(estimator, X, y)
 
         scores[name] = score
 

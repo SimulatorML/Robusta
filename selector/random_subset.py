@@ -55,7 +55,8 @@ class RandomSubset(EmbeddedSelector):
     '''
 
     def __init__(self, estimator, min_features=0.5, max_features=0.9, scoring=None,
-                 max_trials=20, max_time=None, cv=5, random_state=0, n_jobs=None):
+                 max_trials=20, max_time=None, cv=5, random_state=0, n_jobs=None,
+                 verbose=1, plot=False):
 
         self.estimator = estimator
         self.min_features = min_features
@@ -68,6 +69,9 @@ class RandomSubset(EmbeddedSelector):
         self.random_state = random_state
         self.n_jobs = n_jobs
 
+        self.verbose = verbose
+        self.plot = plot
+
 
 
     def fit(self, X, y, groups=None):
@@ -78,16 +82,42 @@ class RandomSubset(EmbeddedSelector):
         self.min_features_ = _check_k_features(self.min_features, n_features)
         self.max_features_ = _check_k_features(self.max_features, n_features)
 
-        if self.min_features_ < self.max_features_:
+        if self.min_features_ > self.max_features_:
             raise ValueError('<max_features> must not be less than <min_features>')
 
 
         rstate = check_random_state(self.random_state)
-        weights = nCk_range(self.min_features_, self.max_features_, n_features, rstate)
+        weights = nCk_range(self.min_features_, self.max_features_, n_features)
 
         while True:
             try:
-                k_cols = weighted_choice(weights)
+                k_cols = weighted_choice(weights, rstate)
+                subset = rstate.choice(X_cols, k_cols, replace=False)
+
+                score = self._eval_subset(subset, X, y, groups)
+
+            except KeyboardInterrupt:
+                break
+
+        return self
+
+
+    def partial_fit(self, X, y, groups=None):
+
+        X_cols = list(X.columns)
+        n_features = len(X_cols)
+
+        self.min_features_ = _check_k_features(self.min_features, n_features)
+        self.max_features_ = _check_k_features(self.max_features, n_features)
+
+        if self.min_features_ > self.max_features_:
+            raise ValueError('<max_features> must not be less than <min_features>')
+
+        weights = nCk_range(self.min_features_, self.max_features_, n_features)
+
+        while True:
+            try:
+                k_cols = weighted_choice(weights, rstate)
                 subset = rstate.choice(X_cols, k_cols, replace=False)
 
                 score = self._eval_subset(subset, X, y, groups)
@@ -118,7 +148,8 @@ def _check_k_features(k_features, n_features):
 
     elif isinstance(k_features, float):
         if 0 < k_features < 1:
-            k_features = max(1, k_features * n_features)
+            k_features = max(k_features * n_features, 1)
+            k_features = int(k_features)
         else:
             raise ValueError('Parameters <min_features> & <max_features> must be \
                               integer (greater than 0) or float (0..1)')
@@ -146,9 +177,9 @@ def nCk_range(k_min, k_max, n):
     return pd.Series(C, index=k_range).sort_index()
 
 
-def weighted_choice(weights):
+def weighted_choice(weights, rstate):
     # weights ~ pd.Series
-    rnd = np.random.random() * sum(weights)
+    rnd = rstate.uniform() * sum(weights)
     for i, w in weights.items():
         rnd -= w
         if rnd <= 0:
