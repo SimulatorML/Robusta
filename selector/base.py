@@ -78,15 +78,10 @@ class EmbeddedSelector(Selector):
         return score
 
 
-
     def _append_trial(self, trial):
 
         if not hasattr(self, 'trials_'):
-            self.trials_ = pd.DataFrame()
-            self.best_score_ = -np.inf
-
-            self.total_time_ = .0
-            self.n_iters_ = 0
+            self._reset_trials()
 
         if trial['score'] >= self.best_score_:
             self.best_iter_ = self.n_iters_
@@ -95,13 +90,22 @@ class EmbeddedSelector(Selector):
 
         self.trials_ = self.trials_.append(trial, ignore_index=True)
 
-        self.time_ = self.trials_['time'].sum()
+        self.total_time_ = self.trials_['time'].sum()
         self.n_iters_ = self.trials_.shape[0]
 
         _print_last(self)
 
         self._check_max_trials()
         self._check_max_time()
+
+
+    def _reset_trials(self):
+
+        self.trials_ = pd.DataFrame()
+        self.best_score_ = -np.inf
+
+        self.total_time_ = .0
+        self.n_iters_ = 0
 
 
     def _check_max_trials(self):
@@ -111,6 +115,6 @@ class EmbeddedSelector(Selector):
 
 
     def _check_max_time(self):
-        if self.max_time and self.max_time <= self.time_:
+        if self.max_time and self.max_time <= self.total_time_:
             if self.verbose: print('Time limit exceed!')
             raise KeyboardInterrupt

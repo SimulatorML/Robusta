@@ -52,17 +52,62 @@ class RandomSubset(EmbeddedSelector):
     n_jobs : int or None, optional (default=None)
         The number of jobs to run in parallel. None means 1.
 
+    weights : {'binomal', 'uniform'}
+        Probability for subset sizes:
+
+            - 'uniform': each # of features selected with equal probability
+            - 'binomal': each # of features selected with probability, which
+            proportional to # of different subsets of given size (binomal
+            coefficient nCk, where n - total # of features, k - subset size)
+
+    Attributes
+    ----------
+    features_ : list of string
+        Feature names
+
+    n_features_ : int
+        Total number of features
+
+    min_features_, max_features_ : int
+        Minimum and maximum subsets size
+
+    weights_ : Series
+        Subset sizes weights (not normalized)
+
+    rstate_ : object
+        Random state instance
+
+    trials_ : DataFrame
+        All evaluated subsets:
+
+            - 'subset': subset of feature names
+            - 'score': average cross-validation score
+            - 'time': fitting time
+
+    best_iter_: int
+        Best trial's index
+
+    best_score_: float
+        Best trial's score
+
+    best_subset_: list of string
+        Best subset of features
+
+    total_time_: float
+        Total optimization time (seconds)
+
     '''
 
     def __init__(self, estimator, min_features=0.5, max_features=0.9, scoring=None,
                  max_iter=20, max_time=None, cv=5, random_state=0, n_jobs=None,
-                 verbose=1, plot=False):
+                 verbose=1, plot=False, weights='uniform'):
 
         self.estimator = estimator
         self.min_features = min_features
         self.max_features = max_features
         self.max_iter = max_iter
         self.max_time = max_time
+        self.weights = weights
 
         self.cv = cv
         self.scoring = scoring
@@ -76,23 +121,12 @@ class RandomSubset(EmbeddedSelector):
 
     def fit(self, X, y, groups=None):
 
-        X_cols = list(X.columns)
-        n_features = len(X_cols)
-
-        self.min_features_ = _check_k_features(self.min_features, n_features)
-        self.max_features_ = _check_k_features(self.max_features, n_features)
-
-        if self.min_features_ > self.max_features_:
-            raise ValueError('<max_features> must not be less than <min_features>')
-
-
-        rstate = check_random_state(self.random_state)
-        weights = nCk_range(self.min_features_, self.max_features_, n_features)
+        self._fit(X)
 
         while True:
             try:
-                k_cols = weighted_choice(weights, rstate)
-                subset = rstate.choice(X_cols, k_cols, replace=False)
+                k_features = weighted_choice(self.weights_, self.rstate_)
+                subset = rstate.choice(self.features_, k_features, replace=False)
 
                 score = self._eval_subset(subset, X, y, groups)
 
@@ -137,6 +171,35 @@ class RandomSubset(EmbeddedSelector):
             raise NotFittedError('RSFS is not fitted')
 
 
+    def _fit(self, X, partial=False):
+
+        if not partial:
+            self._reset_trials()
+
+        if not partial and hasattr(self, 'random_state'):
+            self.rstate_ = check_random_state(self.random_state)
+
+        self.features_ = list(X.columns)
+        self.n_features_ = len(self.features_)
+
+        self.min_features_ = _check_k_features(self.min_features, n_features)
+        self.max_features_ = _check_k_features(self.max_features, n_features)
+
+        if self.min_features_ > self.max_features_:
+            raise ValueError('<max_features> must not be less than <min_features>')
+
+        if self.weights is 'uniform':
+            self.weights_ = binomal_weights(self.min_features_,
+                                            self.max_features_,
+                                            self.n_features_)
+        else:
+            self.weights_ = uniform_weights(self.min_features_,
+                                            self.max_features_)
+
+        return self
+
+
+
 
 
 def _check_k_features(k_features, n_features):
@@ -170,16 +233,20 @@ def nCk(n, k):
     return fact(n) // fact(k) // fact(n-k)
 
 
-def nCk_range(k_min, k_max, n):
+def binomal_weights(k_min, k_max, n):
     k_range = range(k_min, k_max+1)
-
     C = [nCk(n, k) for k in k_range]
     return pd.Series(C, index=k_range).sort_index()
 
 
+def uniform_weights(k_min, k_max):
+    k_range = range(k_min, k_max+1)
+    return pd.Series(1, index=k_range).sort_index()
+
+
 def weighted_choice(weights, rstate):
     # weights ~ pd.Series
-    rnd = rstate.uniform() * sum(weights)
+    rnd = rstate.uniform() * weights.sum()
     for i, w in weights.items():
         rnd -= w
         if rnd <= 0:
