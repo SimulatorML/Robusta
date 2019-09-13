@@ -136,6 +136,7 @@ class RandomSubset(EmbeddedSelector):
         return self
 
 
+
     def partial_fit(self, X, y, groups=None):
 
         self._fit(X, partial=True)
@@ -152,14 +153,6 @@ class RandomSubset(EmbeddedSelector):
 
         return self
 
-
-
-    def _select_features(self):
-
-        if hasattr(self, 'best_subset_'):
-            return self.best_subset_
-        else:
-            raise NotFittedError('RSFS is not fitted')
 
 
     def _fit(self, X, partial=False):
@@ -188,6 +181,15 @@ class RandomSubset(EmbeddedSelector):
                                             self.max_features_)
 
         return self
+
+
+
+    def _select_features(self):
+
+        if hasattr(self, 'best_subset_'):
+            return self.best_subset_
+        else:
+            raise NotFittedError('RSFS is not fitted')
 
 
 
