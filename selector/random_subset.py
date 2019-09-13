@@ -85,19 +85,12 @@ class RandomSubset(EmbeddedSelector):
         rstate = check_random_state(self.random_state)
         weights = nCk_range(self.min_features_, self.max_features_, n_features, rstate)
 
-        self.best_features_ = cols
-        self.best_score_ = None
-
         while True:
-            # TODO: check <max_time>
-            # TODO: check <max_trials>
             try:
-                k_featrues = weighted_choice(weights)
-                subset = rstate.choice(X_cols, k_featrues, replace=False)
+                k_cols = weighted_choice(weights)
+                subset = rstate.choice(X_cols, k_cols, replace=False)
 
                 score = self._eval_subset(subset, X, y, groups)
-
-                print(score)
 
             except KeyboardInterrupt:
                 break
