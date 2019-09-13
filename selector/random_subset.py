@@ -172,13 +172,17 @@ class RandomSubset(EmbeddedSelector):
         if self.min_features_ > self.max_features_:
             raise ValueError('<max_features> must not be less than <min_features>')
 
-        if self.weights is 'uniform':
+        weights_values = ['uniform', 'binomal']
+
+        if self.weights is 'binomal':
             self.weights_ = binomal_weights(self.min_features_,
                                             self.max_features_,
                                             self.n_features_)
-        else:
+        elif self.weights is 'uniform':
             self.weights_ = uniform_weights(self.min_features_,
                                             self.max_features_)
+        else:
+            raise ValueError('<weights> must be from {}'.format(weights_values))
 
         return self
 

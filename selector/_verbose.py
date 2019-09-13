@@ -25,7 +25,7 @@ def _print_last(fs):
         # Score
         score = trial['score']
         score = '{:.4f}'.format(score)
-        score = colored(score, 'green') if (fs.best_iter_ is k-1) else score
+        score = colored(score, 'red') if (fs.best_iter_ is k-1) else score
 
         # Estimated time of arrival (ETA)
         if fs.max_time or fs.max_iter:
