@@ -7,12 +7,12 @@ from sklearn.base import clone, is_classifier
 
 from robusta.crossval import crossval_score
 
-from .base import AgnosticSelector
+from .base import EmbeddedSelector
 
 
 
 
-class RandomSubset(AgnosticSelector):
+class RandomSubset(EmbeddedSelector):
     '''Random Subset Feature Selector
 
     Parameters

@@ -48,7 +48,7 @@ class Selector(TransformerMixin):
 
 
 
-class AgnosticSelector(Selector):
+class EmbeddedSelector(Selector):
 
     def _eval_subset(self, subset, X, y, groups):
 
