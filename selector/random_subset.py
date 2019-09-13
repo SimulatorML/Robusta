@@ -25,12 +25,12 @@ class RandomSubset(EmbeddedSelector):
         percentage of total number of features. <max_features> must be greater
         or equal to the <min_features>.
 
-    max_trials : int or None
+    max_iter : int or None
         Maximum number of iterations. None for no limits. Use <max_time>
         or Ctrl+C for KeyboardInterrupt to stop optimization in this case.
 
     max_time : float or None
-        Maximum time (in seconds). None for no limits. Use <max_trials>
+        Maximum time (in seconds). None for no limits. Use <max_iter>
         or Ctrl+C for KeyboardInterrupt to stop optimization in this case.
 
     scoring : string, callable or None, optional, default: None
@@ -55,13 +55,13 @@ class RandomSubset(EmbeddedSelector):
     '''
 
     def __init__(self, estimator, min_features=0.5, max_features=0.9, scoring=None,
-                 max_trials=20, max_time=None, cv=5, random_state=0, n_jobs=None,
+                 max_iter=20, max_time=None, cv=5, random_state=0, n_jobs=None,
                  verbose=1, plot=False):
 
         self.estimator = estimator
         self.min_features = min_features
         self.max_features = max_features
-        self.max_trials = max_trials
+        self.max_iter = max_iter
         self.max_time = max_time
 
         self.cv = cv

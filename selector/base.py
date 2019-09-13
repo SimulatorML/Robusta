@@ -86,17 +86,17 @@ class EmbeddedSelector(Selector):
             self.best_score_ = -np.inf
 
             self.total_time_ = .0
-            self.n_trials_ = 0
+            self.n_iters_ = 0
 
-        if trial['score'] > self.best_score_:
-            self.best_trial_ = self.n_trials_ - 1
+        if trial['score'] >= self.best_score_:
+            self.best_iter_ = self.n_iters_
             self.best_score_ = trial['score']
             self.best_subset_ = trial['subset']
 
         self.trials_ = self.trials_.append(trial, ignore_index=True)
 
         self.time_ = self.trials_['time'].sum()
-        self.n_trials_ = self.trials_.shape[0]
+        self.n_iters_ = self.trials_.shape[0]
 
         _print_last(self)
 
@@ -105,12 +105,12 @@ class EmbeddedSelector(Selector):
 
 
     def _check_max_trials(self):
-        if self.max_trials and self.n_trials_ >= self.max_trials:
+        if self.max_iter and self.max_iter <= self.n_iters_:
             if self.verbose: print('Iterations limit exceed!')
             raise KeyboardInterrupt
 
 
     def _check_max_time(self):
-        if self.max_time and self.time_ >= self.max_time:
+        if self.max_time and self.max_time <= self.time_:
             if self.verbose: print('Time limit exceed!')
             raise KeyboardInterrupt
