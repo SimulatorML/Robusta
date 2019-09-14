@@ -9,7 +9,7 @@ from .base import EmbeddedSelector
 
 
 
-class GreedSelector(Selector):
+class GreedSelector(EmbeddedSelector):
     '''Greed Forward/Backward Feature Selector
 
     Parameters
@@ -185,7 +185,7 @@ class GreedSelector(Selector):
             subset_update = feature_scores.index[0]
             new_score = feature_scores.iloc[0]
 
-            if new_score < old_score:
+            if new_score <= old_score:
                 continue
 
             # include/exclude (final)
@@ -222,6 +222,29 @@ class GreedSelector(Selector):
         subset = self.rstate_.choice(features, random_subset, replace=False)
 
         return set(subset)
+
+
+
+def _check_k_features(k_features, n_features):
+
+    if isinstance(k_features, int):
+        if k_features < 1:
+            raise ValueError('Parameters <k_features> must be integer \
+                              (greater than 0) or float (0..1)')
+
+    elif isinstance(k_features, float):
+        if 0 < k_features < 1:
+            k_features = max(k_features * n_features, 1)
+            k_features = int(k_features)
+        else:
+            raise ValueError('Parameters <k_features> must be integer \
+                              (greater than 0) or float (0..1)')
+
+    else:
+        raise ValueError('Parameters <k_features> must be integer \
+                          (greater than 0) or float (0..1)')
+
+    return k_features
 
 
 
