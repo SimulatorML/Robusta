@@ -100,7 +100,7 @@ def permutation_importance(estimator, X, y, scoring=None, n_iter=5, n_jobs=-1,
         feature.
 
     progress_bar : bool, default=False
-        Weather to display <tqdm_notebook> progress bar while iterating
+        Whether to display <tqdm_notebook> progress bar while iterating
         through out dataset columns.
 
     Returns
