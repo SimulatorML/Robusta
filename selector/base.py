@@ -109,12 +109,14 @@ class EmbeddedSelector(Selector):
 
 
     def _check_max_trials(self):
-        if self.max_iter and self.max_iter <= self.n_iters_:
-            if self.verbose: print('Iterations limit exceed!')
-            raise KeyboardInterrupt
+        if hasattr(self, 'max_iter') and self.max_iter:
+            if self.max_iter <= self.n_iters_:
+                if self.verbose: print('Iterations limit exceed!')
+                raise KeyboardInterrupt
 
 
     def _check_max_time(self):
-        if self.max_time and self.max_time <= self.total_time_:
-            if self.verbose: print('Time limit exceed!')
-            raise KeyboardInterrupt
+        if hasattr(self, 'max_time') and self.max_time:
+            if self.max_time <= self.total_time_:
+                if self.verbose: print('Time limit exceed!')
+                raise KeyboardInterrupt

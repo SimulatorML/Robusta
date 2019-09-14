@@ -1,16 +1,18 @@
 import pandas as pd
 import numpy as np
 
-from sklearn.utils.random import check_random_state
 from sklearn.exceptions import NotFittedError
+
+from itertools import combinations
 
 from .base import EmbeddedSelector
 
 
 
 
-class RandomSubset(EmbeddedSelector):
-    '''Random Subset Feature Selector
+class ExhaustiveSelector(EmbeddedSelector):
+    '''Exhaustive feature selector for sampling and evaluating all possible
+    feature subsets of specified size.
 
     Parameters
     ----------
@@ -21,14 +23,6 @@ class RandomSubset(EmbeddedSelector):
         Minimum & maximum number of features. If float, interpreted as
         percentage of total number of features. <max_features> must be greater
         or equal to the <min_features>.
-
-    max_iter : int or None
-        Maximum number of iterations. None for no limits. Use <max_time>
-        or Ctrl+C for KeyboardInterrupt to stop optimization in this case.
-
-    max_time : float or None
-        Maximum time (in seconds). None for no limits. Use <max_iter>
-        or Ctrl+C for KeyboardInterrupt to stop optimization in this case.
 
     scoring : string, callable or None, optional, default: None
         A string or a scorer callable object / function with signature
@@ -42,17 +36,6 @@ class RandomSubset(EmbeddedSelector):
             - integer, to specify the number of folds.
             - An object to be used as a cross-validation generator.
             - An iterable yielding train/test splits.
-
-    weights : {'binomal', 'uniform'}
-        Probability for subset sizes:
-
-            - 'uniform': each # of features selected with equal probability
-            - 'binomal': each # of features selected with probability, which
-            proportional to # of different subsets of given size (binomal
-            coefficient nCk, where n - total # of features, k - subset size)
-
-    random_state : int
-        Random state for subsets generator
 
     n_jobs : int or None, optional (default=None)
         The number of jobs to run in parallel. None means 1.
@@ -102,19 +85,14 @@ class RandomSubset(EmbeddedSelector):
     '''
 
     def __init__(self, estimator, min_features=0.5, max_features=0.9, scoring=None,
-                 max_iter=20, max_time=None, cv=5, weights='uniform',
-                 random_state=0, n_jobs=None, verbose=1, plot=False):
+                 cv=5, n_jobs=None, verbose=1, plot=False):
 
         self.estimator = estimator
         self.min_features = min_features
         self.max_features = max_features
-        self.max_iter = max_iter
-        self.max_time = max_time
-        self.weights = weights
 
         self.cv = cv
         self.scoring = scoring
-        self.random_state = random_state
         self.n_jobs = n_jobs
 
         self.verbose = verbose
@@ -124,17 +102,8 @@ class RandomSubset(EmbeddedSelector):
 
     def fit(self, X, y, groups=None):
 
-        self._fit(X)
-
-        while True:
-            try:
-                k = weighted_choice(self.weights_, self.rstate_)
-                subset = self.rstate_.choice(self.features_, k, replace=False)
-
-                score = self._eval_subset(subset, X, y, groups)
-
-            except KeyboardInterrupt:
-                break
+        self._fit_start(X)
+        self._fit(X, y, groups)
 
         return self
 
@@ -142,29 +111,14 @@ class RandomSubset(EmbeddedSelector):
 
     def partial_fit(self, X, y, groups=None):
 
-        self._fit(X, partial=True)
-
-        while True:
-            try:
-                k = weighted_choice(self.weights_, self.rstate_)
-                subset = self.rstate_.choice(self.features_, k, replace=False)
-
-                self._eval_subset(subset, X, y, groups)
-
-            except KeyboardInterrupt:
-                break
+        self._fit_start(X, partial=True)
+        self._fit(X, y, groups)
 
         return self
 
 
 
-    def _fit(self, X, partial=False):
-
-        if not partial:
-            self._reset_trials()
-
-        if not partial and hasattr(self, 'random_state'):
-            self.rstate_ = check_random_state(self.random_state)
+    def _fit_start(self, X, partial=False):
 
         self.features_ = list(X.columns)
         self.n_features_ = len(self.features_)
@@ -175,17 +129,24 @@ class RandomSubset(EmbeddedSelector):
         if self.min_features_ > self.max_features_:
             raise ValueError('<max_features> must not be less than <min_features>')
 
-        weights_values = ['uniform', 'binomal']
+        if not partial:
+            self.subsets_ = all_subsets(self.features_,
+                                        self.min_features_,
+                                        self.max_features_)
+            self._reset_trials()
 
-        if self.weights is 'binomal':
-            self.weights_ = binomal_weights(self.min_features_,
-                                            self.max_features_,
-                                            self.n_features_)
-        elif self.weights is 'uniform':
-            self.weights_ = uniform_weights(self.min_features_,
-                                            self.max_features_)
-        else:
-            raise ValueError('<weights> must be from {}'.format(weights_values))
+        return self
+
+
+
+    def _fit(self, X, y, groups):
+
+        for subset in self.subsets_:
+            try:
+                self._eval_subset(subset, X, y, groups)
+
+            except KeyboardInterrupt:
+                break
 
         return self
 
@@ -196,7 +157,7 @@ class RandomSubset(EmbeddedSelector):
         if hasattr(self, 'best_subset_'):
             return self.best_subset_
         else:
-            raise NotFittedError('<RandomSubset> is not fitted')
+            raise NotFittedError('<ExhaustiveSelector> is not fitted')
 
 
 
@@ -225,29 +186,5 @@ def _check_k_features(k_features, n_features):
 
 
 
-
-fact = lambda x: x*fact(x-1) if x else 1
-
-
-def nCk(n, k):
-    return fact(n) // fact(k) // fact(n-k)
-
-
-def binomal_weights(k_min, k_max, n):
-    k_range = range(k_min, k_max+1)
-    C = [nCk(n, k) for k in k_range]
-    return pd.Series(C, index=k_range).sort_index()
-
-
-def uniform_weights(k_min, k_max):
-    k_range = range(k_min, k_max+1)
-    return pd.Series(1, index=k_range).sort_index()
-
-
-def weighted_choice(weights, rstate):
-    # weights ~ pd.Series
-    rnd = rstate.uniform() * weights.sum()
-    for i, w in weights.items():
-        rnd -= w
-        if rnd <= 0:
-            return i
+def all_subsets(cols, k_min, k_max):
+    return chain(*map(lambda k: combinations(cols, k), range(k_min, k_max+1)))
