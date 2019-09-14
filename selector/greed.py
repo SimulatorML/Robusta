@@ -188,6 +188,7 @@ class GreedSelector(EmbeddedSelector):
                     candidate = subset | {feature}
 
                 if self._find_trial(candidate):
+                    print(candidate)
                     continue
 
                 score = self._eval_subset(candidate, X, y, groups)

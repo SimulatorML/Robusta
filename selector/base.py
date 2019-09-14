@@ -138,10 +138,15 @@ class EmbeddedSelector(Selector):
         if self.n_iters_ == 0:
             return None
 
-        same_subsets = self.trials_['subset'].map(lambda x: x is subset)
+        same_subsets = self.trials_['subset'].map(lambda x: _equal_sets(subset, x))
 
         if same_subsets.any():
             trial = self.trials_[same_subsets].iloc[0]
             return trial.to_dict()
         else:
             return None
+
+
+def _equal_sets(set1, set2):
+    set1, set2 = set(set1), set(set2)
+    return len(set1 ^ set2) is 0
