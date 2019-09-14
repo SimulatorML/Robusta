@@ -6,6 +6,8 @@ from sklearn.exceptions import NotFittedError
 
 from .base import EmbeddedSelector
 
+from robusta.utils import logmsg
+
 
 
 
@@ -120,6 +122,9 @@ class GreedSelector(EmbeddedSelector):
         while not is_final(subset):
 
             # Step 1. Step Forward/Backward
+            if self.verbose:
+                logmsg('Step A: {}'.format('Forward' if self.forward else 'Backward'))
+
             if self.forward:
                 subset_updates = all_features - subset
             else:
@@ -160,6 +165,9 @@ class GreedSelector(EmbeddedSelector):
                 continue
 
             # Step 2. Step Backward/Forward
+            if self.verbose:
+                logmsg('Step B: {}'.format('Backward' if self.forward else 'Forward'))
+
             if self.forward:
                 subset_updates = subset
             else:
