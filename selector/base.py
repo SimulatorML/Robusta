@@ -135,7 +135,10 @@ class EmbeddedSelector(Selector):
 
     def _find_trial(self, subset):
 
-        same_subsets = gs.trials_['subset'].map(lambda x: x is subset)
+        if self.n_iters_ == 0:
+            return None
+
+        same_subsets = self.trials_['subset'].map(lambda x: x is subset)
 
         if same_subsets.any():
             trial = self.trials_[same_subsets].iloc[0]
