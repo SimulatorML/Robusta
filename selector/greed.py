@@ -123,7 +123,7 @@ class GreedSelector(EmbeddedSelector):
 
             # Step 1. Step Forward/Backward
             if self.verbose:
-                logmsg('Step A: {}'.format('Forward' if self.forward else 'Backward'))
+                logmsg('Step {}'.format('Forward' if self.forward else 'Backward'))
 
             if self.forward:
                 subset_updates = all_features - subset
@@ -166,7 +166,7 @@ class GreedSelector(EmbeddedSelector):
 
             # Step 2. Step Backward/Forward
             if self.verbose:
-                logmsg('Step B: {}'.format('Backward' if self.forward else 'Forward'))
+                logmsg('Step {}'.format('Backward' if self.forward else 'Forward'))
 
             if self.forward:
                 subset_updates = subset
