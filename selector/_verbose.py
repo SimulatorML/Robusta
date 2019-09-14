@@ -15,7 +15,7 @@ def _print_last(fs):
     if fs.verbose >= 1:
 
         # Iterations
-        n = fs.max_iter
+        n = fs.max_iter if hasattr(fs, 'max_iter') else None
         k = fs.n_iters_
         iters = '{}/{}'.format(k, n) if n else '{}'.format(k)
 
@@ -28,10 +28,18 @@ def _print_last(fs):
         score = colored(score, 'red') if (fs.best_iter_ is k-1) else score
 
         # Estimated time of arrival (ETA)
-        if fs.max_time or fs.max_iter:
-            eta0 = max(0, (fs.time_ / k) * (n - k) if fs.max_iter else np.inf)
-            eta1 = max(0, (fs.max_time - fs.time_) if fs.max_time else np.inf)
-            eta = min(eta0, eta1)
+        if hasattr(fs, 'max_time') and fs.max_time:
+            eta0 = max(0, (fs.max_time - fs.time_))
+        else:
+            eta0 = np.inf
+
+        if hasattr(fs, 'max_iter') and fs.max_iter:
+            eta1 = max(0, (fs.time_ / k) * (n - k))
+        else:
+            eta1 = np.inf
+
+        eta = min(eta0, eta1)
+        if eta < np.inf:
             eta = secfmt(eta)
             eta = '      eta: {}'.format(eta)
         else:

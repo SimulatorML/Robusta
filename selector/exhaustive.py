@@ -143,7 +143,7 @@ class ExhaustiveSelector(EmbeddedSelector):
 
         for subset in self.subsets_:
             try:
-                self._eval_subset(subset, X, y, groups)
+                self._eval_subset(list(subset), X, y, groups)
 
             except KeyboardInterrupt:
                 break
