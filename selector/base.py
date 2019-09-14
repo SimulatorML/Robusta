@@ -30,6 +30,7 @@ class Selector(TransformerMixin):
 
         """
         use_cols = self._select_features()
+        use_cols = list(use_cols)
 
         Xt = X[use_cols]
         return Xt
@@ -54,11 +55,14 @@ class EmbeddedSelector(Selector):
 
     def _eval_subset(self, subset, X, y, groups):
 
-        self.n_features_ = len(X.columns)
-
         time_start = time.time()
 
-        scores = crossval_score(self.estimator, self.cv, X[subset], y, groups,
+        self.n_features_ = len(X.columns)
+
+        use_cols = list(subset)
+        subset = set(subset)
+
+        scores = crossval_score(self.estimator, self.cv, X[use_cols], y, groups,
                                 scoring=self.scoring, n_jobs=self.n_jobs,
                                 verbose=0)
 

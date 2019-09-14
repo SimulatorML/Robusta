@@ -10,7 +10,8 @@ from .base import EmbeddedSelector
 
 
 class RandomSubset(EmbeddedSelector):
-    '''Random Subset Feature Selector
+    '''Random feature selector for sampling and evaluating randomly choosen
+    feature subsets of specified size
 
     Parameters
     ----------
