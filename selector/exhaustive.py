@@ -1,9 +1,9 @@
 import pandas as pd
 import numpy as np
 
-from sklearn.exceptions import NotFittedError
+from itertools import chain, combinations
 
-from itertools import combinations
+from sklearn.exceptions import NotFittedError
 
 from .base import EmbeddedSelector
 
@@ -37,7 +37,7 @@ class ExhaustiveSelector(EmbeddedSelector):
             - An object to be used as a cross-validation generator.
             - An iterable yielding train/test splits.
 
-    n_jobs : int or None, optional (default=None)
+    n_jobs : int or None, optional (default=-1)
         The number of jobs to run in parallel. None means 1.
 
     verbose : int, optional (default=1)
@@ -85,7 +85,7 @@ class ExhaustiveSelector(EmbeddedSelector):
     '''
 
     def __init__(self, estimator, min_features=0.5, max_features=0.9, scoring=None,
-                 cv=5, n_jobs=None, verbose=1, plot=False):
+                 cv=5, n_jobs=-1, verbose=1, plot=False):
 
         self.estimator = estimator
         self.min_features = min_features
