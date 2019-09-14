@@ -144,6 +144,7 @@ class GreedSelector(EmbeddedSelector):
 
             feature_scores = feature_scores.sort_values(ascending=False)
             subset_update = feature_scores.index[0]
+
             old_score = feature_scores.iloc[0]
 
             # include/exclude (final)
@@ -178,15 +179,18 @@ class GreedSelector(EmbeddedSelector):
                 else:
                     candidate = subset | {feature}
 
+                if self._find_trial(candidate):
+                    continue
+
                 score = self._eval_subset(candidate, X, y, groups)
                 feature_scores[feature] = score
 
+            if (feature_scores > old_score).any() is False:
+                continue
+
+            feature_scores = feature_scores.dropna()
             feature_scores = feature_scores.sort_values(ascending=False)
             subset_update = feature_scores.index[0]
-            new_score = feature_scores.iloc[0]
-
-            if new_score <= old_score:
-                continue
 
             # include/exclude (final)
             if self.forward:

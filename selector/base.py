@@ -55,30 +55,37 @@ class EmbeddedSelector(Selector):
 
     def _eval_subset(self, subset, X, y, groups):
 
-        time_start = time.time()
+        trial = self._find_trial(subset)
 
-        self.n_features_ = len(X.columns)
+        if trial:
+            # If subset already evaluated
+            score = trial['score']
 
-        use_cols = list(subset)
-        subset = set(subset)
+        else:
+            # If subset is completely new
+            time_start = time.time()
 
-        scores = crossval_score(self.estimator, self.cv, X[use_cols], y, groups,
-                                scoring=self.scoring, n_jobs=self.n_jobs,
-                                verbose=0)
+            self.n_features_ = len(X.columns)
 
-        # TODO: multimetric case (or check if multimetric)
-        score = scores[self.scoring].mean()
+            use_cols = list(subset)
+            subset = set(subset)
 
-        time_end = time.time()
+            scores = crossval_score(self.estimator, self.cv, X[use_cols], y, groups,
+                                    scoring=self.scoring, n_jobs=self.n_jobs,
+                                    verbose=0)
 
-        trial = {
-            'subset': subset,
-            'score': score,
-            'time': time_end-time_start,
-        }
+            # TODO: multimetric case (or check if multimetric)
+            score = scores[self.scoring].mean()
+
+            time_end = time.time()
+
+            trial = {
+                'subset': subset,
+                'score': score,
+                'time': time_end-time_start,
+            }
 
         self._append_trial(trial)
-
         return score
 
 
@@ -124,3 +131,14 @@ class EmbeddedSelector(Selector):
             if self.max_time <= self.total_time_:
                 if self.verbose: print('Time limit exceed!')
                 raise KeyboardInterrupt
+
+
+    def _find_trial(self, subset):
+
+        same_subsets = gs.trials_['subset'].map(lambda x: x is subset)
+
+        if same_subsets.any():
+            trial = self.trials_[same_subsets].iloc[0]
+            return trial.to_dict()
+        else:
+            return None
