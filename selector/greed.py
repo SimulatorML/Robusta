@@ -123,7 +123,7 @@ class GreedSelector(EmbeddedSelector):
 
             # Step 1. Step Forward/Backward
             if self.verbose:
-                logmsg('Step {}'.format('Forward' if self.forward else 'Backward'))
+                logmsg('STEP {}'.format('FORWARD' if self.forward else 'BACKWARD'))
 
             if self.forward:
                 subset_updates = all_features - subset
@@ -134,7 +134,7 @@ class GreedSelector(EmbeddedSelector):
             subset_updates = self._subsample_features(subset_updates)
 
             # Score gain
-            feature_scores = pd.Series(None, index=subset_updates)
+            feature_scores = pd.Series(np.nan, index=subset_updates)
 
             for feature in subset_updates:
 
@@ -166,7 +166,7 @@ class GreedSelector(EmbeddedSelector):
 
             # Step 2. Step Backward/Forward
             if self.verbose:
-                logmsg('Step {}'.format('Backward' if self.forward else 'Forward'))
+                logmsg('STEP {}'.format('BACKWARD' if self.forward else 'FORWARD'))
 
             if self.forward:
                 subset_updates = subset
@@ -177,7 +177,7 @@ class GreedSelector(EmbeddedSelector):
             subset_updates = self._subsample_features(subset_updates)
 
             # Score gain
-            feature_scores = pd.Series(None, index=subset_updates)
+            feature_scores = pd.Series(np.nan, index=subset_updates)
 
             for feature in subset_updates:
 
@@ -193,7 +193,7 @@ class GreedSelector(EmbeddedSelector):
                 score = self._eval_subset(candidate, X, y, groups)
                 feature_scores[feature] = score
 
-            if (feature_scores > old_score).any() is False:
+            if not (feature_scores > old_score).any():
                 continue
 
             feature_scores = feature_scores.dropna()
