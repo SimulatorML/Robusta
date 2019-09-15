@@ -36,7 +36,7 @@ class CVLogger(object):
                 time.sleep(0.1)
 
         # Fold index & score
-        msg = 'FOLD{:>3}:   '.format(ind)
+        msg = ' FOLD{:>3}:   '.format(ind)
         msg += '{:.{prec}f}'.format(result['score'], prec=self.prec)
 
         # Save message
@@ -57,7 +57,7 @@ class CVLogger(object):
     def log_start(self, estimator, scorer):
 
         if self.verbose >= 2:
-            msg = extract_model_name(estimator, short=False)
+            msg = ' ' + extract_model_name(estimator, short=False)
             utils.logmsg(msg)
             print()
 
@@ -77,7 +77,7 @@ class CVLogger(object):
 
         m = termcolor.colored(m, 'yellow')
 
-        msg = 'AVERAGE:   {} ± {}'.format(m, s)
+        msg = ' AVERAGE:   {} ± {}'.format(m, s)
         utils.logmsg(msg)
 
         print()
@@ -86,41 +86,3 @@ class CVLogger(object):
     def _log_ind(self, ind):
         msg = self.messages[ind]
         utils.logmsg(msg)
-
-
-
-def _extract_est_name(estimator, drop_type=False):
-    """Extract name of estimator instance.
-
-    Parameters
-    ----------
-    estimator : estimator object
-        Estimator or Pipeline
-
-    drop_type : bool (default=False)
-        Whether to remove an ending of the estimator's name, contains
-        estimator's type. For example, 'XGBRegressor' transformed to 'XGB'.
-
-
-    Returns
-    -------
-    name : string
-        Name of the estimator
-
-    """
-    name = estimator.__class__.__name__
-
-    if name is 'Pipeline':
-        last_step = estimator.steps[-1][1]
-        name = _extract_est_name(last_step, drop_type=drop_type)
-
-    elif name is 'TransformedTargetRegressor':
-        regressor = estimator.regressor
-        name = _extract_est_name(regressor, drop_type=drop_type)
-
-    elif drop_type:
-        for etype in ['Regressor', 'Classifier', 'Ranker']:
-            if name.endswith(etype):
-                name = name[:-len(etype)]
-
-    return name
