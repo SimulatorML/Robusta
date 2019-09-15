@@ -5,14 +5,13 @@ from joblib import Parallel, delayed
 import time
 
 from sklearn.base import BaseEstimator, clone, is_classifier, is_regressor
-from sklearn.metrics.scorer import _check_multimetric_scoring
 from sklearn.model_selection import check_cv
-from sklearn.utils.metaestimators import _safe_split
+from sklearn.metrics import check_scoring
 from sklearn.utils import indexable
 
 from robusta.preprocessing import LabelEncoder1D, LabelEncoder
+from robusta.model import extract_model_name, extract_model, get_model_name
 from robusta.importance import extract_importance
-from robusta.model import extract_model_name
 from robusta.utils import logmsg, ld2dl
 
 from ._output import CVLogger
@@ -26,8 +25,7 @@ __all__ = ['crossval', 'crossval_score', 'crossval_predict']
 def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
              scoring=None, averaging='auto', method='predict', return_pred=True,
              return_estimator=True, return_score=True, return_importance=False,
-             return_encoder=False, return_folds=True, n_jobs=-1, verbose=1,
-             n_digits=4):
+             n_jobs=-1, verbose=2, n_digits=4):
     """Evaluate metric(s) by cross-validation and also record fit/score time,
     feature importances and compute out-of-fold and test predictions.
 
@@ -208,65 +206,19 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
     X, y, groups = indexable(X, y, groups)
     X_new, _ = indexable(X_new, None)
 
-
     # Check validation scheme
     cv = check_cv(cv, y, classifier=is_classifier(estimator))
-    if hasattr(cv, 'random_state') and cv.random_state is None:
-        cv.random_state = 0
 
-    folds = list(cv.split(X, y, groups))
-
-
-    # Check scorer(s)
-    scorers, _ = _check_multimetric_scoring(estimator, scoring)
-
-    if isinstance(scoring, str): # single metric case
-        scorers = {scoring: scorers['score']}
-
+    # Check scorer
+    scorer = check_scoring(estimator, scoring)
     return_score = True if verbose else return_score
 
+    # Init Logger
+    logger = CVLogger(cv, verbose, prec=n_digits)
+    logger.log_start(estimator, scorer)
 
     # Check averaging strategy & method
-    if return_pred:
-        method, avg = _check_avg(estimator, averaging, method)
-    else:
-        method, avg = None, None
-
-
-    # Init Estimator
-    '''params = estimator.get_params()
-    params_update = {}
-
-    for key, val in params.items():
-        # Parallel CV vs Parallel Model
-        if key.endswith('n_jobs'):
-            params_update[key] = 1 if n_jobs not in [None, 1] else val
-        # Fix random seed
-        if key.endswith('random_state'):
-            params_update[key] = 0 if val is None else val
-        # Verbosity level
-        if key.endswith('verbose'):
-            params_update[key] = 0 if verbose < 10 else val
-
-    estimator = estimator.set_params(**params_update)'''
-
-    # Init Logger
-    logger = CVLogger(folds, verbose, prec=n_digits)
-    logger.log_start(estimator, scorers)
-
-
-    # Target Encoding
-    if is_classifier(estimator):
-        if len(y.shape) == 1:
-            encoder = LabelEncoder1D()
-            y = encoder.fit_transform(y)
-        else:
-            encoder = LabelEncoder()
-            y = encoder.fit_transform(y)
-
-    else:
-        encoder = None
-
+    method, avg = _check_avg(estimator, averaging, method)
 
     # Fit & predict
     parallel = Parallel(max_nbytes='256M', pre_dispatch='2*n_jobs',
@@ -276,10 +228,10 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
         # Stacking Type A (test averaging = True)
         result = parallel(
-            delayed(_fit_pred_score)(clone(estimator), method, scorers, X, y,
+            delayed(_fit_pred_score)(clone(estimator), method, scorer, X, y,
                 trn, oof, X_new, return_pred, return_estimator, return_score,
                 return_importance, i, logger)
-            for i, (trn, oof) in enumerate(folds))
+            for i, (trn, oof) in enumerate(cv.split(X, y, groups)))
 
         result = ld2dl(result)
 
@@ -287,10 +239,10 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
         # Stacking Type B (test_averaging = False)
         result = parallel(
-            (delayed(_fit_pred_score)(clone(estimator), method, scorers, X, y,
+            (delayed(_fit_pred_score)(clone(estimator), method, scorer, X, y,
                 trn, oof, None, return_pred, return_estimator, return_score,
                 return_importance, i, logger)
-            for i, (trn, oof) in enumerate(folds)))
+            for i, (trn, oof) in enumerate(cv.split(X, y, groups))))
 
         if verbose >= 2:
             print()
@@ -317,25 +269,19 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
         if 'oof_pred' in result:
             oof_preds = result['oof_pred']
             oof_pred = _avg_preds(oof_preds, avg, X.index)
-            oof_pred = _rename_pred(oof_pred, encoder, y.name)
+            #oof_pred = _rename_pred(oof_pred, encoder, y.name)
             result['oof_pred'] = oof_pred
 
         if 'new_pred' in result:
             new_preds = result['new_pred']
             new_pred = _avg_preds(new_preds, avg, X_new.index)
-            new_pred = _rename_pred(new_pred, encoder, y.name)
+            #new_pred = _rename_pred(new_pred, encoder, y.name)
             result['new_pred'] = new_pred
 
         if 'importance' in result:
             importances = result['importance']
             importance = _concat_imp(importances)
             result['importance'] = importance
-
-        if 'score' in result:
-            scores = result['score']
-            scores = ld2dl(scores)
-            scores = pd.DataFrame(scores)
-            result['score'] = scores
 
         for key in ['fit_time', 'score_time', 'pred_time']:
             if key in result:
@@ -345,16 +291,6 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
         result['concat_time'] = concat_time
 
     result['use_cols'] = X.columns.copy()
-
-    if not return_score and 'score' in result:
-        result.pop('score')
-
-    if not return_folds:
-        result.pop('fold')
-
-    if return_encoder:
-        result['encoder'] = encoder
-
 
     # Final score
     logger.log_final(result)
@@ -574,6 +510,7 @@ def _hard_vote(pred):
 
 def _check_avg(estimator, averaging, method):
 
+    estimator = extract_model(estimator)
     name = extract_model_name(estimator)
 
     # Basic <method> and <averaging> values check
@@ -667,7 +604,7 @@ def _check_avg(estimator, averaging, method):
     return method, avg
 
 
-def _fit_pred_score(estimator, method, scorers, X, y, trn=None, oof=None, X_new=None,
+def _fit_pred_score(estimator, method, scorer, X, y, trn=None, oof=None, X_new=None,
                     return_pred=False, return_estimator=False, return_score=True,
                     return_importance=False, fold_ind=None, logger=None):
     """Fit estimator and evaluate metric(s), compute OOF predictions & etc.
@@ -676,6 +613,15 @@ def _fit_pred_score(estimator, method, scorers, X, y, trn=None, oof=None, X_new=
     ----------
     estimator : estimator object
         The object to use to fit the data.
+
+    method : string, optional, default: 'predict'
+        Invokes the passed method name of the passed estimator. For
+        method='predict_proba', the columns correspond to the classes
+        in sorted order. Ignored if return_pred=False.
+
+    scorer : scorer object
+        A scorer callable object with signature ``scorer(estimator, X, y)``
+        which should return only a single value.
 
     X : DataFrame, shape [n_samples, n_features]
         The data to fit, score and calculate out-of-fold predictions
@@ -691,15 +637,6 @@ def _fit_pred_score(estimator, method, scorers, X, y, trn=None, oof=None, X_new=
 
     X_new : DataFrame, shape [m_samples, n_features] or None
         The unseed data to predict (test set)
-
-    scorer : scorer object
-        A scorer callable object with signature ``scorer(estimator, X, y)``
-        which should return only a single value.
-
-    method : string, optional, default: 'predict'
-        Invokes the passed method name of the passed estimator. For
-        method='predict_proba', the columns correspond to the classes
-        in sorted order. Ignored if return_pred=False.
 
     return_pred : bool (default=False)
         Return out-of-fold prediction (and test prediction, if X_new is defined)
@@ -719,9 +656,6 @@ def _fit_pred_score(estimator, method, scorers, X, y, trn=None, oof=None, X_new=
     result : dict of float or Series
         Scores/predictions/time of the estimator for each run of the
         cross validation. The possible keys for this ``dict`` are:
-
-            ``fold`` : pair of list
-                Two lists with trn/oof indices
 
             ``score`` : float
                 The OOF score. If multimetric, return dict of float.
@@ -751,20 +685,17 @@ def _fit_pred_score(estimator, method, scorers, X, y, trn=None, oof=None, X_new=
     """
     result = {}
 
-    # Get indices
+    # Split data
+    new = np.arange(len(X_new)) if X_new is not None else np.arange(0)
     trn = np.arange(len(X)) if trn is None else trn
     oof = np.arange(0) if oof is None else oof
-    result['fold'] = (trn, oof)
 
-    new = np.arange(len(X_new)) if X_new is not None else np.arange(0)
-
-    # Split data
-    start_time = time.time()
-
-    X_trn, y_trn = _safe_split(estimator, X, y, trn)
-    X_oof, y_oof = _safe_split(estimator, X, y, oof)
+    X_trn, y_trn = X.iloc[trn], y.iloc[trn]
+    X_oof, y_oof = X.iloc[oof], y.iloc[oof]
 
     # Fit estimator
+    start_time = time.time()
+
     estimator.fit(X_trn, y_trn)
 
     fit_time = time.time() - start_time
@@ -784,23 +715,22 @@ def _fit_pred_score(estimator, method, scorers, X, y, trn=None, oof=None, X_new=
         start_time = time.time()
 
         if len(oof):
-            oof_pred = _pred(estimator, method, X_oof, y.name)
+            oof_pred = _pred(estimator, method, X_oof, y)
             result['oof_pred'] = oof_pred
 
         if len(new):
-            new_pred = _pred(estimator, method, X_new, y.name)
+            new_pred = _pred(estimator, method, X_new, y)
             result['new_pred'] = new_pred
 
         pred_time = time.time() - start_time
         result['pred_time'] = pred_time
 
     # Score
-    if return_score and scorers and len(oof):
+    if return_score and scorer and len(oof):
 
         start_time = time.time()
 
-        scores = _score(estimator, X_oof, y_oof, scorers)
-        result['score'] = scores
+        result['score'] = scorer(estimator, X_oof, y_oof)
 
         score_time = time.time() - start_time
         result['score_time'] = score_time
@@ -812,7 +742,7 @@ def _fit_pred_score(estimator, method, scorers, X, y, trn=None, oof=None, X_new=
     return result
 
 
-def _pred(estimator, method, X, target):
+def _pred(estimator, method, X, Y):
     """Call <method> of fitted <estimator> on data <X>.
 
     Parameters
@@ -826,16 +756,17 @@ def _pred(estimator, method, X, target):
     X : DataFrame, shape [k_samples, k_features]
         The unseed data to predict
 
-    target : string
-        Name of target column
+    Y : string
+        The unseed target (format)
 
 
     Returns
     -------
-    pred : Series or DataFrame, shape [n_features] or [n_features, n_classes]
+    pred : Series or DataFrame
         Computed predictions
 
     """
+    Y = pd.DataFrame(Y)
 
     # Check Attribute
     if hasattr(estimator, method):
@@ -845,31 +776,52 @@ def _pred(estimator, method, X, target):
         raise AttributeError("<{}> has no method <{}>".format(name, method))
 
     # Predict
-    pred = action(X)
+    P = action(X)
 
-    # Convert numpy to pandas
-    if len(pred.shape) is 1:
-        pred = pd.Series(pred, index=X.index, name=target)
+    if isinstance(P, list):
+        P = [pd.DataFrame(p, index=X.index) for p in P]
     else:
-        pred = pd.DataFrame(pred, index=X.index)
+        P = [pd.DataFrame(P, index=X.index)]
 
-    return pred
+    P = pd.concat(P, axis=1)
 
 
-def _score(estimator, X, y, scorers):
+    if method is 'predict':
+        # [classifier + predict] OR [regressor]
+        P.columns = Y.columns
 
-    scores = {}
+    elif is_classifier(estimator):
+        # [classifier + predict_proba]
+        name = get_model_name(estimator)
 
-    for name, scorer in scorers.items():
+        if name is 'MultiOutputClassifier':
+            # Multiple output classifier
+            Classes = [e.classes_ for e in estimator.estimators_]
 
-        if y is None:
-            score = scorer(estimator, X)
+            tuples = []
+            for target, classes in zip(Y.columns, Classes):
+                for c in classes:
+                    tuples.append((target, c))
+
+            P.columns = pd.MultiIndex.from_tuples(tuples, names=('target', 'class'))
+
+        elif hasattr(estimator, 'classes_'):
+            # Single output classifier
+            classes = estimator.classes_
+            P.columns = classes
+
         else:
-            score = scorer(estimator, X, y)
+            # Unknown classifier
+            msg = "Classifier <{}> should has <classes_> attribute!".format(name)
+            raise AttributeError(msg)
 
-        scores[name] = score
+    else:
+        # Ranker & etc
+        est_type = getattr(estimator, "_estimator_type", None)
+        raise TypeError('<{}> is an estimator of unknown type: \
+                         <{}>'.format(name, est_type))
 
-    return scores
+    return P
 
 
 def _avg_preds(preds, avg, ind):
@@ -910,7 +862,7 @@ def _avg_preds(preds, avg, ind):
     return pred
 
 
-def _rename_pred(pred, encoder, target):
+'''def _rename_pred(pred, y):
     """Decode columns (or labels) back and rename target column
 
     Parameters
@@ -935,16 +887,6 @@ def _rename_pred(pred, encoder, target):
 
     pred = pd.DataFrame(pred)
 
-    # Target Decoding
-    if encoder:
-        if len(pred.columns) is 1:
-            # regression or non-probabilistic classification
-            pred.columns = [target]
-            pred[target] = encoder.inverse_transform(pred[target])
-        else:
-            # probabilistic classification
-            pred.columns = encoder.inverse_transform(pred.columns)
-
     # Binary Classification
     if set(pred.columns) == {0, 1}:
         pred.drop(columns=0, inplace=True)
@@ -954,7 +896,7 @@ def _rename_pred(pred, encoder, target):
     if len(pred.columns) is 1:
         pred = pred.iloc[:,0]
 
-    return pred
+    return P'''
 
 
 def _concat_imp(importances):

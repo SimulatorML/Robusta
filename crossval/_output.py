@@ -12,8 +12,8 @@ from robusta import utils
 
 class CVLogger(object):
 
-    def __init__(self, folds, verbose=1, prec=6):
-        self.n_folds = len(list(folds))
+    def __init__(self, cv, verbose=1, prec=6):
+        self.n_folds = cv.get_n_splits()
         self.verbose = verbose
         self.prec = prec
 
@@ -35,9 +35,9 @@ class CVLogger(object):
             else:
                 time.sleep(0.1)
 
-        # Fold index & score(s)
-        msg = 'FOLD {}:'.format(ind)
-        msg = _agg_scores(msg, result['score'], self.prec)
+        # Fold index & score
+        msg = 'FOLD {}:  '.format(ind)
+        msg += '{:.{prec}f}'.format(result['score'], prec=self.prec)
 
         # Save message
         self.messages[ind] = msg
@@ -67,39 +67,18 @@ class CVLogger(object):
         if not self.verbose:
             return
 
-        scores = results['score']
-
-        means = {metric: scores.mean() for metric, scores in scores.items()}
-        stds = {metric: scores.std() for metric, scores in scores.items()}
-
         if self.verbose > 1:
             print()
 
-        '''for metric in scores:
+        scores = results['score']
 
-            mean, std = means[metric], stds[metric]
+        m = '{:.{prec}f}'.format(np.mean(scores), prec=self.prec)
+        s = '{:.{prec}f}'.format(np.std(scores), prec=self.prec)
 
-            m = '{:.{prec}f}'.format(mean, prec=self.prec)
-            s = '{:.{prec}f}'.format(std, prec=self.prec)
+        m = termcolor.colored(m, 'yellow')
 
-            m = termcolor.colored(m, 'yellow')
-            gap = ' '*(2-1*(mean < 0))
-
-            msg = 'MEAN  : ' + gap + '{} ± {} ({})'.format(m, s, metric)
-            _log_msg(msg)'''
-
-        for metric in scores:
-
-            mean, std = means[metric], stds[metric]
-
-            m = '{:.{prec}f}'.format(mean, prec=self.prec)
-            s = '{:.{prec}f}'.format(std, prec=self.prec)
-
-            m = termcolor.colored(m, 'yellow')
-            gap = ' '*(mean >= 0)
-
-            msg = '{}{} ± {} ({})'.format(gap, m, s, metric)
-            utils.logmsg(msg)
+        msg = 'MEAN  :  {} ± {}'.format(m, s)
+        utils.logmsg(msg)
 
         print()
 
@@ -107,23 +86,6 @@ class CVLogger(object):
     def _log_ind(self, ind):
         msg = self.messages[ind]
         utils.logmsg(msg)
-
-
-
-
-def _agg_scores(msg, scores, prec, colored=False):
-
-    for metric, score in scores.items():
-
-        scr = '{:.{prec}f}'.format(score, prec=prec)
-        scr = termcolor.colored(scr, 'yellow') if colored else scr
-
-        msg += ' '*(3 - 1*(score < 0))
-        msg += scr
-
-        msg += ' ({})'.format(metric)
-
-    return msg
 
 
 
