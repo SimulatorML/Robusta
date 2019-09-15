@@ -57,7 +57,7 @@ class CVLogger(object):
     def log_start(self, estimator, scorer):
 
         if self.verbose >= 2:
-            est_name = extract_model_name(estimator, short=False)
+            msg = extract_model_name(estimator, short=False)
             utils.logmsg(msg)
             print()
 
