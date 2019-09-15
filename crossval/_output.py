@@ -36,7 +36,7 @@ class CVLogger(object):
                 time.sleep(0.1)
 
         # Fold index & score
-        msg = 'FOLD {}:  '.format(ind)
+        msg = 'FOLD{:>3}:   '.format(ind)
         msg += '{:.{prec}f}'.format(result['score'], prec=self.prec)
 
         # Save message
@@ -77,7 +77,7 @@ class CVLogger(object):
 
         m = termcolor.colored(m, 'yellow')
 
-        msg = 'MEAN  :  {} ± {}'.format(m, s)
+        msg = 'AVERAGE:   {} ± {}'.format(m, s)
         utils.logmsg(msg)
 
         print()
