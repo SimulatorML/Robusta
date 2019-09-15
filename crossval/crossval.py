@@ -252,12 +252,13 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
     # Target Encoding
     if is_classifier(estimator):
-        if len(y.shape) > 1:
-            encoder = LabelEncoder()
-            y = encoder.fit_transform(y)
-        else:
+        if len(y.shape) == 1:
             encoder = LabelEncoder1D()
             y = encoder.fit_transform(y)
+        else:
+            encoder = LabelEncoder()
+            y = encoder.fit_transform(y)
+
     else:
         encoder = None
 
@@ -410,8 +411,9 @@ def crossval_score(estimator, cv, X, y, groups=None, scoring=None,
         represents different metric.
 
     """
-    result = crossval(estimator, cv=cv, X=X, y=y, groups=groups, n_digits=n_digits,
-        scoring=scoring, return_score=True, n_jobs=n_jobs, verbose=verbose)
+    result = crossval(estimator, cv, X, y, groups, n_digits=n_digits,
+                      scoring=scoring, return_score=True, n_jobs=n_jobs,
+                      verbose=verbose)
 
     scores = result['score']
     return scores
@@ -535,10 +537,10 @@ def crossval_predict(estimator, cv, X, y, groups=None, X_new=None,
         None if X_new is not defined
 
     """
-    result = crossval(estimator, cv=cv, X=X, y=y, groups=groups, X_new=X_new,
-        scoring=scoring, averaging=averaging, method=method, test_avg=test_avg,
-        return_estimator=False, return_pred=True, return_score=False,
-        n_jobs=n_jobs, verbose=verbose, n_digits=n_digits)
+    result = crossval(estimator, cv, X, y, groups, X_new=X_new, scoring=scoring,
+                      averaging=averaging, method=method, test_avg=test_avg,
+                      return_estimator=False, return_pred=True,  return_score=False,
+                      n_jobs=n_jobs, verbose=verbose, n_digits=n_digits)
 
     oof_pred = result['oof_pred'] if 'oof_pred' in result else None
     new_pred = result['new_pred'] if 'new_pred' in result else None
