@@ -208,12 +208,14 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
     X, y, groups = indexable(X, y, groups)
     X_new, _ = indexable(X_new, None)
 
+
     # Check validation scheme
     cv = check_cv(cv, y, classifier=is_classifier(estimator))
     if hasattr(cv, 'random_state') and cv.random_state is None:
         cv.random_state = 0
 
     folds = list(cv.split(X, y, groups))
+
 
     # Check scorer(s)
     scorers, _ = _check_multimetric_scoring(estimator, scoring)
@@ -223,17 +225,19 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
     return_score = True if verbose else return_score
 
+
     # Check averaging strategy & method
     if return_pred:
         method, avg = _check_avg(estimator, averaging, method)
     else:
         method, avg = None, None
 
+
     # Init Estimator
-    params = estimator.get_params()
+    '''params = estimator.get_params()
     params_update = {}
 
-    '''for key, val in params.items():
+    for key, val in params.items():
         # Parallel CV vs Parallel Model
         if key.endswith('n_jobs'):
             params_update[key] = 1 if n_jobs not in [None, 1] else val
@@ -242,13 +246,14 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
             params_update[key] = 0 if val is None else val
         # Verbosity level
         if key.endswith('verbose'):
-            params_update[key] = 0 if verbose < 10 else val'''
+            params_update[key] = 0 if verbose < 10 else val
 
-    estimator = estimator.set_params(**params_update)
+    estimator = estimator.set_params(**params_update)'''
 
     # Init Logger
     logger = CVLogger(folds, verbose, prec=n_digits)
     logger.log_start(estimator, scorers)
+
 
     # Target Encoding
     if is_classifier(estimator):
@@ -261,6 +266,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
     else:
         encoder = None
+
 
     # Fit & predict
     parallel = Parallel(max_nbytes='256M', pre_dispatch='2*n_jobs',
@@ -300,6 +306,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
                 result[key].append(val)
             else:
                 result[key] = [val]
+
 
     # Concat Predictions (& Feature Importances)
     needs_concat = ['oof_pred', 'new_pred', 'importance', 'score']
@@ -347,6 +354,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
     if return_encoder:
         result['encoder'] = encoder
+
 
     # Final score
     logger.log_final(result)
