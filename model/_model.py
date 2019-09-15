@@ -82,6 +82,16 @@ def extract_model(estimator):
         regressor = estimator.regressor
         estimator = extract_model(regressor)
 
+    elif name in ['MultiOutputClassifier', 'MultiOutputRegressor']:
+
+        estimator = estimator.estimator
+        estimator = extract_model(estimator)
+
+    elif name in ['ClassifierChain', 'RegressorChain']:
+
+        estimator = estimator.base_estimator
+        estimator = extract_model(estimator)
+
     return estimator
 
 
