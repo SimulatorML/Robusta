@@ -10,7 +10,7 @@ from sklearn.model_selection import check_cv
 from sklearn.utils.metaestimators import _safe_split
 from sklearn.utils import indexable
 
-from robusta.preprocessing import LabelEncoder1D
+from robusta.preprocessing import LabelEncoder1D, LabelEncoder
 from robusta.importance import extract_importance
 from robusta.model import extract_model_name
 from robusta.utils import logmsg, ld2dl
@@ -252,8 +252,12 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
     # Target Encoding
     if is_classifier(estimator):
-        encoder = LabelEncoder1D()
-        y = encoder.fit_transform(y)
+        if len(y.shape) > 1:
+            encoder = LabelEncoder()
+            y = encoder.fit_transform(y)
+        else:
+            encoder = LabelEncoder1D()
+            y = encoder.fit_transform(y)
     else:
         encoder = None
 

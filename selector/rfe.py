@@ -7,11 +7,11 @@ from sklearn.base import clone, is_classifier
 
 from robusta.importance import extract_importance
 
-from .base import Selector
+from .base import EmbeddedSelector
 
 
 
-class RFE(Selector):
+class RFE(EmbeddedSelector):
     """Feature ranking with recursive feature elimination (RFE) and
     cross-validated selection of the best number of features.
 
@@ -32,6 +32,10 @@ class RFE(Selector):
         The estimator must have either a <feature_importances_> or <coef_>
         attribute after fitting.
 
+    importance : {'inbuilt', 'permute'}, default='inbuilt'
+        Whether to use original estimator's <feature_importances_> or <coef_>
+        or use Permutation Importances to measure feature importances.
+
     min_features : int or float, optional (default=0.5)
         The number of features to select. Float values means percentage of
         features to select. E.g. value 0.5 (by default) means 50% of features.
@@ -51,6 +55,18 @@ class RFE(Selector):
             - An object to be used as a cross-validation generator.
             - An iterable yielding train/test splits.
 
+    random_state : int
+        Random state for permutations generator
+
+    n_jobs : int or None, optional (default=-1)
+        The number of jobs to run in parallel. None means 1.
+
+    verbose : int, optional (default=1)
+        Verbosity level
+
+    plot : bool, optional (default=False)
+        Whether to plot progress
+
     Attributes
     ----------
     use_cols_ : list of string
@@ -64,12 +80,15 @@ class RFE(Selector):
 
     """
 
-    def __init__(self, estimator, min_features=0.5, step=1, cv=None):
+    def __init__(self, estimator, min_features=0.5, step=1, cv=None,
+                 random_state=0, n_jobs=-1, verbose=1, plot=False):
 
         self.estimator = estimator
         self.min_features = min_features
         self.step = step
         self.cv = cv
+
+        self.importance = importance
 
 
 
@@ -113,15 +132,28 @@ class RFE(Selector):
         cv = check_cv(self.cv, y, is_classifier(self.estimator))
         imps = []
 
-        for trn, _ in cv.split(X, y, groups):
+        for trn, oof in cv.split(X, y, groups):
             X_trn, y_trn = X.iloc[trn], y.iloc[trn]
+            X_oof, y_oof = X.iloc[oof], y.iloc[oof]
 
             estimator = clone(self.estimator).fit(X_trn, y_trn)
-            imp = extract_importance(estimator)
+
+            imp = self._extract_importance(estimator, X_oof, y_oof)
             imps.append(imp)
 
         imp = pd.concat(imps, axis=1).mean(axis=1)
         return imp
+
+
+
+    def _extract_importance(self, estimator, X, y):
+
+        if self.importance is 'inbuilt':
+            imp = extract_importance(estimator)
+
+        elif self.importance is 'permute':
+            imp = permutation_importance()
+
 
 
 
