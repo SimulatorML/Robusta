@@ -8,10 +8,10 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.model_selection._split import check_cv
 from sklearn.utils.metaestimators import _safe_split
 
-from ..crossval._crossval import _pred, _check_voting, _concat_preds
-from ..crossval import crossval, crossval_predict
+from .crossval._crossval import _pred, _check_voting, _concat_preds
+from .crossval import crossval, crossval_predict
 
-from ..model import extract_model_name
+from .model import extract_model_name
 
 
 __all__ = ['stack', 'StackingTransformer', 'make_stacker']

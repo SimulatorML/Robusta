@@ -1,10 +1,10 @@
 import numpy as np
 import pandas as pd
 
-from ..preprocessing.category import *
-from ..preprocessing.numeric import *
-from ..preprocessing.base import *
-from ..pipeline import *
+from .preprocessing.category import *
+from .preprocessing.numeric import *
+from .preprocessing.base import *
+from .pipeline import *
 
 
 

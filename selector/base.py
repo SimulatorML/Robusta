@@ -1,8 +1,8 @@
 import pandas as pd
 import numpy as np
-
-import time
 import abc
+
+from time import time
 
 from sklearn.base import TransformerMixin
 
@@ -53,6 +53,21 @@ class Selector(TransformerMixin):
 
 class EmbeddedSelector(Selector):
 
+    @abstractmethod
+    def __init__(self, estimator, scoring=None, max_iter=20, max_time=None, cv=5,
+                 random_state=0, n_jobs=-1, verbose=1, plot=False):
+
+        self.estimator = estimator
+        self.scoring = scoring
+        self.max_iter = max_iter
+        self.max_time = max_time
+        self.cv = cv
+        self.random_state = random_state
+        self.n_jobs = n_jobs
+        self.verbose = verbose
+        self.plot = plot
+
+
     def _eval_subset(self, subset, X, y, groups):
 
         trial = self._find_trial(subset)
@@ -63,7 +78,7 @@ class EmbeddedSelector(Selector):
 
         else:
             # If subset is completely new
-            time_start = time.time()
+            tic = time()
 
             self.n_features_ = len(X.columns)
 
@@ -77,12 +92,12 @@ class EmbeddedSelector(Selector):
             # TODO: multimetric case (or check if multimetric)
             score = scores[self.scoring].mean()
 
-            time_end = time.time()
+            fit_time = time() - tic
 
             trial = {
                 'subset': subset,
                 'score': score,
-                'time': time_end-time_start,
+                'time': fit_time,
             }
 
         self._append_trial(trial)
