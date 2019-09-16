@@ -497,11 +497,13 @@ def _pass_pred(pred):
 
 
 def _mean_pred(pred):
+    pred = pred.copy()
     pred.reset_index('_FOLD', inplace=True, drop=True)
     return pred.groupby(pred.index).mean()
 
 
 def _soft_vote(pred):
+    pred = pred.copy()
     if len(pred.columns.names) == 2:
         return _multioutput_vote(pred, _soft_vote)
     else:
@@ -510,11 +512,12 @@ def _soft_vote(pred):
 
 
 def _hard_vote(pred):
+    pred = pred.copy()
     if len(pred.columns.names) == 2:
         return _multioutput_vote(pred, _hard_vote)
     else:
         pred.reset_index('_FOLD', inplace=True, drop=True)
-        return pred.idxmax(axis=1).groupby(pred.index).agg(pd.Series.mode)
+        return pred.idxmax(axis=1).groupby(pred.index).agg(lambda x: pd.Series.mode(x)[0])
 
 
 def _multioutput_vote(pred, vote):
