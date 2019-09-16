@@ -14,7 +14,7 @@ from ..crossval import crossval, crossval_predict
 from ..model import extract_model_name
 
 
-__all__ = ['stack', 'Stacker', 'make_stacker']
+__all__ = ['stack', 'StackingTransformer', 'make_stacker']
 
 
 
@@ -81,7 +81,6 @@ def stack(estimators_list, cv, X, y, groups=None, X_new=None, test_avg=True,
         Invokes the passed method name of the passed estimator. For
         method='predict_proba', the columns correspond to the classes
         in sorted order.
-        Ignored if return_pred=False.
 
     scoring : string, callable or None, optional, default: None
         A string or a scorer callable object / function with signature
@@ -136,7 +135,7 @@ def stack(estimators_list, cv, X, y, groups=None, X_new=None, test_avg=True,
 
 
 
-class Stacker(BaseEstimator, TransformerMixin):
+class StackingTransformer(BaseEstimator, TransformerMixin):
     """Stacker. Scikit-learn compatible API for stacking.
 
     Parameters

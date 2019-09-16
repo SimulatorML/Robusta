@@ -2,6 +2,9 @@ import numpy as np
 import pandas as pd
 
 from imblearn.base import BaseSampler, check_sampling_strategy
+from imblearn import under_sampling, over_sampling, combine
+
+
 
 
 def make_sampler(Sampler):
@@ -52,3 +55,31 @@ def make_sampler(Sampler):
             return X_res, y_res
 
     return PandasSampler
+
+
+
+ADASYN = make_sampler(over_sampling.ADASYN)
+SMOTE = make_sampler(over_sampling.SMOTE)
+SVMSMOTE = make_sampler(over_sampling.SVMSMOTE)
+SMOTENC = make_sampler(over_sampling.SMOTENC)
+BSMOTE = make_sampler(over_sampling.BorderlineSMOTE)
+ROS = make_sampler(over_sampling.RandomOverSampler)
+
+
+
+ClusterCentroids = make_sampler(under_sampling.ClusterCentroids)
+RUS = make_sampler(under_sampling.RandomUnderSampler)
+IHT = make_sampler(under_sampling.InstanceHardnessThreshold)
+NearMiss = make_sampler(under_sampling.NearMiss)
+TomekLinks = make_sampler(under_sampling.TomekLinks)
+ENN = make_sampler(under_sampling.EditedNearestNeighbours)
+RENN = make_sampler(under_sampling.RepeatedEditedNearestNeighbours)
+AllKNN = make_sampler(under_sampling.AllKNN)
+OSS = make_sampler(under_sampling.OneSidedSelection)
+CNN = make_sampler(under_sampling.CondensedNearestNeighbour)
+NCR = make_sampler(under_sampling.NeighbourhoodCleaningRule)
+
+
+
+SMOTEENN = make_sampler(combine.SMOTEENN)
+SMOTETomek = make_sampler(combine.SMOTETomek)
