@@ -108,7 +108,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
         - 'pass' : leave predictions of different folds separated.
 
-                   Column 'fold' will be added.
+                   Column '_FOLD' will be added.
 
         Ignored if <return_pred> set to False, or <method> is not 'predict'.
 
@@ -269,13 +269,13 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
         if 'oof_pred' in result:
             oof_preds = result['oof_pred']
             oof_pred = _avg_preds(oof_preds, avg, X.index)
-            #oof_pred = _rename_pred(oof_pred, encoder, y.name)
+            oof_pred = _short_binary(oof_pred, y)
             result['oof_pred'] = oof_pred
 
         if 'new_pred' in result:
             new_preds = result['new_pred']
             new_pred = _avg_preds(new_preds, avg, X_new.index)
-            #new_pred = _rename_pred(new_pred, encoder, y.name)
+            new_pred = _short_binary(new_pred, y)
             result['new_pred'] = new_pred
 
         if 'importance' in result:
@@ -445,7 +445,7 @@ def crossval_predict(estimator, cv, X, y, groups=None, X_new=None,
 
         - 'pass' : leave predictions of different folds separated.
 
-                   Column 'fold' will be added.
+                   Column '_FOLD' will be added.
 
         Ignored if <return_pred> set to False, or <method> is not 'predict'.
 
@@ -495,17 +495,57 @@ def crossval_predict(estimator, cv, X, y, groups=None, X_new=None,
 def _pass_pred(pred):
     return pred
 
+
 def _mean_pred(pred):
-    pred.reset_index('fold', inplace=True, drop=True)
+    pred.reset_index('_FOLD', inplace=True, drop=True)
     return pred.groupby(pred.index).mean()
 
+
 def _soft_vote(pred):
-    pred.reset_index('fold', inplace=True, drop=True)
-    return pred.groupby(pred.index).mean().idxmax(axis=1)
+    if len(pred.columns.names) == 2:
+        return _multioutput_vote(pred, _soft_vote)
+    else:
+        pred.reset_index('_FOLD', inplace=True, drop=True)
+        return pred.groupby(pred.index).mean().idxmax(axis=1)
+
 
 def _hard_vote(pred):
-    pred.reset_index('fold', inplace=True, drop=True)
-    return pred.idxmax(axis=1).groupby(pred.index).agg(pd.Series.mode)
+    if len(pred.columns.names) == 2:
+        return _multioutput_vote(pred, _hard_vote)
+    else:
+        pred.reset_index('_FOLD', inplace=True, drop=True)
+        return pred.idxmax(axis=1).groupby(pred.index).agg(pd.Series.mode)
+
+
+def _multioutput_vote(pred, vote):
+    targets = pred.columns.get_level_values('_TARGET').unique()
+    preds = [pred.loc[:, target] for target in targets]
+    preds = [vote(p) for p in preds]
+    pred = pd.concat(preds, axis=1)
+    pred.columns = targets
+    pred.columns.name = None
+    return pred
+
+
+def _short_binary(pred, y):
+    if len(pred.columns.names) == 2:
+        targets = pred.columns.get_level_values('_TARGET').unique()
+        preds = [pred.loc[:, target] for target in targets]
+        is_binary = [list(p.columns) == [0, 1] for p in preds]
+        is_binary = np.array(is_binary).all()
+
+        if is_binary:
+            preds = [p.loc[:, 1] for p in preds]
+            pred = pd.concat(preds, axis=1)
+            pred.columns = targets
+            pred.columns.name = None
+
+    elif list(pred.columns) == [0, 1]:
+        pred = pred.loc[:, 1]
+        pred.name = y.name
+
+    return pred
+
 
 
 def _check_avg(estimator, averaging, method):
@@ -803,7 +843,7 @@ def _pred(estimator, method, X, Y):
                 for c in classes:
                     tuples.append((target, c))
 
-            P.columns = pd.MultiIndex.from_tuples(tuples, names=('target', 'class'))
+            P.columns = pd.MultiIndex.from_tuples(tuples, names=('_TARGET', '_CLASS'))
 
         elif hasattr(estimator, 'classes_'):
             # Single output classifier
@@ -848,7 +888,7 @@ def _avg_preds(preds, avg, ind):
     # Add fold index
     for i, pred in enumerate(preds):
         pred = pd.DataFrame(pred)
-        pred.insert(0, 'fold', i)
+        pred.insert(0, '_FOLD', i)
         preds[i] = pred
 
     # Concatenate & sort
@@ -856,47 +896,10 @@ def _avg_preds(preds, avg, ind):
     pred = pred.loc[ind]
 
     # Average predictions
-    pred = pred.set_index('fold', append=True)
+    pred = pred.set_index('_FOLD', append=True)
     pred = avg(pred)
 
     return pred
-
-
-'''def _rename_pred(pred, y):
-    """Decode columns (or labels) back and rename target column
-
-    Parameters
-    ----------
-    pred : Series or DataFrame
-        Predictions
-
-    encoder : transformer object or None
-        Transformer, used to encode target labels. Must has <inverse_transform>
-        method. If None, interpreted as non-classification task.
-
-    target : string
-        Name of target column
-
-
-    Returns
-    -------
-    pred : Series or DataFrame, shape [n_features] or [n_features, n_classes]
-        Computed predictions
-
-    """
-
-    pred = pd.DataFrame(pred)
-
-    # Binary Classification
-    if set(pred.columns) == {0, 1}:
-        pred.drop(columns=0, inplace=True)
-        pred.columns = [target]
-
-    # Single Column DataFrame to Series
-    if len(pred.columns) is 1:
-        pred = pred.iloc[:,0]
-
-    return P'''
 
 
 def _concat_imp(importances):
@@ -911,13 +914,13 @@ def _concat_imp(importances):
     Returns
     -------
     importance : DataFrame, shape [n_features, 2]
-        DataFrame with columns ['fold', 'importance'] and index 'feature'
+        DataFrame with columns ['_FOLD', 'importance'] and index 'feature'
 
     """
     importance = pd.DataFrame(importances).reset_index(drop=True)
     importance = importance.stack().reset_index()
 
-    importance.columns = ['fold', 'feature', 'importance']
-    importance.set_index(['feature','fold'], inplace=True)
+    importance.columns = ['_FOLD', 'feature', 'importance']
+    importance.set_index(['feature','_FOLD'], inplace=True)
 
     return importance

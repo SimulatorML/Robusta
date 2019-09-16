@@ -5,6 +5,8 @@ import joblib
 import os
 import regex
 
+from robusta import utils
+
 
 __all__ = ['save_result', 'load_result', 'remove_result']
 
@@ -34,14 +36,14 @@ def save_result(result, name, idx=None, detach_preds=True, path='./output',
             y.to_csv(fpath, header=True)
 
             # Logging
-            print('{}  ({})'.format(fpath, sizeof_format(y)))
+            print('{}  ({})'.format(fpath, utils.sizeof(y)))
 
     # Save main result
     fpath = os.path.join(path, '{} res {}.pkl'.format(idx, name))
     _ = joblib.dump(result, fpath)
 
     # Logging
-    print('{}  ({})'.format(fpath, sizeof_format(result)))
+    print('{}  ({})'.format(fpath, utils.sizeof(result)))
 
 
 
