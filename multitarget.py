@@ -255,4 +255,4 @@ def check_estimator(estimator, targets, estimator_type='regressor'):
                         "Should be {} or list of {}s."
                         " ".format(estimator_type, estimator_type))
 
-    return estimators
+    return estimators_list
