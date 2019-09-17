@@ -79,31 +79,7 @@ class MultiTargetRegressor(BaseEstimator, RegressorMixin):
 
         """
         self.targets_ = list(Y.columns)
-
-        if is_regressor(self.estimator):
-            self.estimators_ = [clone(self.estimator) for target in self.targets_]
-
-        elif isinstance(self.estimator, Iterable):
-            self.estimators_ = self.estimator
-
-            n_est = len(self.estimators_)
-            n_tar = len(self.targets_)
-
-            if n_est != n_tar:
-                raise ValueError("If passed list of estimators, number of "
-                                 "estimators \n\t\tshould be equal to Y.shape[1]. "
-                                 "\n\t\tFound: n_estimators = {}, n_targets = {} "
-                                 " ".format(n_est, n_tar))
-
-            for i, estimator in enumerate(self.estimators_):
-                if not is_regressor(estimator):
-                    raise ValueError("If passed list of estimators, each "
-                                     "estimator should be regressor.\n"
-                                     "Error with index {}.".format(i))
-
-        else:
-            raise TypeError("Unknown type of <estimator> passed.\n"
-                            "Should be regressor or list of regressors.")
+        self.estimators_ = check_estimator(self.estimator, self.targets_, 'regressor')
 
         self.estimators_ = Parallel(n_jobs=self.n_jobs)(
             delayed(_fit_estimator)(clone(e), X, Y[target])
@@ -130,8 +106,9 @@ class MultiTargetRegressor(BaseEstimator, RegressorMixin):
         """
         check_is_fitted(self, 'estimators_')
 
-        Y = Parallel(n_jobs=self.n_jobs)(delayed(parallel_helper)(e, 'predict', X)
-                for e in self.estimators_)
+        Y = Parallel(n_jobs=self.n_jobs)(
+            delayed(parallel_helper)(e, 'predict', X)
+            for e in self.estimators_)
 
         return Y
 
@@ -188,31 +165,7 @@ class MultiTargetClassifier(BaseEstimator, ClassifierMixin):
 
         """
         self.targets_ = list(Y.columns)
-
-        if is_classifier(self.estimator):
-            self.estimators_ = [clone(self.estimator) for target in self.targets_]
-
-        elif isinstance(self.estimator, Iterable):
-            self.estimators_ = self.estimator
-
-            n_est = len(self.estimators_)
-            n_tar = len(self.targets_)
-
-            if n_est != n_tar:
-                raise ValueError("If passed list of estimators, number of "
-                                 "estimators \n\t\tshould be equal to Y.shape[1]. "
-                                 "\n\t\tFound: n_estimators = {}, n_targets = {} "
-                                 " ".format(n_est, n_tar))
-
-            for i, estimator in enumerate(self.estimators_):
-                if not is_classifier(estimator):
-                    raise ValueError("If passed list of estimators, each "
-                                     "estimator should be classifier.\n"
-                                     "Error with index {}.".format(i))
-
-        else:
-            raise TypeError("Unknown type of <estimator> passed.\n"
-                            "Should be classifier or list of classifiers.")
+        self.estimators_ = check_estimator(self.estimator, self.targets_, 'classifier')
 
         self.estimators_ = Parallel(n_jobs=self.n_jobs)(
             delayed(_fit_estimator)(clone(e), X, Y[target])
@@ -241,8 +194,9 @@ class MultiTargetClassifier(BaseEstimator, ClassifierMixin):
         """
         check_is_fitted(self, 'estimators_')
 
-        Y = Parallel(n_jobs=self.n_jobs)(delayed(parallel_helper)(e, 'predict', X)
-                for e in self.estimators_)
+        Y = Parallel(n_jobs=self.n_jobs)(
+            delayed(parallel_helper)(e, 'predict', X)
+            for e in self.estimators_)
 
         return Y
 
@@ -265,7 +219,40 @@ class MultiTargetClassifier(BaseEstimator, ClassifierMixin):
         """
         check_is_fitted(self, 'estimators_')
 
-        Y = Parallel(n_jobs=self.n_jobs)(delayed(parallel_helper)(e, 'predict_proba', X)
-                for e in self.estimators_)
+        Y = Parallel(n_jobs=self.n_jobs)(
+            delayed(parallel_helper)(e, 'predict_proba', X)
+            for e in self.estimators_)
 
         return Y
+
+
+
+def check_estimator(estimator, targets, estimator_type='regressor'):
+
+    if getattr(estimator, '_estimator_type', None) is estimator_type:
+        estimators_list = [clone(estimator) for target in targets]
+
+    elif isinstance(estimator, Iterable):
+        estimators_list = estimator
+
+        n_est = len(estimators_list)
+        n_tar = len(targets)
+
+        if n_est != n_tar:
+            raise ValueError("If passed list of estimators, number of "
+                             "estimators \n\t\tshould be equal to Y.shape[1]. "
+                             "\n\t\tFound: n_estimators = {}, n_targets = {} "
+                             " ".format(n_est, n_tar))
+
+        for i, estimator in enumerate(estimators_list):
+            if getattr(estimator, '_estimator_type', None) is not estimator_type:
+                raise ValueError("If passed list of estimators, each "
+                                 "estimator should be {}.\n"
+                                 "Error with index {}.".format(estimator_type, i))
+
+    else:
+        raise TypeError("Unknown type of <estimator> passed.\n"
+                        "Should be {} or list of {}s."
+                        " ".format(estimator_type, estimator_type))
+
+    return estimators
