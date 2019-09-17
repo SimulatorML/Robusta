@@ -771,7 +771,7 @@ def _fit_pred_score(estimator, method, scorer, X, y, X_new=None, trn=None, oof=N
 
     # Logging
     if logger:
-        logger.log(fold_ind, result)
+        logger.log(fold_idx, result)
 
     return result
 
