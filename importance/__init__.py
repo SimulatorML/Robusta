@@ -3,8 +3,7 @@ from .importance import *
 
 
 __all__ = [
-    'extract_importance',
-    'get_col_scores',
+    'get_importance',
     'permutation_importance',
     'PermutationImportance',
 ]

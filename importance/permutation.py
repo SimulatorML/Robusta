@@ -30,13 +30,13 @@ from sklearn.base import (
 def _get_col_score(estimator, X, y, col, n_repeats, scorer, rstate):
     """Calculate score when `col` is permuted."""
 
-    dtype = X[col].dtype
+    x = X.loc[:, col].copy()
     scores = np.zeros(n_repeats)
 
     for i in range(n_repeats):
 
-        X[col] = rstate.permutation(X[col])
-        X[col] = X[col].astype(dtype)
+        X.loc[:, col] = rstate.permutation(x)
+        X.loc[:, col] = X[col].astype(x.dtype)
 
         score = scorer(estimator, X, y) # bottleneck
         scores[i] = score
@@ -177,15 +177,15 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
         The number of random shuffle iterations. Decrease to improve speed,
         increase to get more precise estimates.
 
-    n_jobs : int, default -1
-        The number of jobs to run in parallel. None means 1.
-
     random_state : integer or numpy.random.RandomState, optional
         Pseudo-random number generator to control the permutations of each feature.
 
     progress_bar : bool, default=False
         Weather to display <tqdm_notebook> progress bar while iterating
         through out dataset columns.
+
+    n_jobs : int, default -1
+        The number of jobs to run in parallel. None means 1.
 
     Attributes
     ----------
@@ -200,7 +200,7 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
 
     """
     def __init__(self, estimator, scoring=None, cv='prefit', n_repeats=5,
-                 n_jobs=-1, random_state=None, progress_bar=False):
+                 random_state=None, progress_bar=False, n_jobs=-1):
 
         self.estimator = estimator
         self.scoring = scoring
