@@ -3,6 +3,8 @@ import numpy as np
 
 from sklearn.base import BaseEstimator, RegressorMixin, clone
 
+from robusta.importance import get_importance
+
 
 __all__ = ['TransformedTargetRegressor']
 
@@ -71,8 +73,7 @@ class TransformedTargetRegressor(BaseEstimator, RegressorMixin):
         """
         self.y_name = y.name
 
-        self.regressor_ = clone(self.regressor)
-        self.regressor_.fit(X, y.apply(self.func))
+        self.regressor_ = clone(self.regressor).fit(X, y.apply(self.func))
 
         return self
 
@@ -100,3 +101,11 @@ class TransformedTargetRegressor(BaseEstimator, RegressorMixin):
         y_pred = y_pred.apply(self.inverse_func)
 
         return y_pred
+
+    @property
+    def feature_importances_(self):
+        return self.regressor_.feature_importances_
+
+    @property
+    def coef_(self):
+        return self.regressor_.coef_

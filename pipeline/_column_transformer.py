@@ -1,12 +1,12 @@
 import pandas as pd
 import numpy as np
 
-from sklearn.base import TransformerMixin, clone
 from sklearn.utils.metaestimators import _BaseComposition
+from sklearn.base import TransformerMixin, clone
+from sklearn.pipeline import _name_estimators
 
 from ..preprocessing import Identity, ColumnSelector
 
-from ._pipeline import _name_estimators
 
 
 __all__ = ['ColumnTransformer', 'make_column_transformer']

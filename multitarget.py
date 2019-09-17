@@ -87,6 +87,16 @@ class MultiTargetRegressor(BaseEstimator, RegressorMixin):
 
         return self
 
+    @property
+    def feature_importances_(self):
+        imps = [e.feature_importances_ for e in self.estimators_]
+        return np.concatenate(imps).mean(axis=0)
+
+    @property
+    def coef_(self):
+        imps = [e.coef_ for e in self.estimators_]
+        return np.concatenate(imps).mean(axis=0)
+
 
     def predict(self, X):
         """Predict multi-output variable using a model
@@ -174,6 +184,16 @@ class MultiTargetClassifier(BaseEstimator, ClassifierMixin):
         self.classes_ = [e.classes_ for e in self.estimators_]
 
         return self
+
+    @property
+    def feature_importances_(self):
+        imps = [e.feature_importances_ for e in self.estimators_]
+        return np.concatenate(imps).mean(axis=0)
+
+    @property
+    def coef_(self):
+        imps = [e.coef_ for e in self.estimators_]
+        return np.concatenate(imps).mean(axis=0)
 
 
     def predict(self, X):

@@ -3,10 +3,9 @@ import numpy as np
 
 from joblib import Parallel, delayed
 
-from sklearn.base import TransformerMixin, clone
 from sklearn.utils.metaestimators import _BaseComposition
-
-from ._pipeline import _name_estimators
+from sklearn.base import TransformerMixin, clone
+from sklearn.pipeline import _name_estimators
 
 
 __all__ = ['FeatureUnion', 'make_union']
