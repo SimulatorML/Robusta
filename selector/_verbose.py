@@ -23,10 +23,13 @@ def _print_last(fs):
         n_features = '{}/{}'.format(len(trial['subset']), fs.n_features_)
 
         # Score
-        score = '{:.{prec}f} ± {:.{prec}}'.format(trial['score'],
-                                                  trial['score_std'],
-                                                  prec=fs.n_digits)
-        score = colored(score, 'blue') if (fs.best_iter_ is k-1) else score
+        score = trial['score']
+        std = trial['score_std']
+
+        score = colored(score, 'blue') if (fs.trials_['score'].argmax() is k-1) else score
+        std = colored(std, 'cyan') if (fs.trials_['score_std'].argmin() is k-1) else std
+
+        score = '{:.{prec}f} ± {:.{prec}}'.format(score, std, prec=fs.n_digits)
 
         # Estimated time of arrival (ETA)
         if hasattr(fs, 'max_time') and fs.max_time:
