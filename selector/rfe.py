@@ -1,12 +1,12 @@
 import pandas as pd
 import numpy as np
 
+from sklearn.utils.random import check_random_state
 from sklearn.model_selection import check_cv
 from sklearn.exceptions import NotFittedError
 from sklearn.base import clone, is_classifier
 
-from robusta.importance import permutation_importance
-from robusta.importance import extract_importance
+from robusta.importance import permutation_importance, get_importance
 
 from .base import EmbeddedSelector
 
@@ -98,21 +98,21 @@ class RFE(EmbeddedSelector):
 
         self.n_jobs = n_jobs
         self.verbose = verbose
-        self.plot
+        self.plot = plot
 
 
-    def fit(self, X, y):
+    def fit(self, X, y, groups=None):
 
         self._fit_start(X)
-        self._fit(X, y)
+        self._fit(X, y, groups)
 
         return self
 
 
-    def partial_fit(self, X, y):
+    def partial_fit(self, X, y, groups=None):
 
         self._fit_start(X, partial=True)
-        self._fit(X, y)
+        self._fit(X, y, groups)
 
         return self
 
@@ -127,6 +127,8 @@ class RFE(EmbeddedSelector):
 
             self.rstate_ = check_random_state(self.random_state)
 
+            self._save_importance = True
+
             self._reset_trials()
 
         return self
@@ -137,18 +139,20 @@ class RFE(EmbeddedSelector):
         return len(self.last_subset_)
 
 
-    def _fit(self, X, y):
+    def _fit(self, X, y, groups):
+
+        kwargs = dict(return_importance=True)
 
         while True:
 
-            result = self._eval_subset(self.last_subset_, X, y, groups)
+            result = self._eval_subset(self.last_subset_, X, y, groups, **kwargs)
             imp = result['importance'].mean(axis=1)
 
             step = _check_step(self.step, self.min_features, self.k_features_)
             self.last_subset_ = _select_k_best(imp, step, self.min_features_)
 
             if self.k_features_ <= self.min_features:
-                self._eval_subset(self.last_subset_, X, y, groups)
+                self._eval_subset(self.last_subset_, X, y, groups, **kwargs)
                 break
 
         return self

@@ -6,7 +6,7 @@ from time import time
 
 from sklearn.base import TransformerMixin
 
-from robusta.crossval import crossval_score
+from robusta.crossval import crossval
 
 from ._verbose import _print_last
 
@@ -53,7 +53,7 @@ class Selector(TransformerMixin):
 
 class EmbeddedSelector(Selector):
 
-    @abstractmethod
+    @abc.abstractmethod
     def __init__(self, estimator, scoring=None, max_iter=20, max_time=None, cv=5,
                  random_state=0, n_jobs=-1, verbose=1, plot=False):
 
@@ -72,7 +72,7 @@ class EmbeddedSelector(Selector):
         return len(self.features_)
 
 
-    def _eval_subset(self, subset, X, y, groups):
+    def _eval_subset(self, subset, X, y, groups, **kwargs):
 
         trial = self._find_trial(subset)
 
@@ -85,8 +85,7 @@ class EmbeddedSelector(Selector):
             features = list(subset)
             result = crossval(self.estimator, self.cv, X[features], y, groups,
                               scoring=self.scoring, n_jobs=self.n_jobs,
-                              return_importance=self.save_importance,
-                              return_pred=False, verbose=0)
+                              return_pred=False, verbose=0, **kwargs)
 
             trial = {
                 'score': np.mean(result['score']),

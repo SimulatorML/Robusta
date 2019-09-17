@@ -5,7 +5,7 @@ from sklearn.model_selection import check_cv
 from sklearn.exceptions import NotFittedError
 from sklearn.base import clone, is_classifier
 
-from robusta.importance import extract_importance
+from robusta.importance import get_importance
 from robusta.crossval import crossval
 
 from .base import Selector
@@ -105,7 +105,7 @@ class SelectFromModel(Selector):
 
     @property
     def feature_importances_(self):
-        
+
         imps = []
 
         if self.cv is 'prefit':
@@ -116,7 +116,7 @@ class SelectFromModel(Selector):
             estimators = self.estimator_
 
         for estimator in estimators:
-            imp = extract_importance(estimator)
+            imp = get_importance(estimator)
             imps.append(imp)
 
         return pd.concat(imps, axis=1).mean(axis=1)
@@ -124,7 +124,7 @@ class SelectFromModel(Selector):
 
     def _select_features(self):
 
-        imp = self._extract_importance()
+        imp = self.feature_importances_
 
         self.threshold_ = _check_threshold(imp, self.threshold)
         threshold_mask = (imp >= self.threshold_)
