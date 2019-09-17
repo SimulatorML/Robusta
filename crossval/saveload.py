@@ -8,15 +8,27 @@ import regex
 from robusta import utils
 
 
-__all__ = ['save_result', 'load_result', 'remove_result']
+__all__ = ['save_result', 'load_result', 'remove_result', 'check_result']
 
 
 
 
-def save_result(result, name, idx=None, detach_preds=True, path='./output',
-                force_rewrite=False):
+def save_result(result, idx, name, detach_preds=True, path='./output',
+                rewrite=False):
 
     result = dict(result)
+
+    try:
+        float(idx)
+    except:
+        raise ValueError("<save_result> version has changed!")
+
+    if check_result(idx, path):
+        if rewrite:
+            remove_result(idx, path)
+        else:
+            raise IOError("Model {} already exists!".format(idx))
+
 
     if idx is None:
         # If not specified, use last + 1
@@ -66,22 +78,53 @@ def load_result(idx, path='./output'):
     return result
 
 
+def check_result(idx, path='./output'):
 
-def remove_result(idx, path='./output'):
+    fpaths = []
 
     for fname in os.listdir(path):
 
         if regex.match('{} res .*.pkl'.format(idx), fname) is not None:
             fpath = os.path.join(path, fname)
+            fpaths.append(fpath)
+
+        elif regex.match('{} new .*.csv'.format(idx), fname) is not None:
+            fpath = os.path.join(path, fname)
+            fpaths.append(fpath)
+
+        elif regex.match('{} oof .*.csv'.format(idx), fname) is not None:
+            fpath = os.path.join(path, fname)
+            fpaths.append(fpath)
+
+    return fpaths
+
+
+def remove_result(idx, path='./output'):
+
+    fpaths = check_result(idx, path)
+
+    if fpaths:
+        print('Deleting model {}...'.format(idx))
+        raise FileNotFoundError('Model {} was not found!'.format(idx))
+
+    for fname in os.listdir(path):
+
+        if regex.match('{} res .*.pkl'.format(idx), fname) is not None:
+            fpath = os.path.join(path, fname)
+            print('{}  ({})'.format(fpath, utils.sizeof(y)))
             os.remove(fpath)
 
         elif regex.match('{} new .*.csv'.format(idx), fname) is not None:
             fpath = os.path.join(path, fname)
+            print('{}  ({})'.format(fpath, utils.sizeof(y)))
             os.remove(fpath)
 
         elif regex.match('{} oof .*.csv'.format(idx), fname) is not None:
             fpath = os.path.join(path, fname)
+            print('{}  ({})'.format(fpath, utils.sizeof(y)))
             os.remove(fpath)
+
+    print()
 
 
 
