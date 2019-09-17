@@ -84,8 +84,8 @@ class ExhaustiveSelector(EmbeddedSelector):
 
     '''
 
-    def __init__(self, estimator, min_features=0.5, max_features=0.9, scoring=None,
-                 cv=5, n_jobs=-1, verbose=1, plot=False):
+    def __init__(self, estimator, scoring=None, cv=5, min_features=0.5, n_jobs=-1,
+                 max_features=0.9, verbose=1, n_digits=4, plot=False):
 
         self.estimator = estimator
         self.min_features = min_features
@@ -96,6 +96,7 @@ class ExhaustiveSelector(EmbeddedSelector):
         self.n_jobs = n_jobs
 
         self.verbose = verbose
+        self.n_digits = n_digits
         self.plot = plot
 
 

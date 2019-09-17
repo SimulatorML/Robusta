@@ -83,7 +83,7 @@ class RFE(EmbeddedSelector):
 
     def __init__(self, estimator, scoring=None, cv=5, min_features=0.5, step=1,
                  n_repeats=5, random_state=0, use_best=True, n_jobs=-1,
-                 verbose=1, plot=False):
+                 verbose=1, n_digits=4, plot=False):
 
         self.estimator = estimator
         self.scoring = scoring
@@ -98,6 +98,7 @@ class RFE(EmbeddedSelector):
 
         self.n_jobs = n_jobs
         self.verbose = verbose
+        self.n_digits = n_digits
         self.plot = plot
 
 
@@ -151,7 +152,7 @@ class RFE(EmbeddedSelector):
             step = _check_step(self.step, self.k_features_, self.min_features_)
             self.last_subset_ = _select_k_best(imp, step, self.min_features_)
 
-            if self.k_features_ <= self.min_features:
+            if self.k_features_ <= self.min_features_:
                 self._eval_subset(self.last_subset_, X, y, groups, **kwargs)
                 break
 
@@ -193,7 +194,8 @@ def _check_min_features(min_features, n_features):
 
     elif isinstance(min_features, float):
         if 0 < min_features < 1:
-            min_features = max(1, min_features * n_features)
+            min_features = max(min_features * n_features, 1)
+            min_features = int(min_features)
         else:
             raise ValueError('Float <min_features> must be from interval (0, 1)')
 

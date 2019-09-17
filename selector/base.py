@@ -54,8 +54,8 @@ class Selector(TransformerMixin):
 class EmbeddedSelector(Selector):
 
     @abc.abstractmethod
-    def __init__(self, estimator, scoring=None, max_iter=20, max_time=None, cv=5,
-                 random_state=0, n_jobs=-1, verbose=1, plot=False):
+    def __init__(self, estimator, scoring=None, cv=5, max_iter=20, max_time=None,
+                 random_state=0, n_jobs=-1, verbose=1, n_digits=4, plot=False):
 
         self.estimator = estimator
         self.scoring = scoring
@@ -65,7 +65,9 @@ class EmbeddedSelector(Selector):
         self.random_state = random_state
         self.n_jobs = n_jobs
         self.verbose = verbose
+        self.n_digits = n_digits
         self.plot = plot
+
 
     @property
     def n_features_(self):
