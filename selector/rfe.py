@@ -143,15 +143,18 @@ class RFE(EmbeddedSelector):
         kwargs = dict(return_importance=True)
 
         while True:
+            try:
+                trial = self._eval_subset(self.last_subset_, X, y, groups, **kwargs)
+                imp = trial['importance']
 
-            trial = self._eval_subset(self.last_subset_, X, y, groups, **kwargs)
-            imp = trial['importance']
+                step = _check_step(self.step, self.k_features_, self.min_features_)
+                self.last_subset_ = _select_k_best(imp, step, self.min_features_)
 
-            step = _check_step(self.step, self.k_features_, self.min_features_)
-            self.last_subset_ = _select_k_best(imp, step, self.min_features_)
+                if self.k_features_ <= self.min_features_:
+                    self._eval_subset(self.last_subset_, X, y, groups, **kwargs)
+                    break
 
-            if self.k_features_ <= self.min_features_:
-                self._eval_subset(self.last_subset_, X, y, groups, **kwargs)
+            except KeyboardInterrupt:
                 break
 
         return self
