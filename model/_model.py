@@ -87,7 +87,7 @@ def extract_model(estimator):
         estimator = estimator.estimator
         estimator = extract_model(estimator)
 
-    elif name in ['ClassifierChain', 'RegressorChain']:
+    elif name in ['ClassifierChain', 'RegressorChain', 'CalibratedClassifierCV']:
 
         estimator = estimator.base_estimator
         estimator = extract_model(estimator)
