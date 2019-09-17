@@ -148,7 +148,7 @@ class RFE(EmbeddedSelector):
             result = self._eval_subset(self.last_subset_, X, y, groups, **kwargs)
             imp = result['importance'].mean(axis=1)
 
-            step = _check_step(self.step, self.min_features, self.k_features_)
+            step = _check_step(self.step, self.k_features_, self.min_features)
             self.last_subset_ = _select_k_best(imp, step, self.min_features_)
 
             if self.k_features_ <= self.min_features:
@@ -205,7 +205,7 @@ def _check_min_features(min_features, n_features):
 
 
 
-def _check_step(step, n_features):
+def _check_step(step, n_features, k_features):
 
     if isinstance(step, int):
         if step > 0:
@@ -224,4 +224,4 @@ def _check_step(step, n_features):
         raise ValueError('Parameter <step> must be int or float, \
                          got {}'.format(step))
 
-    return step
+    return min(step, n_features-k_features)
