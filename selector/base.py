@@ -29,10 +29,10 @@ class Selector(TransformerMixin):
             The input samples with only the selected features.
 
         """
-        use_cols = self._select_features()
-        use_cols = list(use_cols)
+        features = self._select_features()
+        features = list(features)
 
-        Xt = X[use_cols]
+        Xt = X[features]
         return Xt
 
 
@@ -73,35 +73,27 @@ class EmbeddedSelector(Selector):
         trial = self._find_trial(subset)
 
         if trial:
-            # If subset already evaluated
             score = trial['score']
 
         else:
-            # If subset is completely new
             tic = time()
 
-            self.n_features_ = len(X.columns)
-
-            use_cols = list(subset)
-            subset = set(subset)
-
-            scores = crossval_score(self.estimator, self.cv, X[use_cols], y, groups,
-                                    scoring=self.scoring, n_jobs=self.n_jobs,
-                                    verbose=0)
-
-            # TODO: multimetric case (or check if multimetric)
-            score = scores[self.scoring].mean()
-
-            fit_time = time() - tic
+            features = list(subset)
+            result = crossval(self.estimator, self.cv, X[features], y, groups,
+                              scoring=self.scoring, n_jobs=self.n_jobs,
+                              return_importance=self.save_importance,
+                              return_pred=False, verbose=0)
 
             trial = {
-                'subset': subset,
-                'score': score,
-                'time': fit_time,
+                'score': np.mean(result['score']),
+                'score_std': np.std(result['score']),
+                'subset': result['features'],
+                'time': time() - tic,
             }
 
         self._append_trial(trial)
-        return score
+
+        return result
 
 
     def _append_trial(self, trial):
@@ -153,15 +145,16 @@ class EmbeddedSelector(Selector):
         if self.n_iters_ == 0:
             return None
 
-        same_subsets = self.trials_['subset'].map(lambda x: _equal_sets(subset, x))
+        same_subsets = self.trials_['subset'].map(lambda x: _same_set(subset, x))
 
         if same_subsets.any():
             trial = self.trials_[same_subsets].iloc[0]
             return trial.to_dict()
+            
         else:
             return None
 
 
-def _equal_sets(set1, set2):
+def _same_set(set1, set2):
     set1, set2 = set(set1), set(set2)
     return len(set1 ^ set2) is 0

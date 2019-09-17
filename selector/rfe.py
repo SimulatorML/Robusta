@@ -5,9 +5,11 @@ from sklearn.model_selection import check_cv
 from sklearn.exceptions import NotFittedError
 from sklearn.base import clone, is_classifier
 
+from robusta.importance import permutation_importance
 from robusta.importance import extract_importance
 
 from .base import EmbeddedSelector
+
 
 
 
@@ -32,7 +34,7 @@ class RFE(EmbeddedSelector):
         The estimator must have either a <feature_importances_> or <coef_>
         attribute after fitting.
 
-    importance : {'inbuilt', 'permute'}, default='inbuilt'
+    importance_type : {'inbuilt', 'permutation'}, default='permutation'
         Whether to use original estimator's <feature_importances_> or <coef_>
         or use Permutation Importances to measure feature importances.
 
@@ -49,14 +51,13 @@ class RFE(EmbeddedSelector):
         Determines the cross-validation splitting strategy.
         Possible inputs for cv are:
 
-            - None, to disable cross-validation and train single estimator
-            on whole dataset (default).
             - integer, to specify the number of folds.
             - An object to be used as a cross-validation generator.
             - An iterable yielding train/test splits.
 
-    random_state : int
-        Random state for permutations generator
+    random_state : int or None (default=0)
+        Random seed for permutations in PermutationImportance.
+        Ignored if <importance_type> set to 'inbuilt'.
 
     n_jobs : int or None, optional (default=-1)
         The number of jobs to run in parallel. None means 1.
@@ -80,54 +81,86 @@ class RFE(EmbeddedSelector):
 
     """
 
-    def __init__(self, estimator, min_features=0.5, step=1, cv=None,
-                 random_state=0, n_jobs=-1, verbose=1, plot=False):
+    def __init__(self, estimator, scoring=None, cv=5, min_features=0.5, step=1,
+                 n_repeats=5, random_state=0, use_best=True, n_jobs=-1,
+                 verbose=1, plot=False):
 
         self.estimator = estimator
-        self.min_features = min_features
-        self.step = step
+        self.scoring = scoring
         self.cv = cv
 
-        self.importance = importance
+        self.min_features = min_features
+        self.step = step
+
+        self.n_repeats = n_repeats
+        self.random_state = random_state
+        self.use_best = use_best
+
+        self.n_jobs = n_jobs
+        self.verbose = verbose
+        self.plot
+
+
+    def fit(self, X, y):
+
+        self._fit_start(X)
+        self._fit(X, y)
+
+        return self
 
 
 
-    def fit(self, X, y, groups=None):
+    def partial_fit(self, X, y):
 
-        self.use_cols_ = list(X.columns)
-        self.n_features_ = len(self.use_cols_)
+        self._fit_start(X, partial=True)
+        self._fit(X, y)
 
-        self.min_features_ = _check_min_features(self.min_features, self.n_features_)
+        return self
+
+
+
+    def _fit_start(self, X, partial=False):
+
+        if not partial:
+            self.features_ = list(X.columns)
+            self.last_subset_ = self.features_
+
+            self.n_features_ = len(self.features_)
+            self.k_features_ = len(self.features_)
+
+            self.min_features_ = _check_min_features(self.min_features, self.n_features_)
+
+            self.rstate_ = check_random_state(self.random_state)
+
+            self._reset_trials()
+
+        return self
+
+
+
+    def _fit(self, X, y):
 
         while True:
 
-            if self.cv is None:
-                imp = self._fit_importance(X[self.use_cols_], y)
-            else:
-                imp = self._cv_fit_importance(X[self.use_cols_], y, groups)
+            result = self._eval_subset(self.last_subset_, X, y, groups)
+            imp = result['importance'].mean(axis=1)
 
-            step = _check_step(self.step, self.n_features_)
+            step = _check_step(self.step, self.min_features, self.k_features_)
 
-            self.use_cols_ = _select_k_best(imp, step, self.min_features_)
-            self.n_features_ = len(self.use_cols_)
+            self.last_subset_ = _select_k_best(imp, step, self.min_features_)
+            self.k_features_ = len(self.last_subset_)
 
-            if self.n_features_ <= self.min_features_:
+            if self.k_features_ <= self.min_features:
+                result = self._eval_subset(self.last_subset_, X, y, groups)
+                imp = result['importance'].mean(axis=1)
+                self.feature_importances_ = imp
                 break
 
         return self
 
 
 
-    def _fit_importance(self, X, y):
-
-        estimator = clone(self.estimator).fit(X, y)
-        imp = extract_importance(estimator)
-
-        return imp
-
-
-
-    def _cv_fit_importance(self, X, y, groups=None):
+    '''def _fit_importance(self, X, y, groups=None):
 
         cv = check_cv(self.cv, y, is_classifier(self.estimator))
         imps = []
@@ -142,25 +175,31 @@ class RFE(EmbeddedSelector):
             imps.append(imp)
 
         imp = pd.concat(imps, axis=1).mean(axis=1)
-        return imp
+        return imp'''
 
 
 
-    def _extract_importance(self, estimator, X, y):
+    '''def _extract_importance(self, estimator, X, y):
 
         if self.importance is 'inbuilt':
             imp = extract_importance(estimator)
 
-        elif self.importance is 'permute':
-            imp = permutation_importance()
-
+        elif self.importance is 'permutation':
+            imp = permutation_importance(estimator, X, y,
+                                         scoring=self.scoring,
+                                         n_repeats=self.n_repeats,
+                                         random_state=self.rstate_,
+                                         n_jobs=self.n_jobs)'''
 
 
 
     def _select_features(self):
 
-        if hasattr(self, 'use_cols_'):
-            return self.use_cols_
+        if hasattr(self, 'best_subset_'):
+            if self.use_best:
+                return self.best_subset_
+            else:
+                return self.last_subset_
         else:
             raise NotFittedError('RFE is not fitted')
 

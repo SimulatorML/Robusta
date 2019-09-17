@@ -116,7 +116,8 @@ class GreedSelector(EmbeddedSelector):
             is_final = lambda subset: len(subset) <= self.k_features_
             is_start = lambda subset: len(subset) == self.n_features_
 
-            score = self._eval_subset(subset, X, y, groups)
+            result = self._eval_subset(candidate, X, y, groups)
+            score = np.mean(result['score'])
 
 
         while not is_final(subset):
@@ -144,8 +145,8 @@ class GreedSelector(EmbeddedSelector):
                 else:
                     candidate = subset - {feature}
 
-                score = self._eval_subset(candidate, X, y, groups)
-                feature_scores[feature] = score
+                result = self._eval_subset(candidate, X, y, groups)
+                feature_scores[feature] = np.mean(result['score'])
 
             feature_scores = feature_scores.sort_values(ascending=False)
             subset_update = feature_scores.index[0]
@@ -191,14 +192,15 @@ class GreedSelector(EmbeddedSelector):
                     print(candidate)
                     continue
 
-                score = self._eval_subset(candidate, X, y, groups)
-                feature_scores[feature] = score
+                result = self._eval_subset(candidate, X, y, groups)
+                feature_scores[feature] = np.mean(result['score'])
 
             if not (feature_scores > old_score).any():
                 continue
 
             feature_scores = feature_scores.dropna()
             feature_scores = feature_scores.sort_values(ascending=False)
+            
             subset_update = feature_scores.index[0]
 
             # include/exclude (final)
