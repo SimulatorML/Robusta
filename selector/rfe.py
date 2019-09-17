@@ -109,14 +109,12 @@ class RFE(EmbeddedSelector):
         return self
 
 
-
     def partial_fit(self, X, y):
 
         self._fit_start(X, partial=True)
         self._fit(X, y)
 
         return self
-
 
 
     def _fit_start(self, X, partial=False):
@@ -133,10 +131,10 @@ class RFE(EmbeddedSelector):
 
         return self
 
+
     @property
     def k_features_(self):
         return len(self.last_subset_)
-
 
 
     def _fit(self, X, y):
@@ -147,51 +145,13 @@ class RFE(EmbeddedSelector):
             imp = result['importance'].mean(axis=1)
 
             step = _check_step(self.step, self.min_features, self.k_features_)
-
             self.last_subset_ = _select_k_best(imp, step, self.min_features_)
-            self.k_features_ = len(self.last_subset_)
 
             if self.k_features_ <= self.min_features:
-                result = self._eval_subset(self.last_subset_, X, y, groups)
-                imp = result['importance'].mean(axis=1)
-                self.feature_importances_ = imp
+                self._eval_subset(self.last_subset_, X, y, groups)
                 break
 
         return self
-
-
-
-    '''def _fit_importance(self, X, y, groups=None):
-
-        cv = check_cv(self.cv, y, is_classifier(self.estimator))
-        imps = []
-
-        for trn, oof in cv.split(X, y, groups):
-            X_trn, y_trn = X.iloc[trn], y.iloc[trn]
-            X_oof, y_oof = X.iloc[oof], y.iloc[oof]
-
-            estimator = clone(self.estimator).fit(X_trn, y_trn)
-
-            imp = self._extract_importance(estimator, X_oof, y_oof)
-            imps.append(imp)
-
-        imp = pd.concat(imps, axis=1).mean(axis=1)
-        return imp'''
-
-
-
-    '''def _extract_importance(self, estimator, X, y):
-
-        if self.importance is 'inbuilt':
-            imp = extract_importance(estimator)
-
-        elif self.importance is 'permutation':
-            imp = permutation_importance(estimator, X, y,
-                                         scoring=self.scoring,
-                                         n_repeats=self.n_repeats,
-                                         random_state=self.rstate_,
-                                         n_jobs=self.n_jobs)'''
-
 
 
     def _select_features(self):

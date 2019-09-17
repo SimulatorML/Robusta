@@ -266,8 +266,8 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
             result['new_pred'] = new_pred
 
         if 'importance' in result:
-            importances = result['importance']
-            importance = _concat_imp(importances)
+            importance = np.array(result['importance']).T
+            importance = pd.DataFrame(importance, index=X.columns)
             result['importance'] = importance
 
         for key in ['fit_time', 'score_time', 'pred_time']:
@@ -276,7 +276,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
         result['concat_time'] = time() - tic
 
-    result['use_cols'] = list(X.columns)
+    result['features'] = list(X.columns)
 
     # Final score
     logger.log_final(result)
@@ -895,17 +895,16 @@ def _concat_imp(importances):
     importances : list of Series
         Estimators feature importances by fold
 
-
     Returns
     -------
     importance : DataFrame, shape [n_features, 2]
         DataFrame with columns ['_FOLD', 'importance'] and index 'feature'
 
     """
-    importance = pd.DataFrame(importances).reset_index(drop=True)
-    importance = importance.stack().reset_index()
+    importance = pd.DataFrame(importances)#.reset_index(drop=True)
+    #importance = importance.stack().reset_index()
 
-    importance.columns = ['_FOLD', 'feature', 'importance']
-    importance.set_index(['feature','_FOLD'], inplace=True)
+    #importance.columns = ['_FOLD', 'feature', 'importance']
+    #importance.set_index(['feature','_FOLD'], inplace=True)
 
     return importance

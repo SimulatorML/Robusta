@@ -95,6 +95,10 @@ class EmbeddedSelector(Selector):
                 'time': time() - tic,
             }
 
+            if 'importance' in result:
+                trial['importance'] = result['importance'].mean(axis=1)
+                trial['importance_std'] = result['importance'].std(axis=1)
+
         self._append_trial(trial)
 
         return result
@@ -157,6 +161,20 @@ class EmbeddedSelector(Selector):
 
         else:
             return None
+
+
+    @property
+    def feature_importances_(self):
+        subset = self._select_features()
+        trial = _find_trial(subset)
+        return pd.Series(trial['importance'], index=self.features_)
+
+
+    @property
+    def feature_importances_std_(self):
+        subset = self._select_features()
+        trial = _find_trial(subset)
+        return pd.Series(trial['importance_std'], index=self.features_)
 
 
 def _same_set(set1, set2):
