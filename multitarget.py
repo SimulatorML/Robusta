@@ -1,16 +1,21 @@
 import numpy as np
 import pandas as pd
-
+from joblib import Parallel, delayed
 from collections.abc import Iterable
 
-from sklearn.base import is_regressor
+from sklearn.base import BaseEstimator, RegressorMixin, ClassifierMixin
+from sklearn.base import clone, is_regressor, is_classifier
 from sklearn.utils.validation import check_is_fitted
 from sklearn.utils.fixes import parallel_helper
 
+from robusta.crossval.crossval import _short_binary
+
+
 __all__ = [
     'MultiTargetRegressor',
-    #'MultiTargetClassifier',
+    'MultiTargetClassifier',
 ]
+
 
 
 
@@ -34,7 +39,7 @@ class MultiTargetRegressor(BaseEstimator, RegressorMixin):
 
     Parameters
     ----------
-    estimator : estimator object, or list of estimators, shape (n_outputs, )
+    estimator : estimator object, or list of estimators, shape (n_targets, )
         An estimator object implementing <fit> and <predict>.
         Or a list of estimators.
 
@@ -61,7 +66,7 @@ class MultiTargetRegressor(BaseEstimator, RegressorMixin):
         Parameters
         ----------
         X : DataFrame, shape (n_samples, n_features)
-        Y : DataFrame, shape (n_samples, n_outputs)
+        Y : DataFrame, shape (n_samples, n_targets)
 
         sample_weight : array-like, shape = (n_samples) or None
             Sample weights. If None, then samples are equally weighted.
@@ -81,9 +86,14 @@ class MultiTargetRegressor(BaseEstimator, RegressorMixin):
         elif isinstance(self.estimator, Iterable):
             self.estimators_ = self.estimator
 
-            if len(estimators) != len(self.targets_):
+            n_est = len(self.estimators_)
+            n_tar = len(self.targets_)
+
+            if n_est != n_tar:
                 raise ValueError("If passed list of estimators, number of "
-                                 "estimators should be equal to Y.shape[1]")
+                                 "estimators \n\t\tshould be equal to Y.shape[1]. "
+                                 "\n\t\tFound: n_estimators = {}, n_targets = {} "
+                                 " ".format(n_est, n_tar))
 
             for i, estimator in enumerate(self.estimators_):
                 if not is_regressor(estimator):
@@ -113,7 +123,7 @@ class MultiTargetRegressor(BaseEstimator, RegressorMixin):
 
         Returns
         -------
-        Y : DataFrame, shape (n_samples, n_outputs)
+        Y : DataFrame, shape (n_samples, n_targets)
             Multi-output targets predicted across multiple predictors.
             Note: Separate models are generated for each predictor.
 
@@ -123,8 +133,139 @@ class MultiTargetRegressor(BaseEstimator, RegressorMixin):
         Y = Parallel(n_jobs=self.n_jobs)(delayed(parallel_helper)(e, 'predict', X)
                 for e in self.estimators_)
 
-        Y = pd.concat([pd.Series(y) for y in Y], axis=1)
-        Y.columns = self.targets_
-        Y.index = X.index
+        return Y
+
+
+
+class MultiTargetClassifier(BaseEstimator, ClassifierMixin):
+    """Multi target classification
+
+    This strategy consists of fitting one classifier per target. This is a
+    simple strategy for extending regressors that do not natively support
+    multi-target regression.
+
+    You can use either single estimator, either list of estimators.
+
+    Parameters
+    ----------
+    estimator : estimator object, or list of estimators, shape (n_targets, )
+        An estimator object implementing <fit> and <predict>.
+        Or a list of estimators.
+
+    n_jobs : int or None, optional (default=None)
+        The number of jobs to run in parallel for <fit>. None means 1.
+        ``-1`` means using all processors.
+
+        When individual estimators are fast to train or predict
+        using `n_jobs>1` can result in slower performance due
+        to the overhead of spawning processes.
+
+    """
+
+    def __init__(self, estimator, n_jobs=None):
+        self.estimator = estimator
+        self.n_jobs = n_jobs
+
+
+    def fit(self, X, Y, sample_weight=None):
+        """Fit the model to data.
+
+        Fit a separate model for each output variable.
+
+        Parameters
+        ----------
+        X : DataFrame, shape (n_samples, n_features)
+        Y : DataFrame, shape (n_samples, n_targets)
+
+        sample_weight : array-like, shape = (n_samples) or None
+            Sample weights. If None, then samples are equally weighted.
+            Only supported if the underlying regressor supports sample
+            weights.
+
+        Returns
+        -------
+        self : object
+
+        """
+        self.targets_ = list(Y.columns)
+
+        if is_classifier(self.estimator):
+            self.estimators_ = [clone(self.estimator) for target in self.targets_]
+
+        elif isinstance(self.estimator, Iterable):
+            self.estimators_ = self.estimator
+
+            n_est = len(self.estimators_)
+            n_tar = len(self.targets_)
+
+            if n_est != n_tar:
+                raise ValueError("If passed list of estimators, number of "
+                                 "estimators \n\t\tshould be equal to Y.shape[1]. "
+                                 "\n\t\tFound: n_estimators = {}, n_targets = {} "
+                                 " ".format(n_est, n_tar))
+
+            for i, estimator in enumerate(self.estimators_):
+                if not is_classifier(estimator):
+                    raise ValueError("If passed list of estimators, each "
+                                     "estimator should be classifier.\n"
+                                     "Error with index {}.".format(i))
+
+        else:
+            raise TypeError("Unknown type of <estimator> passed.\n"
+                            "Should be classifier or list of classifiers.")
+
+        self.estimators_ = Parallel(n_jobs=self.n_jobs)(
+            delayed(_fit_estimator)(clone(e), X, Y[target])
+            for e, target in zip(self.estimators_, self.targets_))
+
+        self.classes_ = [e.classes_ for e in self.estimators_]
+
+        return self
+
+
+    def predict(self, X):
+        """Predict multi-output variable using a model
+         trained for each target variable.
+
+        Parameters
+        ----------
+        X : DataFrame, shape (n_samples, n_features)
+            Data.
+
+        Returns
+        -------
+        Y : DataFrame, shape (n_samples, n_targets)
+            Multi-output targets predicted across multiple predictors.
+            Note: Separate models are generated for each predictor.
+
+        """
+        check_is_fitted(self, 'estimators_')
+
+        Y = Parallel(n_jobs=self.n_jobs)(delayed(parallel_helper)(e, 'predict', X)
+                for e in self.estimators_)
+
+        return Y
+
+
+    def predict_proba(self, X):
+        """Predict multi-output variable using a model
+         trained for each target variable.
+
+        Parameters
+        ----------
+        X : DataFrame, shape (n_samples, n_features)
+            Data.
+
+        Returns
+        -------
+        Y : DataFrame, shape (n_samples, n_targets)
+            Multi-output targets predicted across multiple predictors.
+            Note: Separate models are generated for each predictor.
+
+        """
+        check_is_fitted(self, 'estimators_')
+
+        Y = Parallel(n_jobs=self.n_jobs)(delayed(parallel_helper)(e, 'predict_proba', X)
+                for e in self.estimators_)
 
         return Y

@@ -269,13 +269,13 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
         if 'oof_pred' in result:
             oof_preds = result['oof_pred']
             oof_pred = _avg_preds(oof_preds, avg, X.index)
-            oof_pred = _short_binary(oof_pred, y)
+            oof_pred = _short_binary(oof_pred, y, averaging)
             result['oof_pred'] = oof_pred
 
         if 'new_pred' in result:
             new_preds = result['new_pred']
             new_pred = _avg_preds(new_preds, avg, X_new.index)
-            new_pred = _short_binary(new_pred, y)
+            new_pred = _short_binary(new_pred, y, averaging)
             result['new_pred'] = new_pred
 
         if 'importance' in result:
@@ -504,7 +504,7 @@ def _mean_pred(pred):
 
 def _soft_vote(pred):
     pred = pred.copy()
-    if len(pred.columns.names) == 2:
+    if hasattr(pred.columns, 'levels'):
         return _multioutput_vote(pred, _soft_vote)
     else:
         pred.reset_index('_FOLD', inplace=True, drop=True)
@@ -513,7 +513,7 @@ def _soft_vote(pred):
 
 def _hard_vote(pred):
     pred = pred.copy()
-    if len(pred.columns.names) == 2:
+    if hasattr(pred.columns, 'levels'):
         return _multioutput_vote(pred, _hard_vote)
     else:
         pred.reset_index('_FOLD', inplace=True, drop=True)
@@ -521,7 +521,7 @@ def _hard_vote(pred):
 
 
 def _multioutput_vote(pred, vote):
-    targets = pred.columns.get_level_values('_TARGET').unique()
+    targets = pred.columns.get_level_values(0).unique()
     preds = [pred.loc[:, target] for target in targets]
     preds = [vote(p) for p in preds]
     pred = pd.concat(preds, axis=1)
@@ -530,9 +530,15 @@ def _multioutput_vote(pred, vote):
     return pred
 
 
-def _short_binary(pred, y):
-    if len(pred.columns.names) == 2:
-        targets = pred.columns.get_level_values('_TARGET').unique()
+def _short_binary(pred, y, averaging):
+    if averaging is 'pass':
+        return pred
+
+    if len(pred.shape) < 2:
+        return pred
+
+    if hasattr(pred.columns, 'levels'):
+        targets = pred.columns.get_level_values(0).unique()
         preds = [pred.loc[:, target] for target in targets]
         is_binary = [list(p.columns) == [0, 1] for p in preds]
         is_binary = np.array(is_binary).all()
@@ -805,7 +811,7 @@ def _pred(estimator, method, X, Y):
 
     Returns
     -------
-    pred : Series or DataFrame
+    P : Series or DataFrame
         Computed predictions
 
     """
@@ -821,13 +827,13 @@ def _pred(estimator, method, X, Y):
     # Predict
     P = action(X)
 
+    # Format
     if isinstance(P, list):
         P = [pd.DataFrame(p, index=X.index) for p in P]
     else:
         P = [pd.DataFrame(P, index=X.index)]
 
     P = pd.concat(P, axis=1)
-
 
     if method is 'predict':
         # [classifier + predict] OR [regressor]
@@ -837,7 +843,7 @@ def _pred(estimator, method, X, Y):
         # [classifier + predict_proba]
         name = get_model_name(estimator)
 
-        if name is 'MultiOutputClassifier':
+        if name in ['MultiOutputClassifier', 'MultiTargetClassifier']:
             # Multiple output classifier
             Classes = [e.classes_ for e in estimator.estimators_]
 
