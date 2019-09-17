@@ -181,8 +181,6 @@ class MultiTargetClassifier(BaseEstimator, ClassifierMixin):
             delayed(_fit_estimator)(clone(e), X, Y[target])
             for e, target in zip(self.estimators_, self.targets_))
 
-        self.classes_ = [e.classes_ for e in self.estimators_]
-
         return self
 
     @property
@@ -195,6 +193,9 @@ class MultiTargetClassifier(BaseEstimator, ClassifierMixin):
         imps = [e.coef_ for e in self.estimators_]
         return np.concatenate(imps).mean(axis=0)
 
+    @property
+    def classes_(self):
+        return [e.classes_ for e in self.estimators_]
 
     def predict(self, X):
         """Predict multi-output variable using a model

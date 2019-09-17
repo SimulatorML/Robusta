@@ -86,8 +86,6 @@ class GreedSelector(EmbeddedSelector):
     def _fit_start(self, X, partial=False):
 
         self.features_ = list(X.columns)
-        self.n_features_ = len(self.features_)
-
         self.k_features_ = _check_k_features(self.k_features, self.n_features_)
 
         if not partial:
@@ -200,7 +198,7 @@ class GreedSelector(EmbeddedSelector):
 
             feature_scores = feature_scores.dropna()
             feature_scores = feature_scores.sort_values(ascending=False)
-            
+
             subset_update = feature_scores.index[0]
 
             # include/exclude (final)

@@ -103,16 +103,15 @@ class SelectFromModel(Selector):
         return self
 
 
-    def _extract_importance(self):
-
+    @property
+    def feature_importances_(self):
+        
         imps = []
 
         if self.cv is 'prefit':
             estimators = [self.estimator]
-
         elif self.cv is None:
             estimators = [self.estimator_]
-
         else:
             estimators = self.estimator_
 
@@ -120,10 +119,7 @@ class SelectFromModel(Selector):
             imp = extract_importance(estimator)
             imps.append(imp)
 
-        imp = pd.concat(imps, axis=1).mean(axis=1)
-        self.feature_importances_ = imp
-
-        return imp
+        return pd.concat(imps, axis=1).mean(axis=1)
 
 
     def _select_features(self):

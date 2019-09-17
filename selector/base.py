@@ -67,6 +67,10 @@ class EmbeddedSelector(Selector):
         self.verbose = verbose
         self.plot = plot
 
+    @property
+    def n_features_(self):
+        return len(self.features_)
+
 
     def _eval_subset(self, subset, X, y, groups):
 
@@ -150,7 +154,7 @@ class EmbeddedSelector(Selector):
         if same_subsets.any():
             trial = self.trials_[same_subsets].iloc[0]
             return trial.to_dict()
-            
+
         else:
             return None
 

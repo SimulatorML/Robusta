@@ -168,7 +168,6 @@ class RandomSubset(EmbeddedSelector):
             self.rstate_ = check_random_state(self.random_state)
 
         self.features_ = list(X.columns)
-        self.n_features_ = len(self.features_)
 
         self.min_features_ = _check_k_features(self.min_features, self.n_features_)
         self.max_features_ = _check_k_features(self.max_features, self.n_features_)
@@ -189,7 +188,6 @@ class RandomSubset(EmbeddedSelector):
             raise ValueError('<weights> must be from {}'.format(weights_values))
 
         return self
-
 
 
     def _select_features(self):

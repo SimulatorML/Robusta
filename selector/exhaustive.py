@@ -121,8 +121,6 @@ class ExhaustiveSelector(EmbeddedSelector):
     def _fit_start(self, X, partial=False):
 
         self.features_ = list(X.columns)
-        self.n_features_ = len(self.features_)
-
         self.min_features_ = _check_k_features(self.min_features, self.n_features_)
         self.max_features_ = _check_k_features(self.max_features, self.n_features_)
 
@@ -158,8 +156,6 @@ class ExhaustiveSelector(EmbeddedSelector):
             return self.best_subset_
         else:
             raise NotFittedError('<ExhaustiveSelector> is not fitted')
-
-
 
 
 

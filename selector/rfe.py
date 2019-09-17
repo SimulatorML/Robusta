@@ -125,9 +125,6 @@ class RFE(EmbeddedSelector):
             self.features_ = list(X.columns)
             self.last_subset_ = self.features_
 
-            self.n_features_ = len(self.features_)
-            self.k_features_ = len(self.features_)
-
             self.min_features_ = _check_min_features(self.min_features, self.n_features_)
 
             self.rstate_ = check_random_state(self.random_state)
@@ -135,6 +132,10 @@ class RFE(EmbeddedSelector):
             self._reset_trials()
 
         return self
+
+    @property
+    def k_features_(self):
+        return len(self.last_subset_)
 
 
 
