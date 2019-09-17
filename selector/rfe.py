@@ -1,12 +1,14 @@
 import pandas as pd
 import numpy as np
 
+from time import time
+
 from sklearn.utils.random import check_random_state
 from sklearn.model_selection import check_cv
 from sklearn.exceptions import NotFittedError
 from sklearn.base import clone, is_classifier
 
-from robusta.importance import permutation_importance, get_importance
+from robusta.importance import PermutationImportance, get_importance
 
 from .base import EmbeddedSelector
 
@@ -82,8 +84,7 @@ class RFE(EmbeddedSelector):
     """
 
     def __init__(self, estimator, scoring=None, cv=5, min_features=0.5, step=1,
-                 n_repeats=5, random_state=0, use_best=True, n_jobs=-1,
-                 verbose=1, n_digits=4, plot=False):
+                 use_best=True, n_jobs=-1, verbose=1, n_digits=4, plot=False):
 
         self.estimator = estimator
         self.scoring = scoring
@@ -91,9 +92,6 @@ class RFE(EmbeddedSelector):
 
         self.min_features = min_features
         self.step = step
-
-        self.n_repeats = n_repeats
-        self.random_state = random_state
         self.use_best = use_best
 
         self.n_jobs = n_jobs
@@ -168,6 +166,64 @@ class RFE(EmbeddedSelector):
                 return self.last_subset_
         else:
             raise NotFittedError('RFE is not fitted')
+
+
+
+
+class PermutationRFE(RFE):
+
+    def __init__(self, estimator, scoring=None, cv=5, min_features=0.5, step=1,
+                 n_repeats=5, random_state=0, use_best=True, n_jobs=-1,
+                 verbose=1, n_digits=4, plot=False):
+
+        self.estimator = estimator
+        self.scoring = scoring
+        self.cv = cv
+
+        self.min_features = min_features
+        self.step = step
+
+        self.n_repeats = n_repeats
+        self.random_state = random_state
+        self.use_best = use_best
+
+        self.n_jobs = n_jobs
+        self.verbose = verbose
+        self.n_digits = n_digits
+        self.plot = plot
+
+
+    def _eval_subset(self, subset, X, y, groups, **kwargs):
+
+        trial = self._find_trial(subset)
+
+        if not trial:
+            tic = time()
+
+            progress_bar = (self.verbose >= 5)
+            features = list(subset)
+
+            perm = PermutationImportance(self.estimator, self.scoring, self.cv,
+                                         self.n_repeats, n_jobs=self.n_jobs,
+                                         random_state=self.random_state,
+                                         progress_bar=progress_bar)
+            perm.fit(X[features], y, groups)
+
+            trial = {
+                'subset': features,
+                'score': np.mean(perm.scores_),
+                'score_std': np.std(perm.scores_),
+                'importance': perm.feature_importances_,
+                'importance_std': perm.feature_importances_std_,
+                'time': time() - tic,
+            }
+
+        self._append_trial(trial)
+
+        return trial
+
+
+
 
 
 

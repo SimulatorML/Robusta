@@ -1,5 +1,5 @@
 from .from_model import SelectFromModel
-from .rfe import RFE
+from .rfe import RFE, PermutationRFE
 
 from .exhaustive import ExhaustiveSelector
 from .random import RandomSubset
@@ -8,7 +8,7 @@ from .greed import GreedSelector
 
 __all__ = [
     'SelectFromModel',
-    'RFE',
+    'RFE', 'PermutationRFE',
     'ExhaustiveSelector',
     'GreedSelector',
     'RandomSubset',

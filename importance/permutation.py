@@ -1,6 +1,6 @@
 from joblib import Parallel, delayed
 
-from tqdm import tqdm_notebook
+from tqdm import tqdm
 
 import pandas as pd
 import numpy as np
@@ -117,9 +117,12 @@ def permutation_importance(estimator, X, y, scoring=None, n_repeats=5, n_jobs=-1
         importances : ndarray, shape (n_features, n_repeats)
             Raw permutation importance scores.
 
+        score : float
+            Baseline score
+
     """
 
-    cols = tqdm_notebook(X.columns) if progress_bar else X.columns
+    cols = tqdm(X.columns) if progress_bar else X.columns
 
     scorer = check_scoring(estimator, scoring=scoring)
     rstate = check_random_state(random_state)
@@ -136,7 +139,8 @@ def permutation_importance(estimator, X, y, scoring=None, n_repeats=5, n_jobs=-1
 
     result = {'importances_mean': np.mean(importances, axis=1),
               'importances_std': np.std(importances, axis=1),
-              'importances': importances}
+              'importances': importances,
+              'score': baseline_score}
 
     return result
 
@@ -246,6 +250,7 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
         cv = check_cv(cv, y, classifier=is_classifier(self.estimator))
 
         self.raw_importances_ = []
+        self.scores_ = []
 
         for trn, oof in cv.split(X, y, groups):
 
@@ -266,6 +271,7 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
 
             imp = pd.DataFrame(pi['importances'], index=X.columns)
             self.raw_importances_.append(imp)
+            self.scores_.append(pi['score'])
 
         imps = pd.concat(self.raw_importances_, axis=1)
 

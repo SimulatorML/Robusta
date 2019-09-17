@@ -14,7 +14,7 @@ __all__ = ['save_result', 'load_result', 'remove_result', 'check_result']
 
 
 def save_result(result, idx, name, detach_preds=True, path='./output',
-                rewrite=False):
+                rewrite=False, **kwargs):
 
     result = dict(result)
 
@@ -105,24 +105,25 @@ def remove_result(idx, path='./output'):
 
     if fpaths:
         print('Deleting model {}...'.format(idx))
+    else:
         raise FileNotFoundError('Model {} was not found!'.format(idx))
 
     for fname in os.listdir(path):
 
         if regex.match('{} res .*.pkl'.format(idx), fname) is not None:
             fpath = os.path.join(path, fname)
-            print('{}  ({})'.format(fpath, utils.sizeof(y)))
             os.remove(fpath)
+            print(fpath)
 
         elif regex.match('{} new .*.csv'.format(idx), fname) is not None:
             fpath = os.path.join(path, fname)
-            print('{}  ({})'.format(fpath, utils.sizeof(y)))
             os.remove(fpath)
+            print(fpath)
 
         elif regex.match('{} oof .*.csv'.format(idx), fname) is not None:
             fpath = os.path.join(path, fname)
-            print('{}  ({})'.format(fpath, utils.sizeof(y)))
             os.remove(fpath)
+            print(fpath)
 
     print()
 

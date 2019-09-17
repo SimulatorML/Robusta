@@ -78,10 +78,7 @@ class EmbeddedSelector(Selector):
 
         trial = self._find_trial(subset)
 
-        if trial:
-            score = trial['score']
-
-        else:
+        if not trial:
             tic = time()
 
             features = list(subset)

@@ -26,7 +26,7 @@ def _print_last(fs):
         score = '{:.{prec}f} ± {:.{prec}}'.format(trial['score'],
                                                   trial['score_std'],
                                                   prec=fs.n_digits)
-        score = colored(score, 'red') if (fs.best_iter_ is k-1) else score
+        score = colored(score, 'blue') if (fs.best_iter_ is k-1) else score
 
         # Estimated time of arrival (ETA)
         if hasattr(fs, 'max_time') and fs.max_time:
@@ -51,7 +51,7 @@ def _print_last(fs):
 
         logmsg(msg)
 
-    if fs.verbose >= 2:
+    if fs.verbose >= 10:
         # Last feature subset
         print(trial['subset'])
         print()
