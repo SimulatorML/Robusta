@@ -23,8 +23,7 @@ def _print_last(fs):
         n_features = '{}/{}'.format(len(trial['subset']), fs.n_features_)
 
         # Score
-        score = trial['score']
-        score = '{:.4f}'.format(score)
+        score = '{:.4f} ± {:.4f}'.format(trial['score'], trial['score_std'])
         score = colored(score, 'red') if (fs.best_iter_ is k-1) else score
 
         # Estimated time of arrival (ETA)

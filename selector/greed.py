@@ -114,8 +114,8 @@ class GreedSelector(EmbeddedSelector):
             is_final = lambda subset: len(subset) <= self.k_features_
             is_start = lambda subset: len(subset) == self.n_features_
 
-            result = self._eval_subset(candidate, X, y, groups)
-            score = np.mean(result['score'])
+            trial = self._eval_subset(candidate, X, y, groups)
+            score = trial['score']
 
 
         while not is_final(subset):

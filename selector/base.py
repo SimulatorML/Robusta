@@ -100,7 +100,7 @@ class EmbeddedSelector(Selector):
 
         self._append_trial(trial)
 
-        return result
+        return trial
 
 
     def _append_trial(self, trial):
