@@ -27,13 +27,13 @@ from sklearn.base import (
 # https://eli5.readthedocs.io/en/latest/_modules/eli5/sklearn/permutation_importance.html
 
 
-def _get_col_score(estimator, X, y, col, n_iter, scorer, rstate):
+def _get_col_score(estimator, X, y, col, n_repeats, scorer, rstate):
     """Calculate score when `col` is permuted."""
 
     dtype = X[col].dtype
-    scores = np.zeros(n_iter)
+    scores = np.zeros(n_repeats)
 
-    for i in range(n_iter):
+    for i in range(n_repeats):
 
         X[col] = rstate.permutation(X[col])
         X[col] = X[col].astype(dtype)
@@ -45,19 +45,19 @@ def _get_col_score(estimator, X, y, col, n_iter, scorer, rstate):
 
 
 
-def get_col_score(estimator, X, y, col, n_iter=5, scoring=None, random_state=None):
+def get_col_score(estimator, X, y, col, n_repeats=5, scoring=None, random_state=None):
     """Calculate score when `col` is permuted."""
 
     scorer = check_scoring(estimator, scoring=scoring)
     rstate = check_random_state(random_state)
 
-    scores = _get_col_score(estimator, X, y, col, n_iter, scorer, rstate)
+    scores = _get_col_score(estimator, X, y, col, n_repeats, scorer, rstate)
 
     return scores
 
 
 
-def permutation_importance(estimator, X, y, scoring=None, n_iter=5, n_jobs=-1,
+def permutation_importance(estimator, X, y, scoring=None, n_repeats=5, n_jobs=-1,
                            random_state=0, progress_bar=False):
     """Permutation importance for feature evaluation [BRE].
 
@@ -88,7 +88,7 @@ def permutation_importance(estimator, X, y, scoring=None, n_iter=5, n_jobs=-1,
         Scorer to use. It can be a single string or a callable.
         If None, the estimator's default scorer is used.
 
-    n_iter : int, default=5
+    n_repeats : int, default=5
         Number of times to permute a feature.
 
     n_jobs : int or None, default=None
@@ -109,12 +109,12 @@ def permutation_importance(estimator, X, y, scoring=None, n_iter=5, n_jobs=-1,
         Dictionary-like object, with attributes:
 
         importances_mean : ndarray, shape (n_features, )
-            Mean of feature importance over `n_iter`.
+            Mean of feature importance over `n_repeats`.
 
         importances_std : ndarray, shape (n_features, )
-            Standard deviation over `n_iter`.
+            Standard deviation over `n_repeats`.
 
-        importances : ndarray, shape (n_features, n_iter)
+        importances : ndarray, shape (n_features, n_repeats)
             Raw permutation importance scores.
 
     """
@@ -125,11 +125,11 @@ def permutation_importance(estimator, X, y, scoring=None, n_iter=5, n_jobs=-1,
     rstate = check_random_state(random_state)
 
     baseline_score = scorer(estimator, X, y)
-    scores = np.zeros((len(cols), n_iter))
+    scores = np.zeros((len(cols), n_repeats))
 
     # FIXME: avoid <max_nbytes>
     scores = Parallel(n_jobs=n_jobs, max_nbytes='512M', backend='multiprocessing')(
-        delayed(_get_col_score)(estimator, X, y, col, n_iter, scorer, rstate)
+        delayed(_get_col_score)(estimator, X, y, col, n_repeats, scorer, rstate)
         for col in cols)
 
     importances = baseline_score - np.array(scores)
@@ -173,7 +173,7 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
         If "prefit" is passed, it is assumed that ``estimator`` has been
         fitted already and all data is used for computing feature importances.
 
-    n_iter : int, default 5
+    n_repeats : int, default 5
         The number of random shuffle iterations. Decrease to improve speed,
         increase to get more precise estimates.
 
@@ -196,15 +196,15 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
     feature_importances_std_ : Series, shape (n_features, )
         Standard deviations of feature importances.
 
-    raw_importances_ : list of Dataframes, shape (n_folds, n_features, n_iter)
+    raw_importances_ : list of Dataframes, shape (n_folds, n_features, n_repeats)
 
     """
-    def __init__(self, estimator, scoring=None, cv='prefit', n_iter=5, n_jobs=-1,
-                 random_state=None, progress_bar=False):
+    def __init__(self, estimator, scoring=None, cv='prefit', n_repeats=5,
+                 n_jobs=-1, random_state=None, progress_bar=False):
 
         self.estimator = estimator
         self.scoring = scoring
-        self.n_iter = n_iter
+        self.n_repeats = n_repeats
         self.cv = cv
 
         self.random_state = random_state
@@ -257,10 +257,12 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
             else:
                 estimator = clone(self.estimator).fit(X_trn, y_trn)
 
-            pi = permutation_importance(estimator, X_oof, y_oof, n_iter=self.n_iter,
-                                        scoring=self.scoring, n_jobs=self.n_jobs,
+            pi = permutation_importance(estimator, X_oof, y_oof,
+                                        n_repeats=self.n_repeats,
+                                        scoring=self.scoring,
                                         random_state=self.random_state,
-                                        progress_bar=self.progress_bar)
+                                        progress_bar=self.progress_bar,
+                                        n_jobs=self.n_jobs)
 
             imp = pd.DataFrame(pi['importances'], index=X.columns)
             self.raw_importances_.append(imp)
