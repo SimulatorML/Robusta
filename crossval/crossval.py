@@ -24,8 +24,8 @@ __all__ = ['crossval', 'crossval_score', 'crossval_predict']
 
 def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
              scoring=None, averaging='auto', method='predict', return_pred=True,
-             return_estimator=True, importance=None, n_repeats=5, n_jobs=-1,
-             random_state=0, verbose=2, n_digits=4):
+             return_estimator=True, importance=None, n_repeats=5,
+             random_state=0, n_jobs=-1, verbose=2, n_digits=4):
     """Evaluate metric(s) by cross-validation and also record fit/score time,
     feature importances and compute out-of-fold and test predictions.
 
@@ -130,7 +130,12 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
             - 'shuffle': use Permutation Importance to measure importances
 
     n_repeats : int (default=5)
-        Number of permutations. Ignored if <importance> is not 'shuffle'.
+        Number of random permutations.
+        Ignored if <importance> is not 'shuffle'.
+
+    random_state : int or None, optional (default=0)
+        Random seed for Permutation Importance.
+        Ignored if <importance> is not 'shuffle'.
 
     n_jobs : int or None, optional (default=-1)
         The number of jobs to run in parallel. None means 1.
@@ -204,7 +209,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
     cv = check_cv(cv, y, classifier=is_classifier(estimator))
     scorer = check_scoring(estimator, scoring)
 
-    importance = _check_imp(importance, scoring, n_repeats)
+    importance = _check_imp(importance, scoring, n_repeats, random_state)
     method, avg = _check_avg(estimator, averaging, method)
 
     # Fit & predict
@@ -891,7 +896,7 @@ def _avg_preds(preds, avg, ind):
     return pred
 
 
-def _check_imp(importance, scoring, n_repeats):
+def _check_imp(importance, scoring, n_repeats, random_state):
 
     importance_options = {'inbuilt', 'shuffle', None}
     if importance in importance_options:
@@ -904,6 +909,7 @@ def _check_imp(importance, scoring, n_repeats):
         elif importance is 'shuffle':
             def _shuffle_imp(estimator, X, y, scoring):
                 return permutation_importance(estimator, X, y, scoring=scoring,
+                                              random_state=random_state,
                                               n_repeats=n_repeats)
             return _shuffle_imp
 
