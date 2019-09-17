@@ -11,7 +11,7 @@ from sklearn.utils import indexable
 
 from robusta.preprocessing import LabelEncoder1D, LabelEncoder
 from robusta.model import extract_model_name, extract_model, get_model_name
-from robusta.importance import extract_importance
+from robusta.importance import get_importance, permutation_importance
 from robusta.utils import logmsg, ld2dl
 
 from ._output import CVLogger
@@ -24,8 +24,8 @@ __all__ = ['crossval', 'crossval_score', 'crossval_predict']
 
 def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
              scoring=None, averaging='auto', method='predict', return_pred=True,
-             return_estimator=True, importance=None, n_repeats=5,
-             random_state=0, n_jobs=-1, verbose=2, n_digits=4):
+             return_estimator=True, return_importance=False, verbose=2,
+             n_digits=4, n_jobs=-1):
     """Evaluate metric(s) by cross-validation and also record fit/score time,
     feature importances and compute out-of-fold and test predictions.
 
@@ -123,11 +123,8 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
     return_estimtor : bool (default=False)
         Return fitted estimators
 
-    importance : {None, 'inbuilt', 'shuffle'} (default=None)
-        If not None, return Feature Importances:
-
-            - 'inbuilt': use estimator's <feature_importances_> or <coef_>
-            - 'shuffle': use Permutation Importance to measure importances
+    return_importance : bool (default=False)
+        Return feature importances
 
     n_repeats : int (default=5)
         Number of random permutations.
@@ -181,11 +178,6 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
             ``score_time`` : array of float, shape [n_splits]
                 Out-of-fold scores time for each cv split.
-                Ignored if return_score=False.
-
-            ``imp_time`` : float, shape [n_splits]
-                The time for calculating feature importances.
-                Ignored if importance=None.
 
             ``concat_time`` : float
                 Extra time spent on concatenation of predictions, importances
@@ -200,6 +192,9 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
                 Averaged <feature_importances_> or <coef_> of all estimators.
                 Ignored if return_importance=False.
 
+            ``features`` : list, shape [n_features]
+                List of features.
+
     """
 
     # Check parameters
@@ -207,10 +202,8 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
     X_new, _ = indexable(X_new, None)
 
     cv = check_cv(cv, y, classifier=is_classifier(estimator))
+    avg, method = _check_avg(estimator, averaging, method)
     scorer = check_scoring(estimator, scoring)
-
-    importance = _check_imp(importance, scoring, n_repeats, random_state)
-    method, avg = _check_avg(estimator, averaging, method)
 
     # Fit & predict
     logger = CVLogger(cv, verbose, prec=n_digits)
@@ -225,7 +218,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
         result = parallel(
             delayed(_fit_pred_score)(
                 clone(estimator), method, scorer, X, y, X_new, trn, oof,
-                return_pred, return_estimator, importance, i, logger)
+                return_pred, return_estimator, return_importance, i, logger)
             for i, (trn, oof) in enumerate(cv.split(X, y, groups)))
 
         result = ld2dl(result)
@@ -236,7 +229,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
         result = parallel(
             (delayed(_fit_pred_score)(
                 clone(estimator), method, scorer, X, y, None, trn, oof,
-                return_pred, return_estimator, importance, i, logger)
+                return_pred, return_estimator, return_importance, i, logger)
             for i, (trn, oof) in enumerate(cv.split(X, y, groups))))
 
         if verbose >= 2:
@@ -244,7 +237,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
             logmsg('Fitting full train set...')
 
         result_new = _fit_pred_score(clone(estimator), method, None, X, y, X_new,
-            None, None, return_pred, return_estimator, None, -1, None)
+            None, None, return_pred, return_estimator, False, -1, None)
 
         result = ld2dl(result)
         for key, val in result_new.items():
@@ -277,7 +270,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
             importance = _concat_imp(importances)
             result['importance'] = importance
 
-        for key in ['fit_time', 'score_time', 'pred_time', 'importance_time']:
+        for key in ['fit_time', 'score_time', 'pred_time']:
             if key in result:
                 result[key] = np.array(result[key])
 
@@ -633,11 +626,11 @@ def _check_avg(estimator, averaging, method):
                 + "\n\t\tCurrent value set to '{}'".format(averaging)
             raise ValueError(msg)
 
-    return method, avg
+    return avg, method
 
 
 def _fit_pred_score(estimator, method, scorer, X, y, X_new=None, trn=None, oof=None,
-                    return_pred=False, return_estimator=False, importance=None,
+                    return_pred=False, return_estimator=False, return_importance=False,
                     fold_idx=None, logger=None):
     """Fit estimator and evaluate metric(s), compute OOF predictions & etc.
 
@@ -673,11 +666,11 @@ def _fit_pred_score(estimator, method, scorer, X, y, X_new=None, trn=None, oof=N
     return_pred : bool (default=False)
         Return out-of-fold prediction (and test prediction, if X_new is defined)
 
-    return_estimtor : bool (default=False)
+    return_estimator : bool (default=False)
         Return fitted estimator
 
-    importance : func or None (default=None)
-        Feature Importances extraction function
+    return_importance : bool (default=False)
+        Return feature importances
 
     fold_idx : int
         Fold index. -1 for full dataset.
@@ -742,6 +735,10 @@ def _fit_pred_score(estimator, method, scorer, X, y, X_new=None, trn=None, oof=N
     if return_estimator:
         result['estimator'] = estimator
 
+    # Feature importances
+    if return_importance:
+        result['importance'] = get_importance(estimator)
+
     # Predict
     if return_pred and (len(oof) or len(new)):
 
@@ -762,12 +759,6 @@ def _fit_pred_score(estimator, method, scorer, X, y, X_new=None, trn=None, oof=N
         tic = time()
         result['score'] = scorer(estimator, X_oof, y_oof)
         result['score_time'] = time() - tic
-
-    # Feature importances
-    if importance:
-        tic = time()
-        result['importance'] = importance(estimator, X_oof, y_oof, scorer)
-        result['importance_time'] = time() - tic
 
     # Logging
     if logger:
@@ -894,31 +885,6 @@ def _avg_preds(preds, avg, ind):
     pred = avg(pred)
 
     return pred
-
-
-def _check_imp(importance, scoring, n_repeats, random_state):
-
-    importance_options = {'inbuilt', 'shuffle', None}
-    if importance in importance_options:
-
-        if importance is 'inbuilt':
-            def _inbuilt_imp(estimator, X, y, scoring):
-                return extract_importance(estimator)
-            return _inbuilt_imp
-
-        elif importance is 'shuffle':
-            def _shuffle_imp(estimator, X, y, scoring):
-                return permutation_importance(estimator, X, y, scoring=scoring,
-                                              random_state=random_state,
-                                              n_repeats=n_repeats)
-            return _shuffle_imp
-
-        else:
-            return None
-
-    else:
-        raise ValueError("Available <importance> options: {}\n\t\tPassed: {}"
-                         " ".format(importance_options, importance))
 
 
 def _concat_imp(importances):
