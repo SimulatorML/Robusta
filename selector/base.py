@@ -149,7 +149,7 @@ class EmbeddedSelector(Selector):
 
     @property
     def best_iter_(self):
-        return self.trials_['score'] if hasattr(self, 'trials_') else None
+        return self.trials_['score'].idxmax() if hasattr(self, 'trials_') else None
 
 
     @property
