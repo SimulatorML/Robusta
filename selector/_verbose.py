@@ -23,22 +23,22 @@ def _print_last(fs):
         n_features = '{}/{}'.format(len(trial['subset']), fs.n_features_)
 
         # Score
-        score = trial['score']
-        std = trial['score_std']
+        score = '{:.{prec}f}'.format(trial['score'], prec=fs.n_digits)
+        std = '{:.{prec}f}'.format(trial['score_std'], prec=fs.n_digits)
 
-        score = colored(score, 'blue') if (fs.trials_['score'].argmax() is k-1) else score
-        std = colored(std, 'cyan') if (fs.trials_['score_std'].argmin() is k-1) else std
+        score = colored(score, 'blue') if (fs.trials_['score'].idxmax() is k-1) else score
+        std = colored(std, 'cyan') if (fs.trials_['score_std'].idxmin() is k-1) else std
 
-        score = '{:.{prec}f} ± {:.{prec}}'.format(score, std, prec=fs.n_digits)
+        score = '{} ± {}'.format(score, std)
 
         # Estimated time of arrival (ETA)
         if hasattr(fs, 'max_time') and fs.max_time:
-            eta0 = max(0, (fs.max_time - fs.time_))
+            eta0 = max(0, (fs.max_time - fs.total_time_))
         else:
             eta0 = np.inf
 
         if hasattr(fs, 'max_iter') and fs.max_iter:
-            eta1 = max(0, (fs.time_ / k) * (n - k))
+            eta1 = max(0, (fs.total_time_ / k) * (n - k))
         else:
             eta1 = np.inf
 

@@ -119,16 +119,24 @@ class RFE(EmbeddedSelector):
     def _fit_start(self, X, partial=False):
 
         if not partial:
+
             self.features_ = list(X.columns)
-            self.last_subset_ = self.features_
-
-            self.min_features_ = _check_min_features(self.min_features, self.n_features_)
-
-            self.rstate_ = check_random_state(self.random_state)
+            self.last_subset_ = list(self.features_)
 
             self._save_importance = True
 
             self._reset_trials()
+
+        self.k_range_ = []
+        k_features = self.n_features_
+
+        while k_features > self.min_features_:
+            step = _check_step(self.step, k_features, self.min_features_)
+            k_features = k_features - step
+            self.k_range_.append(k_features)
+
+        self.max_iter = len(self.k_range_) + self.n_iters_ + 1
+        self.k_range_ = iter(self.k_range_)
 
         return self
 
@@ -142,16 +150,17 @@ class RFE(EmbeddedSelector):
 
         kwargs = dict(return_importance=True)
 
-        while True:
+        trial = self._eval_subset(self.last_subset_, X, y, groups, **kwargs)
+        imp = trial['importance']
+
+        for k_features in self.k_range_:
             try:
+                self.last_subset_ = _select_k_best(imp, k_features)
+
                 trial = self._eval_subset(self.last_subset_, X, y, groups, **kwargs)
                 imp = trial['importance']
 
-                step = _check_step(self.step, self.k_features_, self.min_features_)
-                self.last_subset_ = _select_k_best(imp, step, self.min_features_)
-
                 if self.k_features_ <= self.min_features_:
-                    self._eval_subset(self.last_subset_, X, y, groups, **kwargs)
                     break
 
             except KeyboardInterrupt:
@@ -228,12 +237,7 @@ class PermutationRFE(RFE):
 
 
 
-
-
-def _select_k_best(scores, step, min_features):
-
-    n_features = len(scores)
-    k_best = max(n_features - step, min_features)
+def _select_k_best(scores, k_best):
 
     sort_scores = scores.sort_values(ascending=False)
     best_scores = sort_scores.iloc[:k_best]
@@ -241,28 +245,6 @@ def _select_k_best(scores, step, min_features):
     use_cols = list(best_scores.index)
     return use_cols
 
-
-
-def _check_min_features(min_features, n_features):
-
-    if isinstance(min_features, int):
-        if min_features > 0:
-            min_features = min_features
-        else:
-            raise ValueError('Integer <min_features> must be greater than 0')
-
-    elif isinstance(min_features, float):
-        if 0 < min_features < 1:
-            min_features = max(min_features * n_features, 1)
-            min_features = int(min_features)
-        else:
-            raise ValueError('Float <min_features> must be from interval (0, 1)')
-
-    else:
-        raise ValueError('Parameter <min_features> must be int or float, \
-                         got {}'.format(min_features))
-
-    return min_features
 
 
 

@@ -74,6 +74,25 @@ class EmbeddedSelector(Selector):
         return len(self.features_)
 
 
+    @property
+    def min_features_(self):
+        min_features = _check_k_features(self.min_features,
+                                         self.n_features_,
+                                         'min_features')
+        return min_features
+
+
+    @property
+    def max_features_(self):
+        max_features = _check_k_features(self.max_features,
+                                         self.n_features_,
+                                         'max_features')
+        msg = "<min_features> must be lower then <max_features>"
+        assert self.min_features_ <= max_features, msg
+        return max_features
+
+
+
     def _eval_subset(self, subset, X, y, groups, **kwargs):
 
         trial = self._find_trial(subset)
@@ -107,15 +126,7 @@ class EmbeddedSelector(Selector):
         if not hasattr(self, 'trials_'):
             self._reset_trials()
 
-        if trial['score'] >= self.best_score_:
-            self.best_iter_ = self.n_iters_
-            self.best_score_ = trial['score']
-            self.best_subset_ = trial['subset']
-
         self.trials_ = self.trials_.append(trial, ignore_index=True)
-
-        self.total_time_ = self.trials_['time'].sum()
-        self.n_iters_ = self.trials_.shape[0]
 
         _print_last(self)
 
@@ -124,12 +135,34 @@ class EmbeddedSelector(Selector):
 
 
     def _reset_trials(self):
-
         self.trials_ = pd.DataFrame()
-        self.best_score_ = -np.inf
 
-        self.total_time_ = .0
-        self.n_iters_ = 0
+
+    @property
+    def total_time_(self):
+        return self.trials_['time'].sum() if hasattr(self, 'trials_') else .0
+
+
+    @property
+    def n_iters_(self):
+        return self.trials_.shape[0] if hasattr(self, 'trials_') else 0
+
+    @property
+    def best_iter_(self):
+        return self.trials_['score'] if hasattr(self, 'trials_') else None
+
+
+    @property
+    def best_score_(self):
+        if hasattr(self, 'trials_'):
+            return self.trials_.loc[self.best_iter_, 'score']
+        else:
+            return -np.inf
+
+
+    @property
+    def best_subset_(self):
+        return self.trials_.loc[self.best_iter_, 'subset']
 
 
     def _check_max_trials(self):
@@ -178,3 +211,28 @@ class EmbeddedSelector(Selector):
 def _same_set(set1, set2):
     set1, set2 = set(set1), set(set2)
     return len(set1 ^ set2) is 0
+
+
+
+def _check_k_features(k_features, n_features, param='k_features'):
+
+    if isinstance(k_features, int):
+        if k_features > 0:
+            k_features = k_features
+        else:
+            raise ValueError('Integer <{}> must be greater than 0'
+                             ''.format(param))
+
+    elif isinstance(k_features, float):
+        if 0 < k_features < 1:
+            k_features = max(k_features * n_features, 1)
+            k_features = int(k_features)
+        else:
+            raise ValueError('Float <{}> must be from interval (0, 1)'
+                             ''.format(param))
+
+    else:
+        raise ValueError('Parameter <{}> must be int or float, '
+                         'got {}'.format(param, k_features))
+
+    return k_features
