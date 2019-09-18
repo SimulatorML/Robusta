@@ -277,6 +277,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
         result['concat_time'] = time() - tic
 
     result['features'] = list(X.columns)
+    result['cv'] = cv
 
     # Final score
     logger.log_final(result)
