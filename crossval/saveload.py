@@ -1,6 +1,3 @@
-import pandas as pd
-import numpy as np
-
 import joblib
 import os
 import regex
@@ -8,130 +5,84 @@ import regex
 from robusta import utils
 
 
-__all__ = ['save_result', 'load_result', 'remove_result', 'check_result']
+__all__ = [
+    'save_result',
+    'load_result',
+    'find_result',
+    'list_results',
+]
 
 
 
 
-def save_result(result, idx, name, detach_preds=True, path='./output',
-                rewrite=False, **kwargs):
+def save_result(result, idx, name, make_submit=True, force_rewrite=False,
+                result_path='./results/', submit_path='./submits/',
+                silent_mode=None):
 
-    result = dict(result)
+    file_name = find_result(idx, result_path)
 
-    try:
-        float(idx)
-    except:
-        raise ValueError("<save_result> version has changed!")
-
-    if check_result(idx, path):
-        if rewrite:
-            remove_result(idx, path)
+    if file_name:
+        if force_rewrite:
+            print('Deleting:\n' + file_name)
+            os.remove(file_name)
+            print()
         else:
             raise IOError("Model {} already exists!".format(idx))
 
+    print('Creating:')
+    path = os.path.join(result_path, '[{}] {}.pkl'.format(idx, name))
+    _ = joblib.dump(result, path)
+    print(path)
 
-    if idx is None:
-        # If not specified, use last + 1
-        idx = last_result_idx(path) + 1
+    if make_submit and ('new_pred' in result):
 
-    for key in ['new_pred', 'oof_pred']:
-        if detach_preds and key in result:
+        path = os.path.join(submit_path, '[{}] {}.csv'.format(idx, name))
+        pred = result['new_pred']
+        pred.to_csv(path, header=True)
+        print(path)
 
-            # Detach predictions & delete from result
-            y = result[key]
-            del result[key]
-
-            # Save predictions in separate files
-            prefix = key.split('_')[0] # "new" or "oof" prefix
-            fpath = os.path.join(path, '{} {} {}.csv'.format(idx, prefix, name))
-
-            y.to_csv(fpath, header=True)
-
-            # Logging
-            print('{}  ({})'.format(fpath, utils.sizeof(y)))
-
-    # Save main result
-    fpath = os.path.join(path, '{} res {}.pkl'.format(idx, name))
-    _ = joblib.dump(result, fpath)
-
-    # Logging
-    print('{}  ({})'.format(fpath, utils.sizeof(result)))
-
-
-
-def load_result(idx, path='./output'):
-
-    # Load main result
-    for fname in os.listdir(path):
-        if regex.match('{} res .*.pkl'.format(idx), fname) is not None:
-            fpath = os.path.join(path, fname)
-            result = joblib.load(fpath)
-            break
-
-    # Load predictions
-    for fname in os.listdir(path):
-        for prefix in ['new', 'oof']:
-            if regex.match('{} {} .*.csv'.format(idx, prefix), fname) is not None:
-                fpath = os.path.join(path, fname)
-                result['{}_pred'.format(prefix)] = pd.read_csv(fpath, index_col=0)
-
-    return result
-
-
-def check_result(idx, path='./output'):
-
-    fpaths = []
-
-    for fname in os.listdir(path):
-
-        if regex.match('{} res .*.pkl'.format(idx), fname) is not None:
-            fpath = os.path.join(path, fname)
-            fpaths.append(fpath)
-
-        elif regex.match('{} new .*.csv'.format(idx), fname) is not None:
-            fpath = os.path.join(path, fname)
-            fpaths.append(fpath)
-
-        elif regex.match('{} oof .*.csv'.format(idx), fname) is not None:
-            fpath = os.path.join(path, fname)
-            fpaths.append(fpath)
-
-    return fpaths
-
-
-def remove_result(idx, path='./output'):
-
-    fpaths = check_result(idx, path)
-
-    if fpaths:
-        print('Deleting model {}...'.format(idx))
-    else:
-        raise FileNotFoundError('Model {} was not found!'.format(idx))
-
-    for fname in os.listdir(path):
-
-        if regex.match('{} res .*.pkl'.format(idx), fname) is not None:
-            fpath = os.path.join(path, fname)
-            os.remove(fpath)
-            print(fpath)
-
-        elif regex.match('{} new .*.csv'.format(idx), fname) is not None:
-            fpath = os.path.join(path, fname)
-            os.remove(fpath)
-            print(fpath)
-
-        elif regex.match('{} oof .*.csv'.format(idx), fname) is not None:
-            fpath = os.path.join(path, fname)
-            os.remove(fpath)
-            print(fpath)
-
+        if silent_mode:
+            path = os.path.join(submit_path, '[{}S] {}.csv'.format(idx, name))
+            pred = POST_PROC[silent_mode](pred)
+            pred.to_csv(path, header=True)
+            print(path)
     print()
 
 
 
-def last_result_idx(path='./output'):
-    fnames = os.listdir(path)
-    str_indices = [fname.split(' ')[0] for fname in fnames]
-    int_indices = [int(idx) for idx in str_indices if idx.isdigit()]
-    last_idx = max(int_indices) if len(int_indices) > 0 else 0
-    return last_idx
+def load_result(idx, result_path='./results/'):
+
+    for fname in os.listdir(result_path):
+        if fname.startswith('[{}]'.format(idx)) and fname.endswith('.pkl'):
+            path = os.path.join(result_path, fname)
+            result = joblib.load(path)
+            return result
+
+    return None
+
+
+
+def find_result(idx, result_path='./results/'):
+
+    for fname in os.listdir(result_path):
+        if fname.startswith('[{}]'.format(idx)) and fname.endswith('.pkl'):
+            path = os.path.join(result_path, fname)
+            return path
+
+
+
+def list_results(result_path='./results/'):
+
+    fnames = []
+
+    for fname in os.listdir(result_path):
+        if fname.endswith('.pkl'):
+            fnames.append(fname)
+
+    return fnames
+
+
+
+POST_PROC = {
+    'roc_auc': lambda y: 1-y,
+}
