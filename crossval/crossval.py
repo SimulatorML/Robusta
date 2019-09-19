@@ -3,6 +3,7 @@ import numpy as np
 
 from joblib import Parallel, delayed
 from time import time
+import datetime
 
 from sklearn.base import BaseEstimator, clone, is_classifier, is_regressor
 from sklearn.model_selection import check_cv
@@ -131,8 +132,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
         Ignored if <importance> is not 'shuffle'.
 
     random_state : int or None, optional (default=0)
-        Random seed for Permutation Importance.
-        Ignored if <importance> is not 'shuffle'.
+        Random seed for cross-validation split
 
     n_jobs : int or None, optional (default=-1)
         The number of jobs to run in parallel. None means 1.
@@ -202,6 +202,9 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
     X_new, _ = indexable(X_new, None)
 
     cv = check_cv(cv, y, classifier=is_classifier(estimator))
+    if hasattr(cv, 'random_state') and cv.random_state is None:
+        cv.random_state = random_state 
+
     avg, method = _check_avg(estimator, averaging, method)
     scorer = check_scoring(estimator, scoring)
 
@@ -276,6 +279,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
         result['concat_time'] = time() - tic
 
+    result['datetime'] = datetime.date.today()
     result['features'] = list(X.columns)
     result['cv'] = cv
 
