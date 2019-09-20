@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 
+from tqdm import tqdm
+
 from joblib import Parallel, delayed
 import multiprocessing
 
@@ -11,6 +13,8 @@ from sklearn.base import clone, BaseEstimator, TransformerMixin
 from sklearn.utils.metaestimators import _BaseComposition
 from sklearn.model_selection import check_cv
 from sklearn import preprocessing, impute
+
+from robusta.utils import all_subsets
 
 from .base import TypeSelector, ColumnSelector
 
@@ -465,9 +469,10 @@ class FrequencyEncoder(BaseEstimator, TransformerMixin):
 class FeatureCombiner(BaseEstimator, TransformerMixin):
     """Extract Feature Combinations
     """
-    def __init__(self, orders=[2, 3], sep=','):
+    def __init__(self, orders=[2, 3], sep=',', tqdm=False):
         self.orders = orders
         self.sep = sep
+        self.tqdm = tqdm
 
 
     def fit(self, X, y=None):
@@ -507,8 +512,10 @@ class FeatureCombiner(BaseEstimator, TransformerMixin):
         X = X.astype(str)
         sep = self.sep.join
 
+        subsets = tqdm(self.subsets_) if self.tqdm else self.subsets_
+
         Xt = pd.concat([X[subset].apply(sep, axis=1).rename(sep(subset))
-                        for subset in self.subsets_], axis=1)
+                        for subset in subsets], axis=1)
 
         return Xt
 
