@@ -12,7 +12,7 @@ from .pipeline import *
 mem_reduce_pipe = FeatureUnion([
     ('numeric', make_pipeline(
         TypeSelector(np.number),
-        NumDowncast(),
+        DowncastTransformer(),
     )),
     ('category', make_pipeline(
         TypeSelector('object'),

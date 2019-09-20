@@ -1,6 +1,6 @@
 from .base import *
-from .category import *
 from .numeric import *
+from .category import *
 
 
 __all__ = [
@@ -12,12 +12,21 @@ __all__ = [
     'Imputer',
     'Identity',
 
+    # Numeric
+    'DowncastTransformer',
+    'GaussRank',
+    'RankTransform',
+    'MaxAbsScaler',
+    'SyntheticFeatures',
+
     # Categorical
     'LabelEncoder1D',
     'LabelEncoder',
     'CatConverter1D',
     'CatConverter',
     'OneHotEncoder',
+    'FrequencyEncoder',
+    'FeatureCombiner',
     'BackwardDifferenceEncoder',
     'BinaryEncoder',
     'HashingEncoder',
@@ -40,11 +49,4 @@ __all__ = [
     'MEstimateEncoderCV',
     'WOEEncoder',
     'WOEEncoderCV',
-
-    # Numeric
-    'NumDowncast',
-    'GaussRank',
-    'RankTransform',
-    'MaxAbsScaler',
-    'SyntheticFeatures',
 ]
