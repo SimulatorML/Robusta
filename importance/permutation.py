@@ -202,6 +202,8 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
 
     raw_importances_ : list of Dataframes, shape (n_folds, n_features, n_repeats)
 
+    scores_ : list of floats, shape (n_folds, )
+
     """
     def __init__(self, estimator, scoring=None, cv='prefit', n_repeats=5,
                  random_state=None, progress_bar=False, n_jobs=-1):
