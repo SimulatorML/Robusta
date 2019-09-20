@@ -8,16 +8,6 @@ from sklearn import impute
 from typing import Iterable
 
 
-__all__ = [
-    'TypeSelector',
-    'TypeConverter',
-    'ColumnSelector',
-    'ColumnRenamer',
-    'Imputer',
-    'Identity',
-]
-
-
 
 
 class PandasTransformer(BaseEstimator, TransformerMixin):
@@ -341,8 +331,8 @@ class ColumnRenamer(BaseEstimator, TransformerMixin):
         column name. Both equals to empty string ('') by default (do nothing).
 
     '''
-    def __init__(self, columns=None, prefix='', suffix=''):
-        self.columns = columns
+    def __init__(self, body=None, prefix='', suffix=''):
+        self.body = body
         self.prefix = prefix
         self.suffix = suffix
 
@@ -360,9 +350,19 @@ class ColumnRenamer(BaseEstimator, TransformerMixin):
         self
 
         '''
-        if not np.any(self.columns): self.columns = X.columns
-        renamer = lambda column: '{}{}{}'.format(self.prefix, column, self.suffix)
-        self.mapper = {column: renamer(column) for column in self.columns}
+        if self.body:
+            if isinstance(self.body, str):
+                features = [self.body + str(x) for x in range(X.shape[1])]
+            elif hasattr(self.body, '__iter__') and len(self.body) is X.shape[1]:
+                features = self.body
+            else:
+                raise ValueError('Unknown <body> type passed')
+        else:
+            features = X.columns
+
+        features = [self.prefix + x + self.suffix for x in features]
+
+        self.mapper_ = dict(zip(X.columns, features))
         return self
 
 
@@ -380,7 +380,7 @@ class ColumnRenamer(BaseEstimator, TransformerMixin):
             Same data.
 
         """
-        return X.rename(self.mapper, axis='columns')
+        return X.rename(self.mapper_, axis='columns')
 
 
 
