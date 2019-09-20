@@ -15,37 +15,6 @@ from sklearn import preprocessing, impute
 from .base import TypeSelector, ColumnSelector
 
 
-__all__ = [
-    'LabelEncoder1D',
-    'LabelEncoder',
-    'CatConverter1D',
-    'CatConverter',
-    'OneHotEncoder',
-    'BackwardDifferenceEncoder',
-    'BinaryEncoder',
-    'HashingEncoder',
-    'HelmertEncoder',
-    'OrdinalEncoder',
-    'SumEncoder',
-    'PolynomialEncoder',
-    'BaseNEncoder',
-    # supervised (binary/regression)
-    'FastEncoder',
-    'FastEncoderCV',
-    'TargetEncoder',
-    'TargetEncoderCV',
-    'CatBoostEncoder',
-    'LeaveOneOutEncoder',
-    # supervised (binary)
-    'JamesSteinEncoder',
-    'JamesSteinEncoderCV',
-    'MEstimateEncoder',
-    'MEstimateEncoderCV',
-    'WOEEncoder',
-    'WOEEncoderCV',
-]
-
-
 
 
 class OneHotEncoder(BaseEstimator, TransformerMixin):
@@ -162,6 +131,7 @@ class OneHotEncoder(BaseEstimator, TransformerMixin):
 
 
 
+
 class LabelEncoder1D(BaseEstimator, TransformerMixin):
     """Encode categories as integers.
     """
@@ -223,6 +193,7 @@ class LabelEncoder1D(BaseEstimator, TransformerMixin):
 
         """
         return y.map(self.inv_mapper).astype(self.dtype)
+
 
 
 
@@ -298,6 +269,7 @@ class LabelEncoder(BaseEstimator, TransformerMixin):
 
 
 
+
 class CatConverter1D(BaseEstimator, TransformerMixin):
     """Convert categories to 'category' dtype of the same range.
     """
@@ -336,6 +308,7 @@ class CatConverter1D(BaseEstimator, TransformerMixin):
 
         """
         return pd.Categorical(y, categories=self.cats_)
+
 
 
 
@@ -389,6 +362,7 @@ class CatConverter(BaseEstimator, TransformerMixin):
 
 
 
+
 class TargetEncoder(TargetEncoder):
 
     def __init__(self, verbose=0, cols=None, drop_invariant=False, return_df=True,
@@ -434,6 +408,109 @@ class FastEncoder(BaseEstimator, TransformerMixin):
 
         # Apply Encoders to each column
         return X.aggregate(lambda x: x.map(self.encoders[x.name]))
+
+
+
+
+class FrequencyEncoder(BaseEstimator, TransformerMixin):
+    """Encode categorical features as it's frequencies.
+    """
+    def __init__(self, normalize=True):
+        self.normalize = normalize
+
+
+    def fit(self, X, y=None):
+        """Fit FrequencyEncoder to X.
+
+        Parameters
+        ----------
+        X : DataFrame, shape [n_samples, n_features]
+            The data to determine frequencies.
+
+        Returns
+        -------
+        self
+
+        """
+        norm = self.normalize
+        self.value_counts_ = {col: x.value_counts(norm) for col, x in X.items()}
+
+        return self
+
+
+    def transform(self, X):
+        """Transform X using frequency encoding.
+
+        Parameters
+        ----------
+        X : DataFrame, shape [n_samples, n_features]
+            The data to transform.
+
+        Returns
+        -------
+        Xt : DataFrame, shape [n_samples, n_features]
+            Transformed input.
+
+        """
+        Xt = pd.DataFrame(index=X.index)
+
+        for col, vc in self.value_counts_.items():
+            Xt[col] = X[col].map(vc)
+
+        return Xt
+
+
+
+
+class FeatureCombiner(BaseEstimator, TransformerMixin):
+    """Extract Feature Combinations
+    """
+    def __init__(self, orders=[2, 3], sep=','):
+        self.orders = orders
+        self.sep = sep
+
+
+    def fit(self, X, y=None):
+        """Fit FeatureCombiner to X.
+
+        Parameters
+        ----------
+        X : DataFrame, shape [n_samples, n_features]
+            Memorize columns
+
+        Returns
+        -------
+        self
+
+        """
+        subsets = all_subsets(X.columns, self.orders)
+        self.subsets_ = [list(subset) for subset in subsets]
+        self.n_subsets_ = len(self.subsets_)
+
+        return self
+
+
+    def transform(self, X):
+        """Transform X using FeatureCombiner
+
+        Parameters
+        ----------
+        X : DataFrame, shape [n_samples, n_features]
+            The data to transform.
+
+        Returns
+        -------
+        Xt : DataFrame, shape [n_samples, n_features]
+            Transformed input.
+
+        """
+        X = X.astype(str)
+        sep = self.sep.join
+
+        Xt = pd.concat([X[subset].apply(sep, axis=1).rename(sep(subset))
+                        for subset in self.subsets_], axis=1)
+
+        return Xt
 
 
 
