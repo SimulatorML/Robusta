@@ -10,24 +10,13 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from .base import PandasTransformer
 
 
-__all__ = [
-    'INT_DTYPES',
-    'FLOAT_DTYPES',
-    'NumDowncast',
-    'GaussRank',
-    'RankTransform',
-    'MaxAbsScaler',
-    'SyntheticFeatures',
-]
-
-
 
 
 INT_DTYPES = ['Int64', 'Int32', 'Int16', 'Int8', 'UInt32', 'UInt16', 'UInt8']
 FLOAT_DTYPES = ['float64', 'float32', 'float16']
 
 
-class NumDowncast(BaseEstimator, TransformerMixin):
+class DowncastTransformer(BaseEstimator, TransformerMixin):
     """Downcast numeric columns to the smallest numerical dtype possible
     according to the following rules:
 
