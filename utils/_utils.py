@@ -5,6 +5,14 @@ import time, datetime
 
 from pympler.asizeof import asizeof
 
+from itertools import combinations, chain
+
+
+
+
+def all_subsets(cols, k_range):
+    return chain(*map(lambda k: combinations(cols, k), k_range))
+
 
 
 

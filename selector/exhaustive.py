@@ -1,12 +1,11 @@
 import pandas as pd
 import numpy as np
 
-from itertools import chain, combinations
-
 from sklearn.exceptions import NotFittedError
 
-from .base import EmbeddedSelector
+from robusta.utils import all_subsets
 
+from .base import EmbeddedSelector
 
 
 
@@ -129,9 +128,8 @@ class ExhaustiveSelector(EmbeddedSelector):
             raise ValueError('<max_features> must not be less than <min_features>')
 
         if not partial:
-            self.subsets_ = all_subsets(self.features_,
-                                        self.min_features_,
-                                        self.max_features_)
+            k_range = range(self.min_features_, self.max_features_+1)
+            self.subsets_ = all_subsets(self.features_, k_range)
             self._reset_trials()
 
         return self
