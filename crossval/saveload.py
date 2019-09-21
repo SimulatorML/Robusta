@@ -57,7 +57,6 @@ def load_result(idx, result_path='./results/'):
             path = os.path.join(result_path, fname)
             result = joblib.load(path)
 
-
             result.update(idx=idx, model_name=fname.split()[1][:-4])
             return result
 
