@@ -25,8 +25,8 @@ __all__ = ['crossval', 'crossval_score', 'crossval_predict']
 
 def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
              scoring=None, averaging='auto', method='predict', return_pred=True,
-             return_estimator=True, return_importance=False, verbose=2,
-             n_digits=4, n_jobs=-1):
+             return_estimator=True, return_importance=False, random_state=0,
+             verbose=2, n_digits=4, n_jobs=-1):
     """Evaluate metric(s) by cross-validation and also record fit/score time,
     feature importances and compute out-of-fold and test predictions.
 
@@ -127,10 +127,6 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
     return_importance : bool (default=False)
         Return feature importances
 
-    n_repeats : int (default=5)
-        Number of random permutations.
-        Ignored if <importance> is not 'shuffle'.
-
     random_state : int or None, optional (default=0)
         Random seed for cross-validation split
 
@@ -203,7 +199,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
     cv = check_cv(cv, y, classifier=is_classifier(estimator))
     if hasattr(cv, 'random_state') and cv.random_state is None:
-        cv.random_state = random_state 
+        cv.random_state = random_state
 
     avg, method = _check_avg(estimator, averaging, method)
     scorer = check_scoring(estimator, scoring)
