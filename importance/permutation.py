@@ -1,9 +1,8 @@
 from joblib import Parallel, delayed
 
-from tqdm import tqdm
-
 import pandas as pd
 import numpy as np
+import tqdm
 
 from sklearn.utils.metaestimators import if_delegate_has_method
 from sklearn.utils.random import check_random_state
@@ -58,7 +57,7 @@ def get_col_score(estimator, X, y, col, n_repeats=5, scoring=None, random_state=
 
 
 def permutation_importance(estimator, X, y, scoring=None, n_repeats=5, n_jobs=-1,
-                           random_state=0, progress_bar=False):
+                           random_state=0, tqdm=False):
     """Permutation importance for feature evaluation [BRE].
 
     The 'estimator' is required to be a fitted estimator. 'X' can be the
@@ -122,7 +121,7 @@ def permutation_importance(estimator, X, y, scoring=None, n_repeats=5, n_jobs=-1
 
     """
 
-    cols = tqdm(X.columns) if progress_bar else X.columns
+    cols = tqdm.tqdm(X.columns) if tqdm else X.columns
 
     scorer = check_scoring(estimator, scoring=scoring)
     rstate = check_random_state(random_state)
@@ -206,7 +205,7 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
 
     """
     def __init__(self, estimator, scoring=None, cv='prefit', n_repeats=5,
-                 random_state=None, progress_bar=False, n_jobs=-1):
+                 random_state=None, n_jobs=-1, tqdm=False):
 
         self.estimator = estimator
         self.scoring = scoring
@@ -214,7 +213,7 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
         self.cv = cv
 
         self.random_state = random_state
-        self.progress_bar = progress_bar
+        self.tqdm = tqdm
         self.n_jobs = n_jobs
 
 
@@ -268,8 +267,8 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
                                         n_repeats=self.n_repeats,
                                         scoring=self.scoring,
                                         random_state=self.random_state,
-                                        progress_bar=self.progress_bar,
-                                        n_jobs=self.n_jobs)
+                                        n_jobs=self.n_jobs,
+                                        tqdm=self.tqdm)
 
             imp = pd.DataFrame(pi['importances'], index=X.columns)
             self.raw_importances_.append(imp)
