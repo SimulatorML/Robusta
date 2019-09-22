@@ -155,7 +155,12 @@ class RFE(EmbeddedSelector):
 
         for k_features in self.k_range_:
             try:
+                last_subset = set(self.last_subset_)
                 self.last_subset_ = _select_k_best(imp, k_features)
+
+                if self.verbose > 1:
+                    subset_diff = set(last_subset) - set(self.last_subset_)
+                    print('           drop: {}'.format(subset_diff))
 
                 trial = self._eval_subset(self.last_subset_, X, y, groups, **kwargs)
                 imp = trial['importance']
