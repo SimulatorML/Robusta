@@ -402,7 +402,7 @@ def crossval_predict(estimator, cv, X, y, groups=None, X_new=None,
         - False: predictions for tests set (estimator is fitted once on full
                  train set, then predicts test set)
 
-    averaging : string, {'soft', 'hard', 'auto', 'pass'} (default='auto')
+    averaging : string, {'soft', 'hard', 'rank', 'auto', 'pass'} (default='auto')
         Averaging strategy for aggregating different CV folds predictions
 
         - 'hard' : use predicted class labels for majority rule voting.
@@ -416,6 +416,10 @@ def crossval_predict(estimator, cv, X, y, groups=None, X_new=None,
 
                    Ignored if estimator type is 'regressor'.
                    Ignored if <method> is not 'predict'.
+
+        - 'rank' : ranking probabilities along fold and averaging.
+
+                   Prefered for scoring like 'AUC-ROC'.
 
         - 'auto' : use simple averaging for regressor's predcitions and for
                    classifier's probabilities (if <method> is 'predict_proba');
@@ -477,6 +481,13 @@ def _pass_pred(pred):
 
 def _mean_pred(pred):
     pred = pred.copy()
+    pred.reset_index('_FOLD', inplace=True, drop=True)
+    return pred.groupby(pred.index).mean()
+
+
+def _rank_pred(pred):
+    pred = pred.copy()
+    pred = pred.groupby('_FOLD').rank(pct=True)
     pred.reset_index('_FOLD', inplace=True, drop=True)
     return pred.groupby(pred.index).mean()
 
@@ -547,7 +558,7 @@ def _check_avg(estimator, averaging, method):
         raise ValueError("<method> should be in {}".format(set(methods)) \
             + "\n\t\tPassed '{}'".format(method))
 
-    averagings = ['soft', 'hard', 'auto', 'pass']
+    averagings = ['soft', 'hard', 'rank', 'auto', 'pass']
     if averaging not in averagings:
         raise ValueError("<averaging> should be in {}".format(set(averagings)) \
             + "\n\t\tPassed '{}'".format(averaging))
@@ -559,6 +570,9 @@ def _check_avg(estimator, averaging, method):
 
             if averaging is 'pass':
                 avg = _pass_pred
+
+            elif averaging is 'rank':
+                avg = _rank_pred
 
             elif averaging is 'auto':
                 avg = _mean_pred
@@ -583,6 +597,9 @@ def _check_avg(estimator, averaging, method):
 
             elif averaging is 'hard':
                 avg = _hard_vote
+
+            elif averaging is 'rank':
+                avg = _rank_pred
 
             elif averaging is 'pass':
                 avg = _pass_pred
