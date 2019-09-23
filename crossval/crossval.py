@@ -25,7 +25,7 @@ __all__ = ['crossval', 'crossval_score', 'crossval_predict']
 
 def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
              scoring=None, averaging='auto', method='predict', return_pred=True,
-             return_estimator=True, return_importance=False, random_state=0,
+             return_estimator=False, return_importance=False, random_state=0,
              verbose=2, n_digits=4, n_jobs=-1):
     """Evaluate metric(s) by cross-validation and also record fit/score time,
     feature importances and compute out-of-fold and test predictions.
