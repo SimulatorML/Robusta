@@ -36,10 +36,6 @@ class RFE(EmbeddedSelector):
         The estimator must have either a <feature_importances_> or <coef_>
         attribute after fitting.
 
-    importance_type : {'inbuilt', 'permutation'}, default='permutation'
-        Whether to use original estimator's <feature_importances_> or <coef_>
-        or use Permutation Importances to measure feature importances.
-
     min_features : int or float, optional (default=0.5)
         The number of features to select. Float values means percentage of
         features to select. E.g. value 0.5 (by default) means 50% of features.

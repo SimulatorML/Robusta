@@ -45,11 +45,11 @@ def _print_last(fs):
         eta = min(eta0, eta1)
         if eta < np.inf:
             eta = secfmt(eta)
-            eta = '      eta: {}'.format(eta)
+            eta = '      ETA: {}'.format(eta)
         else:
             eta = ''
 
-        msg = 'iter: {}      features: {}      score: {}{}'
+        msg = 'ITER: {}      SUBSET: {}      SCORE: {}{}'
         msg = msg.format(iters, n_features, score, eta)
 
         logmsg(msg)
