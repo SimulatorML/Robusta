@@ -156,7 +156,7 @@ class RFE(EmbeddedSelector):
 
                 if self.verbose > 1:
                     subset_diff = set(last_subset) - set(self.last_subset_)
-                    print('           drop: {}'.format(subset_diff))
+                    print('           DROP: {}'.format(subset_diff))
 
                 trial = self._eval_subset(self.last_subset_, X, y, groups, **kwargs)
                 imp = trial['importance']
