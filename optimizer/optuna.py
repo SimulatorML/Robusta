@@ -79,29 +79,24 @@ class OptunaCV(BaseOptimizer):
 
 class RandomSearchCV(OptunaCV):
 
+    def _fit(self, X, y, groups=None):
 
-    def fit(self, X, y, groups=None):
-
-        # Starting routine
-        self._fit_start(X, y, groups)
-
-        # Disable inbuilt logger
+        optuna.logging.set_verbosity(optuna.logging.FATAL)
         optuna.logging.disable_default_handler()
 
-        # Optimization loop
+        def objective(trial):
+            params = self._get_params(trial)
+            score = self.eval_params(params)
+            return score
+
         try:
-            if not (self.warm_start and hasattr(self, 'study')):
-                # TODO: set seed
+            if not hasattr(self, 'study'):
+                # TODO: set seed & other params
                 sampler = optuna.samplers.RandomSampler(seed=0)
                 self.study = optuna.create_study(direction='maximize',
-                    sampler=sampler)
+                                                 sampler=sampler)
 
-            self.study.optimize(self.objective, n_trials=self.n_trials)
+            self.study.optimize(objective)
 
         except KeyboardInterrupt:
             pass
-
-        # Ending routine
-        self._fit_end()
-
-        return self
