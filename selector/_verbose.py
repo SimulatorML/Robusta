@@ -26,7 +26,7 @@ def _print_last(fs):
         score = '{:.{prec}f}'.format(trial['score'], prec=fs.n_digits)
         std = '{:.{prec}f}'.format(trial['score_std'], prec=fs.n_digits)
 
-        score = colored(score, 'blue') if (fs.trials_['score'].idxmax() is k-1) else score
+        score = colored(score, 'yellow') if (fs.trials_['score'].idxmax() is k-1) else score
         std = colored(std, 'cyan') if (fs.trials_['score_std'].idxmin() is k-1) else std
 
         score = '{} ± {}'.format(score, std)

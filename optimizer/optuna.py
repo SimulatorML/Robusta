@@ -3,7 +3,7 @@ import numpy as np
 
 import optuna
 
-from ._optimizer import BaseOptimizer, qround
+from .base import BaseOptimizer, qround
 
 
 __all__ = ['OptunaCV', 'RandomSearchCV']
@@ -52,23 +52,16 @@ class OptunaCV(BaseOptimizer):
         return params
 
 
-    def objective(self, trial):
-
-        params = self._get_params(trial)
-        score = self.eval_params(params)
-
-        if self.is_finished:
-            raise KeyboardInterrupt
-        else:
-            return score
-
-
     def _fit(self, X, y, groups=None):
 
-        # Disable inbuilt logger
+        optuna.logging.set_verbosity(optuna.logging.FATAL)
         optuna.logging.disable_default_handler()
 
-        # Optimization loop
+        def objective(trial):
+            params = self._get_params(trial)
+            score = self.eval_params(params)
+            return score
+
         try:
             if not hasattr(self, 'study'):
                 # TODO: set seed & other params
@@ -76,7 +69,7 @@ class OptunaCV(BaseOptimizer):
                 self.study = optuna.create_study(direction='maximize',
                                                  sampler=sampler)
 
-            self.study.optimize(self.objective)
+            self.study.optimize(objective)
 
         except KeyboardInterrupt:
             pass

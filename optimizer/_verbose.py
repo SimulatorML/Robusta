@@ -4,13 +4,14 @@ from matplotlib.ticker import MaxNLocator
 import matplotlib.pylab as plt
 
 import numpy as np
+import pandas as pd
 import time, datetime
 
 from scipy import signal, stats
 
-import termcolor
+from termcolor import colored
 
-from robusta import utils
+from robusta.utils import logmsg, secfmt
 
 
 
@@ -18,7 +19,7 @@ from robusta import utils
 __all__ = ['print_progress', 'plot_progress']
 
 
-def print_progress(opt):
+def _print_last(opt):
     '''
     Print last trial score in optimizer.
 
@@ -28,71 +29,57 @@ def print_progress(opt):
         Optimizator instance.
 
     '''
-
-    if len(opt.trials_) == 0:
-        return
-
-    trials = opt.trials_
-    trial = trials.iloc[-1]
-
-    n_iters = opt.max_trials
-    k_iters = len(trials)
+    trial = opt.trials_.iloc[-1]
 
     if opt.verbose >= 1:
 
-        # number of performed iters
-        if n_iters:
-            iters = '%i/%i' % (k_iters, n_iters)
-            iters_left = n_iters - k_iters
-        else:
-            iters = '%i' % k_iters
-            iters_left = None
-
-        # ETA (estimated time to arrival)
-        iters_time = np.array(opt.trials_['time'])
-
-        if opt.max_time:
-            eta_time = max(0, opt._time_left())
-        else:
-            eta_time = np.nan
-
-        if n_iters:
-            iter_time = np.median(iters_time[iters_time != None])
-            eta_iter = iter_time * iters_left
-        else:
-            eta_iter = np.nan
-
-        eta = np.nanmin([eta_time, eta_iter])
-        if not np.isnan(eta):
-            eta = 'eta: {}'.format(utils.secfmt(eta))
-        else:
-            eta = ''
-
-        # status & scores
-        t = datetime.datetime.now().strftime("[%H:%M:%S]")
+        # Iterations
+        n = opt.max_iter if hasattr(opt, 'max_iter') else None
+        k = opt.n_iters_
+        iters = '{}/{}'.format(k, n) if n else '{}'.format(k)
 
         if trial['status'] is 'ok':
 
-            score = trial['score']
-            scoring = opt.scoring if isinstance(opt.scoring, str) else 'score'
+            # Score
+            score = '{:.{prec}f}'.format(trial['score'], prec=opt.n_digits)
+            std = '{:.{prec}f}'.format(trial['score_std'], prec=opt.n_digits)
 
-            is_best = opt.n_trials_ == (opt.best_trial_ + 1)
+            # FIXME: colorlog & termcolor conflict...
+            # https://github.com/borntyping/python-colorlog
 
-            s = '{:.4f}'.format(s) # TODO: custom <n_digits>
-            #s = termcolor.colored(s, 'yellow') if is_best else s
-            # FIXME: optuna library blocks colored output (termcolor)
-            s = '[{}]'.format(s) if is_best else ' {} '.format(s)
+            score = colored(score, 'yellow') if (opt.trials_['score'].idxmax() is k-1) else score
+            std = colored(std, 'cyan') if (opt.trials_['score_std'].idxmin() is k-1) else std
 
-            msg = 'iter: {}      {}: {}      {}'.format(iters, scoring, s, eta)
-            utils.logmsg(msg)
+            score = '{} ± {}'.format(score, std)
+
+            # Estimated time of arrival (ETA)
+            if hasattr(opt, 'max_time') and opt.max_time:
+                eta0 = max(0, (opt.max_time - opt.total_time_))
+            else:
+                eta0 = np.inf
+
+            if hasattr(opt, 'max_iter') and opt.max_iter:
+                eta1 = max(0, (opt.total_time_ / k) * (n - k))
+            else:
+                eta1 = np.inf
+
+            eta = min(eta0, eta1)
+            if eta < np.inf:
+                eta = secfmt(eta)
+                eta = '      ETA: {}'.format(eta)
+            else:
+                eta = ''
+
+            msg = 'ITER: {}      SCORE: {}{}'.format(iters, score, eta)
+            logmsg(msg)
 
         else:
-            msg = 'iter: {}      status: {}'.format(iters, trial['status'])
-            utils.logmsg(msg)
+            msg = 'ITER: {} - {}!'.format(iters, trial['status'])
+            logmsg(msg)
+
 
     if opt.verbose >= 2:
-        # current hyperparams
-        print('\t', trial['params'])
+        print(pd.Series(trial['params']))
         print()
 
 

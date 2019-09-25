@@ -1,4 +1,4 @@
-from ._optuna import OptunaCV, RandomSearchCV
+from .optuna import OptunaCV, RandomSearchCV
 
 
 #__all__ = ['Optuna', 'HyperOpt', 'DE', 'GridSearch', 'RandomSearch',]

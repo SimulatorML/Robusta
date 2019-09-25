@@ -287,7 +287,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
 
 
 def crossval_score(estimator, cv, X, y, groups=None, scoring=None, n_jobs=-1,
-                   verbose=1, n_digits=4):
+                   verbose=2, n_digits=4):
     """Evaluate metric(s) by cross-validation and also record fit/score time,
     feature importances and compute out-of-fold and test predictions.
 
@@ -337,7 +337,7 @@ def crossval_score(estimator, cv, X, y, groups=None, scoring=None, n_jobs=-1,
 
     Returns
     -------
-    scores : Series or DataFrame
+    scores : list of float
         Rows are splits. If multimetric, return DataFrame, where each column
         represents different metric.
 
