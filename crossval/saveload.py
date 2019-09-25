@@ -17,7 +17,10 @@ __all__ = [
 
 def save_result(result, idx, name, make_submit=True, force_rewrite=False,
                 result_path='./results/', submit_path='./submits/',
-                silent_mode=None):
+                silent_mode=None, **kwargs):
+
+    result = dict(result)
+    result.update(**kwargs)
 
     file_name = find_result(idx, result_path)
 
