@@ -102,7 +102,7 @@ class RandomSubset(EmbeddedSelector):
 
     '''
 
-    def __init__(self, estimator, scoring=None, cv=5, max_iter=20, max_time=None,
+    def __init__(self, estimator, cv=5, scoring=None, max_iter=20, max_time=None,
                  min_features=0.5, max_features=0.9, weights='uniform', n_jobs=-1,
                  random_state=0, verbose=1, n_digits=4, plot=False):
 

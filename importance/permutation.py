@@ -205,7 +205,7 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
     scores_ : list of floats, shape (n_folds, )
 
     """
-    def __init__(self, estimator, scoring=None, cv='prefit', n_repeats=5,
+    def __init__(self, estimator, cv='prefit', scoring=None, n_repeats=5,
                  random_state=None, progress_bar=False, n_jobs=-1):
 
         self.estimator = estimator

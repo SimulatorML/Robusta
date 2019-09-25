@@ -43,7 +43,7 @@ class GreedSelector(EmbeddedSelector):
 
 
     '''
-    def __init__(self, estimator, scoring=None, cv=5, forward=True, floating=False,
+    def __init__(self, estimator, cv=5, scoring=None, forward=True, floating=False,
                  k_features=0.5, max_candidates=None, max_time=None, use_best=True,
                  random_state=0, n_jobs=-1, verbose=1, n_digits=4, plot=False):
 

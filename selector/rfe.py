@@ -79,7 +79,7 @@ class RFE(EmbeddedSelector):
 
     """
 
-    def __init__(self, estimator, scoring=None, cv=5, min_features=0.5, step=1,
+    def __init__(self, estimator, cv=5, scoring=None, min_features=0.5, step=1,
                  use_best=True, n_jobs=-1, verbose=1, n_digits=4, plot=False):
 
         self.estimator = estimator
@@ -185,7 +185,7 @@ class RFE(EmbeddedSelector):
 
 class PermutationRFE(RFE):
 
-    def __init__(self, estimator, scoring=None, cv=5, min_features=0.5, step=1,
+    def __init__(self, estimator, cv=5, scoring=None, min_features=0.5, step=1,
                  n_repeats=5, random_state=0, use_best=True, n_jobs=-1,
                  verbose=1, n_digits=4, plot=False):
 

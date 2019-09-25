@@ -74,7 +74,7 @@ class SelectFromModel(Selector):
 
     """
 
-    def __init__(self, estimator, threshold=None, max_features=None, cv=None):
+    def __init__(self, estimator, cv=None, threshold=None, max_features=None):
 
         self.estimator = estimator
         self.threshold = threshold
