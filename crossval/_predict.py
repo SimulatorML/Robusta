@@ -1,3 +1,13 @@
+import pandas as pd
+import numpy as np
+
+from time import time
+
+from sklearn.base import is_classifier, is_regressor
+
+from robusta.importance import get_importance
+from robusta.model import extract_model_name
+
 
 __all__ = [
     '_fit_predict',
@@ -231,7 +241,7 @@ def _check_avg(estimator, avg_type, method):
     estimator = extract_model(estimator)
     name = extract_model_name(estimator)
 
-    # Basic <method> and <averaging> values check
+    # Basic <method> and <avg_type> values check
     methods = ['predict', 'predict_proba']
     if method not in methods:
         raise ValueError("<method> should be in {}".format(set(methods)) \
@@ -260,8 +270,8 @@ def _check_avg(estimator, avg_type, method):
                 good_vals = {'auto', 'pass'}
                 bad_vals = {'soft', 'hard'}
                 msg = "Selected <method> value is {}.".format(method) \
-                    + "\n\t\tAvailable <averaging> options are: {}.".format(good_vals) \
-                    + "\n\t\tBut current <averaging> value set to '{}'.".format(avg_type) \
+                    + "\n\t\tAvailable <avg_type> options are: {}.".format(good_vals) \
+                    + "\n\t\tBut current <avg_type> value set to '{}'.".format(avg_type) \
                     + "\n\t\t" \
                     + "\n\t\tNote: {} are voting strategies, so".format(bad_vals) \
                     + "\n\t\tthey are available only for method='predict'."
@@ -293,34 +303,34 @@ def _check_avg(estimator, avg_type, method):
 
         elif method is 'predict':
 
-            if averaging in ['hard', 'auto']:
+            if avg_type in ['hard', 'auto']:
                 avg = _hard_vote
 
-            elif averaging is 'pass':
+            elif avg_type is 'pass':
                 avg = _pass_pred
 
             else:
                 vals = {'auto', 'hard', 'pass'}
                 msg = "<{}> is a {}. ".format(name, 'non-probabilistic classifier') \
-                    + "\n\t\tAvailable <averaging> options are: {}".format(vals) \
-                    + "\n\t\tCurrent value set to '{}'".format(averaging)
+                    + "\n\t\tAvailable <avg_type> options are: {}".format(vals) \
+                    + "\n\t\tCurrent value set to '{}'".format(avg_type)
                 raise ValueError(msg)
 
     elif is_regressor(estimator):
         # regressor
-        if averaging is 'pass':
+        if avg_type is 'pass':
             avg = _pass_pred
             method = 'predict'
 
-        elif averaging is 'auto':
+        elif avg_type is 'auto':
             avg = _mean_pred
             method = 'predict'
 
         else:
             vals = {'auto', 'pass'}
             msg = "<{}> is a {}. ".format(name, 'regressor') \
-                + "\n\t\tAvailable <averaging> options are: {}".format(vals) \
-                + "\n\t\tCurrent value set to '{}'".format(averaging)
+                + "\n\t\tAvailable <avg_type> options are: {}".format(vals) \
+                + "\n\t\tCurrent value set to '{}'".format(avg_type)
             raise ValueError(msg)
 
     return avg, method
@@ -352,7 +362,7 @@ def _avg_preds(preds, avg, X, y):
 
 def _short_binary(pred, y):
 
-    # Check if averaging is not 'pass'
+    # Check if avg_type is not 'pass'
     if '_FOLD' in getattr(pred.index, 'names', []):
         return pred
 

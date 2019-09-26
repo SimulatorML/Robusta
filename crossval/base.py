@@ -5,15 +5,11 @@ from joblib import Parallel, delayed
 from time import time
 import datetime
 
-from sklearn.base import BaseEstimator, clone, is_classifier, is_regressor
+from sklearn.base import clone, is_classifier
 from sklearn.model_selection import check_cv
 from sklearn.metrics import check_scoring
-from sklearn.utils import indexable
-
-from robusta.preprocessing import LabelEncoder1D, LabelEncoder
-from robusta.model import extract_model_name, extract_model, get_model_name
-from robusta.importance import get_importance, permutation_importance
 from robusta.utils import logmsg, ld2dl
+from sklearn.utils import indexable
 
 from ._predict import _fit_predict, _check_avg, _avg_preds
 from ._output import CVLogger
