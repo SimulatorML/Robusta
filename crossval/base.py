@@ -269,6 +269,8 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, scoring=None,
 
         if 'importance' in result:
             importance = np.array(result['importance']).T
+            display(importance)
+            print(importance.shape)
             importance = pd.DataFrame(importance, index=X.columns)
             result['importance'] = importance
 
