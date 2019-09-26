@@ -4,9 +4,7 @@ import numpy as np
 from time import time
 
 from sklearn.base import is_classifier, is_regressor
-
 from robusta.importance import get_importance
-from robusta.model import extract_model_name
 
 
 __all__ = [
@@ -89,10 +87,6 @@ def _fit_predict(estimator, method, scorer, X, y, X_new=None, trn=None, oof=None
 
             ``score_time`` : float
                 OOF score time.
-
-            ``importance_time`` : float
-                Feature Importance extraction time.
-                Ignored if imp=None.
 
             ``estimator`` : estimator object
                 The fitted estimator object.
@@ -186,7 +180,7 @@ def _predict(estimator, method, X, y):
     if action:
         P = action(X)
     else:
-        name = extract_model_name(estimator)
+        name = estimator.__class__.__name__
         raise AttributeError("<{}> has no method <{}>".format(name, method))
 
     # Format
@@ -238,8 +232,7 @@ def _predict(estimator, method, X, y):
 
 def _check_avg(estimator, avg_type, method):
 
-    estimator = extract_model(estimator)
-    name = extract_model_name(estimator)
+    name = estimator.__class__.__name__
 
     # Basic <method> and <avg_type> values check
     methods = ['predict', 'predict_proba']

@@ -2,8 +2,9 @@ import pandas as pd
 import numpy as np
 
 from joblib import Parallel, delayed
+
+from datetime import datetime
 from time import time
-import datetime
 
 from sklearn.base import clone, is_classifier
 from sklearn.model_selection import check_cv
@@ -276,7 +277,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, scoring=None,
 
         result['concat_time'] = time() - tic
 
-    result['datetime'] = datetime.date.today()
+    result['datetime'] = datetime.now()
     result['features'] = list(X.columns)
     result['cv'] = cv
 
