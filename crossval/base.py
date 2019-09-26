@@ -240,7 +240,8 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, scoring=None,
             logmsg('Fitting full train set...')
 
         result_new = _fit_predict(clone(estimator), method, None, X, y, X_new,
-            None, None, return_pred, return_estimator, -1, None)
+                                  return_estimator=return_estimator,
+                                  return_pred=return_pred, idx=-1)
 
         result = ld2dl(result)
         for key, val in result_new.items():
@@ -263,7 +264,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, scoring=None,
 
         if 'new_pred' in result:
             new_preds = result['new_pred']
-            new_pred = _avg_preds(new_preds, avg, X, y)
+            new_pred = _avg_preds(new_preds, avg, X_new, y)
             result['new_pred'] = new_pred
 
         if 'importance' in result:

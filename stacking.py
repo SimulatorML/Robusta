@@ -371,3 +371,8 @@ class StackingClassifier(StackingTransformer, ClassifierMixin):
         y = self.meta_estimator_.predict_proba(S)
 
         return y
+
+
+    @property
+    def classes_(self):
+        return self.meta_estimator_.classes_

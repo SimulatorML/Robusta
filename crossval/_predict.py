@@ -173,14 +173,15 @@ def _predict(estimator, method, X, y):
         Computed predictions
 
     """
-    Y = pd.DataFrame(Y)
+    Y = pd.DataFrame(y)
+
+    name = estimator.__class__.__name__
 
     # Call method
     action = getattr(estimator, method, None)
     if action:
         P = action(X)
     else:
-        name = estimator.__class__.__name__
         raise AttributeError("<{}> has no method <{}>".format(name, method))
 
     # Format
@@ -197,8 +198,6 @@ def _predict(estimator, method, X, y):
 
     elif is_classifier(estimator):
         # [classifier + predict_proba]
-        name = get_model_name(estimator)
-
         if name in ['MultiOutputClassifier', 'MultiTargetClassifier']:
             # Multiple output classifier
             Classes = [e.classes_ for e in estimator.estimators_]
