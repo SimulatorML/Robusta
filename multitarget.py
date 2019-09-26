@@ -8,7 +8,7 @@ from sklearn.base import clone, is_regressor, is_classifier
 from sklearn.utils.validation import check_is_fitted
 from sklearn.utils.fixes import parallel_helper
 
-from robusta.crossval.crossval import _short_binary
+from robusta.crossval._predict import _short_binary
 
 
 __all__ = [

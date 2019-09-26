@@ -12,8 +12,8 @@ from sklearn.base import (
     ClassifierMixin,
 )
 
-from ._predict import _predict, _check_avg, _avg_preds
-from .base import crossval
+from robusta.crossval._predict import _predict, _check_avg, _avg_preds
+from robusta.crossval.base import crossval
 
 
 __all__ = [
@@ -112,7 +112,7 @@ class StackingTransformer(BaseEstimator, TransformerMixin):
         self.scores_std_ = []
         self.scores_ = []
 
-        cv = check_cv(self.cv, y is_classifier(self.estimators[0]))
+        cv = check_cv(self.cv, y, is_classifier(self.estimators[0]))
         self.folds_ = list(cv.split(X, y, groups))
 
         for name, estimator in self.estimators:
