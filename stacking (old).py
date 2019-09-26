@@ -466,17 +466,3 @@ def _check_footprint(X, footprint, rtol=1e-05, atol=1e-08, equal_nan=False):
         return True
     except AssertionError:
         return False
-
-
-
-def _stack_preds(preds, names, join_X=False, X=None):
-
-    S = pd.concat(preds, axis=1)
-    S.columns = names
-    # FIXME: crashes on non-binary classification
-    # Use MultiIndex columns in this cases
-
-    if join_X:
-        return X.join(S)
-    else:
-        return S
