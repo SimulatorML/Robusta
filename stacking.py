@@ -147,7 +147,7 @@ class StackingTransformer(BaseEstimator, TransformerMixin):
 
 
     def _is_train(self, X):
-        if (X.shape == self._train_shape) and (X.index == self._train_index):
+        if (X.shape is self._train_shape) and (X.index is self._train_index):
             return True
         else:
             return False
