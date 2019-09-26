@@ -274,7 +274,7 @@ class LabelEncoder(BaseEstimator, TransformerMixin):
 
 
 
-class CatConverter1D(BaseEstimator, TransformerMixin):
+class CategoryConverter1D(BaseEstimator, TransformerMixin):
     """Convert categories to 'category' dtype of the same range.
     """
     def __init__(self):
@@ -316,7 +316,7 @@ class CatConverter1D(BaseEstimator, TransformerMixin):
 
 
 
-class CatConverter(BaseEstimator, TransformerMixin):
+class CategoryConverter(BaseEstimator, TransformerMixin):
     """Convert categories to 'category' dtype of the same range.
     """
     def __init__(self):
@@ -338,7 +338,7 @@ class CatConverter(BaseEstimator, TransformerMixin):
         """
         self.transformers = {}
         for col in X.columns:
-            self.transformers[col] = CatConverter1D().fit(X[col])
+            self.transformers[col] = CategoryConverter1D().fit(X[col])
 
         return self
 
