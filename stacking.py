@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 
+from joblib import Parallel, delayed
+
 from robusta.crossval._predict import _predict, _check_avg, _avg_preds
 from robusta.crossval.base import crossval
 
@@ -96,18 +98,23 @@ class StackingTransformer(BaseEstimator, TransformerMixin):
         else:
             S = self._transform(X)
 
-        return X.join(S) if join_X else S
+        if self.join_X:
+            return X.join(S)
+        else:
+            return S
 
 
     def fit(self, X, y, groups=None):
 
-        self._save_train(X)
+        self._save_train(X, y)
         self._fit_1st_layer(X, y, groups)
 
         return self
 
 
     def _fit_1st_layer(self, X, y, groups):
+
+        self.names_ = [name for name, _ in self.estimators]
 
         self.estimators_A_ = []
         self.estimators_B_ = []
@@ -141,9 +148,10 @@ class StackingTransformer(BaseEstimator, TransformerMixin):
         return self
 
 
-    def _save_train(self, X):
+    def _save_train(self, X, y):
         self._train_shape = X.shape
         self._train_index = X.index
+        self._y = y.copy()
 
 
     def _is_train(self, X):
@@ -161,13 +169,13 @@ class StackingTransformer(BaseEstimator, TransformerMixin):
             avg, method = _check_avg(estimators[0], self.avg_type, self.method)
 
             preds = Parallel(n_jobs=self.n_jobs)(
-                (delayed(_predict)(estimator, method, X.iloc[oof], y)
-                for estimator, (_, oof) in zip(estimators, self.folds_)))
+                (delayed(_predict)(estimator, method, X.iloc[oof], self._y)
+                for estimator, (trn, oof) in zip(estimators, self.folds_)))
 
-            pred = _avg_preds(preds, avg, X, y)
+            pred = _avg_preds(preds, avg, X, self._y)
             pred_list.append(pred)
 
-        S = pd.concat(pred_list, axis=1) # TODO: estimators' names
+        S = _stack_preds(pred_list, self.names_)
         return S
 
 
@@ -184,13 +192,13 @@ class StackingTransformer(BaseEstimator, TransformerMixin):
             avg, method = _check_avg(estimators[0], self.avg_type, self.method)
 
             preds = Parallel(n_jobs=self.n_jobs)(
-                (delayed(_predict)(estimator, method, X, y)
+                (delayed(_predict)(estimator, method, X, self._y)
                 for estimator in estimators))
 
-            pred = _avg_preds(preds, avg, X, y)
+            pred = _avg_preds(preds, avg, X, self._y)
             pred_list.append(pred)
 
-        S = pd.concat(pred_list, axis=1) # TODO: estimators' names
+        S = _stack_preds(pred_list, self.names_)
         return S
 
 
@@ -253,7 +261,7 @@ class StackingRegressor(StackingTransformer, RegressorMixin):
 
     def fit(self, X, y, groups=None):
 
-        self._save_train(X)
+        self._save_train(X, y)
         self._fit_1st_layer(X, y, groups)
         self._fit_2nd_layer(X, y, groups)
 
@@ -344,7 +352,7 @@ class StackingClassifier(StackingTransformer, ClassifierMixin):
 
     def fit(self, X, y, groups=None):
 
-        self._save_train(X)
+        self._save_train(X, y)
         self._fit_1st_layer(X, y, groups)
         self._fit_2nd_layer(X, y, groups)
 
@@ -376,3 +384,17 @@ class StackingClassifier(StackingTransformer, ClassifierMixin):
     @property
     def classes_(self):
         return self.meta_estimator_.classes_
+
+
+
+def _stack_preds(pred_list, names):
+
+    for name, pred in zip(names, pred_list):
+        if hasattr(pred, 'columns'):
+            cols = ['{}__{}'.format(name, col) for col in pred.columns]
+            pred.columns = cols
+        else:
+            pred.name = name
+
+    pred = pd.concat(pred_list, axis=1)
+    return pred
