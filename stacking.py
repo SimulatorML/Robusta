@@ -1,6 +1,9 @@
 import pandas as pd
 import numpy as np
 
+from robusta.crossval._predict import _predict, _check_avg, _avg_preds
+from robusta.crossval.base import crossval
+
 from sklearn.model_selection import check_cv
 from sklearn.base import (
     clone,
@@ -11,9 +14,6 @@ from sklearn.base import (
     RegressorMixin,
     ClassifierMixin,
 )
-
-from robusta.crossval._predict import _predict, _check_avg, _avg_preds
-from robusta.crossval.base import crossval
 
 
 __all__ = [
@@ -71,7 +71,8 @@ class StackingTransformer(BaseEstimator, TransformerMixin):
 
     '''
     def __init__(self, estimators, cv=5, scoring=None, test_avg=True, avg_type='auto',
-                 method='predict', join_X=False, n_jobs=-1, verbose=0, n_digits=4):
+                 method='predict', join_X=False, n_jobs=-1, verbose=0, n_digits=4,
+                 random_state=0):
 
         self.estimators = estimators
         self.cv = cv
@@ -85,6 +86,7 @@ class StackingTransformer(BaseEstimator, TransformerMixin):
         self.n_jobs = n_jobs
         self.verbose = verbose
         self.n_digits = n_digits
+        self.random_state = random_state
 
 
     def transform(self, X):
@@ -119,10 +121,10 @@ class StackingTransformer(BaseEstimator, TransformerMixin):
 
             result = crossval(estimator, self.folds_, X, y, groups, X_new=None,
                               test_avg=self.test_avg, avg_type=self.avg_type,
-                              verbose=self.verbose, n_digits=self.n_digits,
                               scoring=self.scoring, method=self.method,
-                              return_pred=False, return_estimator=True,
-                              n_jobs=self.n_jobs)
+                              verbose=self.verbose, n_digits=self.n_digits,
+                              random_state=self.random_state, n_jobs=self.n_jobs,
+                              return_estimator=True)
 
             estimators = result['estimator']
             if self.test_avg:
@@ -232,8 +234,8 @@ class StackingRegressor(StackingTransformer, RegressorMixin):
         Verbose score precision
 
     '''
-    def __init__(self, estimators, meta_estimator, cv=5, scoring=None,
-                 test_avg=True, join_X=False, n_jobs=-1, verbose=0, n_digits=4):
+    def __init__(self, estimators, meta_estimator, cv=5, scoring=None, test_avg=True,
+                 join_X=False, n_jobs=-1, verbose=0, n_digits=4, random_state=0):
 
         self.estimators = estimators
         self.meta_estimator = meta_estimator
@@ -246,6 +248,7 @@ class StackingRegressor(StackingTransformer, RegressorMixin):
         self.n_jobs = n_jobs
         self.verbose = verbose
         self.n_digits = n_digits
+        self.random_state = random_state
 
 
     def fit(self, X, y, groups=None):
@@ -321,7 +324,7 @@ class StackingClassifier(StackingTransformer, ClassifierMixin):
     '''
     def __init__(self, estimators, meta_estimator, cv=5, scoring=None,
                  test_avg=True, avg_type='auto', method='predict', join_X=False,
-                 n_jobs=-1, verbose=0, n_digits=4):
+                 n_jobs=-1, verbose=0, n_digits=4, random_state=0):
 
         self.estimators = estimators
         self.meta_estimator = meta_estimator
@@ -336,6 +339,7 @@ class StackingClassifier(StackingTransformer, ClassifierMixin):
         self.n_jobs = n_jobs
         self.verbose = verbose
         self.n_digits = n_digits
+        self.random_state = random_state
 
 
     def fit(self, X, y, groups=None):

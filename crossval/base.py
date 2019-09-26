@@ -30,7 +30,8 @@ __all__ = [
 
 def crossval(estimator, cv, X, y, groups=None, X_new=None, scoring=None,
              test_avg=True, avg_type='auto', method='predict', return_pred=True,
-             return_estimator=False, verbose=2, n_digits=4, n_jobs=-1):
+             return_estimator=False, verbose=2, n_digits=4, n_jobs=-1,
+             random_state=0):
     """Evaluate metric(s) by cross-validation and also record fit/score time,
     feature importances and compute out-of-fold and test predictions.
 
@@ -142,6 +143,9 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, scoring=None,
     n_digits : int (default=4)
         Verbose score(s) precision
 
+    random_state : int (default=0)
+        Cross-Validation seed
+
 
     Returns
     -------
@@ -201,7 +205,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, scoring=None,
     X_new, _ = indexable(X_new, None)
 
     cv = check_cv(cv, y, classifier=is_classifier(estimator))
-    if hasattr(cv, 'random_state') and cv.random_state is None:
+    if hasattr(cv, 'random_state'):
         cv.random_state = random_state
 
     avg, method = _check_avg(estimator, avg_type, method)
@@ -289,7 +293,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, scoring=None,
 
 
 def crossval_score(estimator, cv, X, y, groups=None, scoring=None, n_jobs=-1,
-                   verbose=2, n_digits=4):
+                   verbose=2, n_digits=4, random_state=0):
     """Evaluate metric(s) by cross-validation and also record fit/score time,
     feature importances and compute out-of-fold and test predictions.
 
@@ -336,6 +340,9 @@ def crossval_score(estimator, cv, X, y, groups=None, scoring=None, n_jobs=-1,
     n_digits : int (default=4)
         Verbose score(s) precision
 
+    random_state : int (default=0)
+        Cross-Validation seed
+
 
     Returns
     -------
@@ -345,7 +352,8 @@ def crossval_score(estimator, cv, X, y, groups=None, scoring=None, n_jobs=-1,
 
     """
     result = crossval(estimator, cv, X, y, groups, n_digits=n_digits,
-                      scoring=scoring, n_jobs=n_jobs, verbose=verbose)
+                      scoring=scoring, n_jobs=n_jobs, verbose=verbose,
+                      random_state=random_state)
 
     scores = result['score']
     return scores
@@ -353,9 +361,9 @@ def crossval_score(estimator, cv, X, y, groups=None, scoring=None, n_jobs=-1,
 
 
 
-def crossval_predict(estimator, cv, X, y, groups=None, X_new=None,
-                     test_avg=True, avg_type='auto', method='predict',
-                     scoring=None, n_jobs=-1, verbose=0, n_digits=4):
+def crossval_predict(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
+                     avg_type='auto', method='predict', scoring=None, n_jobs=-1,
+                     verbose=0, n_digits=4, random_state=0):
     """Get Out-of-Fold and Test predictions.
 
     Parameters
@@ -455,6 +463,9 @@ def crossval_predict(estimator, cv, X, y, groups=None, X_new=None,
     n_digits : int (default=4)
         Verbose score(s) precision
 
+    random_state : int (default=0)
+        Cross-Validation seed
+
 
     Returns
     -------
@@ -468,7 +479,8 @@ def crossval_predict(estimator, cv, X, y, groups=None, X_new=None,
     """
     result = crossval(estimator, cv, X, y, groups, X_new=X_new, scoring=scoring,
                       avg_type=avg_type, method=method, test_avg=test_avg,
-                      n_jobs=n_jobs, verbose=verbose, n_digits=n_digits)
+                      n_jobs=n_jobs, verbose=verbose, n_digits=n_digits,
+                      random_state=random_state)
 
     oof_pred = result['oof_pred'] if 'oof_pred' in result else None
     new_pred = result['new_pred'] if 'new_pred' in result else None
