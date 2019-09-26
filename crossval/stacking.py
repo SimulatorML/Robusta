@@ -25,7 +25,7 @@ __all__ = [
 
 
 class StackingTransformer(BaseEstimator, TransformerMixin):
-    '''Stacking (CV) Transformer
+    '''Stacking Transformer with inbuilt Cross-Validation
 
     Parameters
     ----------
@@ -52,7 +52,7 @@ class StackingTransformer(BaseEstimator, TransformerMixin):
     avg_type : string, {'soft', 'hard', 'auto', 'rank'} (default='auto')
         Averaging strategy for aggregating different CV folds predictions.
 
-        See robusta.crossval for details.
+        See 'crossval' from 'robusta.crossval' for details.
 
     method : {'predict', 'predict_proba'}, optional (defaul='predict')
         Invokes the passed method name of the passed estimators.
@@ -70,7 +70,6 @@ class StackingTransformer(BaseEstimator, TransformerMixin):
         Verbose score precision
 
     '''
-
     def __init__(self, estimators, cv=5, scoring=None, test_avg=True, avg_type='auto',
                  method='predict', join_X=False, n_jobs=-1, verbose=0, n_digits=4):
 
@@ -196,7 +195,43 @@ class StackingTransformer(BaseEstimator, TransformerMixin):
 
 
 class StackingRegressor(StackingTransformer, RegressorMixin):
+    '''Stacking Regressor with inbuilt Cross-Validation
 
+    Parameters
+    ----------
+    estimators : list
+        List of (name, estimator) tuples (implementing fit/predict).
+
+    cv : int, cross-validation generator or an iterable
+        Determines the cross-validation splitting strategy:
+
+        - None, use non-CV predictions
+        - integer, to specify the number of folds in a `(Stratified)KFold`,
+        - An iterable yielding (train, test) splits as arrays of indices.
+
+    scoring : string, callable or None, optional, default: None
+        A string or a scorer callable object / function with signature
+        ``scorer(estimator, X, y)`` which should return only a single value.
+        If None, the estimator's default scorer (if available) is used.
+
+    test_avg : bool (default=True)
+        Stacking strategy (essential parameter).
+
+        See 'crossval' from 'robusta.crossval' for details.
+
+    join_X : bool (default=False)
+        If True, concatenate stacked predictions with the original data
+
+    n_jobs : int or None, optional (default=-1)
+        Number of jobs to run in parallel. None means 1.
+
+    verbose : int (default=1)
+        Verbosity level
+
+    n_digits : int (default=4)
+        Verbose score precision
+
+    '''
     def __init__(self, estimators, meta_estimator, cv=5, scoring=None,
                  test_avg=True, join_X=False, n_jobs=-1, verbose=0, n_digits=4):
 
@@ -239,10 +274,54 @@ class StackingRegressor(StackingTransformer, RegressorMixin):
 
 
 class StackingClassifier(StackingTransformer, ClassifierMixin):
+    '''Stacking Transformer with inbuilt Cross-Validation
 
+    Parameters
+    ----------
+    estimators : list
+        List of (name, estimator) tuples (implementing fit/predict).
+
+    cv : int, cross-validation generator or an iterable
+        Determines the cross-validation splitting strategy:
+
+        - None, use non-CV predictions
+        - integer, to specify the number of folds in a `(Stratified)KFold`,
+        - An iterable yielding (train, test) splits as arrays of indices.
+
+    scoring : string, callable or None, optional, default: None
+        A string or a scorer callable object / function with signature
+        ``scorer(estimator, X, y)`` which should return only a single value.
+        If None, the estimator's default scorer (if available) is used.
+
+    test_avg : bool (default=True)
+        Stacking strategy (essential parameter).
+
+        See robusta.crossval for details.
+
+    avg_type : string, {'soft', 'hard', 'auto', 'rank'} (default='auto')
+        Averaging strategy for aggregating different CV folds predictions.
+
+        See 'crossval' from 'robusta.crossval' for details.
+
+    method : {'predict', 'predict_proba'}, optional (defaul='predict')
+        Invokes the passed method name of the passed estimators.
+
+    join_X : bool (default=False)
+        If True, concatenate stacked predictions with the original data
+
+    n_jobs : int or None, optional (default=-1)
+        Number of jobs to run in parallel. None means 1.
+
+    verbose : int (default=1)
+        Verbosity level
+
+    n_digits : int (default=4)
+        Verbose score precision
+
+    '''
     def __init__(self, estimators, meta_estimator, cv=5, scoring=None,
                  test_avg=True, avg_type='auto', method='predict', join_X=False,
-                 n_jobs=-1, verbose=0):
+                 n_jobs=-1, verbose=0, n_digits=4):
 
         self.estimators = estimators
         self.meta_estimator = meta_estimator
