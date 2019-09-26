@@ -106,6 +106,9 @@ class StackingTransformer(BaseEstimator, TransformerMixin):
 
     def fit(self, X, y, groups=None):
 
+        _check_estimator_types(self.estimators)
+        _check_estimator_names(self.estimators)
+
         self._save_train(X, y)
         self._fit_1st_layer(X, y, groups)
 
@@ -261,6 +264,9 @@ class StackingRegressor(StackingTransformer, RegressorMixin):
 
     def fit(self, X, y, groups=None):
 
+        _check_estimator_types(self.estimators, 'regressor')
+        _check_estimator_names(self.estimators)
+
         self._save_train(X, y)
         self._fit_1st_layer(X, y, groups)
         self._fit_2nd_layer(X, y, groups)
@@ -268,7 +274,7 @@ class StackingRegressor(StackingTransformer, RegressorMixin):
         return self
 
 
-    def _fit_2nd_layer(self, X, y):
+    def _fit_2nd_layer(self, X, y, groups):
 
         S = self.transform(X)
         self.meta_estimator_ = clone(self.meta_estimator).fit(S, y)
@@ -352,6 +358,9 @@ class StackingClassifier(StackingTransformer, ClassifierMixin):
 
     def fit(self, X, y, groups=None):
 
+        _check_estimator_types(self.estimators, 'classifier')
+        _check_estimator_names(self.estimators)
+
         self._save_train(X, y)
         self._fit_1st_layer(X, y, groups)
         self._fit_2nd_layer(X, y, groups)
@@ -359,7 +368,7 @@ class StackingClassifier(StackingTransformer, ClassifierMixin):
         return self
 
 
-    def _fit_2nd_layer(self, X, y):
+    def _fit_2nd_layer(self, X, y, groups):
 
         S = self.transform(X)
         self.meta_estimator_ = clone(self.meta_estimator).fit(S, y)
@@ -398,3 +407,26 @@ def _stack_preds(pred_list, names):
 
     pred = pd.concat(pred_list, axis=1)
     return pred
+
+
+
+def _check_estimator_types(estimators, allow_types=['classifier', 'regressor']):
+
+    est_types = np.array([e._estimator_type for _, e in estimators])
+    allow_types = np.array(allow_types)
+
+    if not (est_types == est_types[0]).all():
+        raise ValueError('Estimator types must be the same')
+
+    if not (allow_types == est_types[0]).any():
+        raise ValueError('Estimator types must be in: {}'.format(allow_types))
+
+
+
+def _check_estimator_names(estimators):
+
+    names = np.array([name for name, _ in estimators])
+    unames = np.unique(names)
+
+    if unames.shape != names.shape:
+        raise ValueError('Estimator names must be unique')
