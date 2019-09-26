@@ -72,9 +72,9 @@ class StackingTransformer(BaseEstimator, TransformerMixin):
         Verbose score precision
 
     '''
-    def __init__(self, estimators, cv=5, scoring=None, test_avg=True, avg_type='auto',
-                 method='predict', join_X=False, n_jobs=-1, verbose=0, n_digits=4,
-                 random_state=0):
+    def __init__(self, estimators, cv=5, scoring=None, test_avg=True,
+                 avg_type='auto', method='predict', join_X=False, n_jobs=-1,
+                 verbose=0, n_digits=4, random_state=0):
 
         self.estimators = estimators
         self.cv = cv
@@ -245,8 +245,9 @@ class StackingRegressor(StackingTransformer, RegressorMixin):
         Verbose score precision
 
     '''
-    def __init__(self, estimators, meta_estimator, cv=5, scoring=None, test_avg=True,
-                 join_X=False, n_jobs=-1, verbose=0, n_digits=4, random_state=0):
+    def __init__(self, estimators, meta_estimator, cv=5, scoring=None,
+                 test_avg=True, join_X=False, n_jobs=-1, verbose=0, n_digits=4,
+                 random_state=0):
 
         self.estimators = estimators
         self.meta_estimator = meta_estimator
