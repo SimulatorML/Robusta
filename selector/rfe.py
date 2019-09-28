@@ -237,6 +237,13 @@ class PermutationRFE(RFE):
 
 
 
+# TODO: _extract_importances
+def _extract_importances(estimators):
+    importances = [get_importance(e) for e in estimators]
+    return importances
+
+
+
 
 def _select_k_best(scores, k_best):
 
