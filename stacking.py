@@ -413,13 +413,13 @@ def _stack_preds(pred_list, names):
 
 def _check_estimator_types(estimators, allow_types=['classifier', 'regressor']):
 
-    est_types = np.array([e._estimator_type for _, e in estimators])
+    estimator_types = np.array([e._estimator_type for _, e in estimators])
     allow_types = np.array(allow_types)
 
-    if not (est_types == est_types[0]).all():
+    if not (estimator_types == estimator_types[0]).all():
         raise ValueError('Estimator types must be the same')
 
-    if not (allow_types == est_types[0]).any():
+    if not (allow_types == estimator_types[0]).any():
         raise ValueError('Estimator types must be in: {}'.format(allow_types))
 
 
