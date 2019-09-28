@@ -332,8 +332,8 @@ class ColumnRenamer(BaseEstimator, TransformerMixin):
         column name. Both equals to empty string ('') by default (do nothing).
 
     '''
-    def __init__(self, body=None, prefix='', suffix=''):
-        self.body = body
+    def __init__(self, column=None, prefix='', suffix=''):
+        self.column = column
         self.prefix = prefix
         self.suffix = suffix
 
@@ -351,11 +351,11 @@ class ColumnRenamer(BaseEstimator, TransformerMixin):
         self
 
         '''
-        if self.body:
-            if isinstance(self.body, str):
-                features = [self.body + str(x) for x in range(X.shape[1])]
-            elif hasattr(self.body, '__iter__') and len(self.body) is X.shape[1]:
-                features = self.body
+        if self.column:
+            if isinstance(self.column, str):
+                features = [self.column + str(x) for x in range(X.shape[1])]
+            elif hasattr(self.column, '__iter__') and len(self.column) is X.shape[1]:
+                features = self.column
             else:
                 raise ValueError('Unknown <body> type passed')
         else:
