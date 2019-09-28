@@ -3,7 +3,9 @@ import numpy as np
 
 from time import time
 
+from sklearn.utils.metaestimators import _safe_split
 from sklearn.base import is_classifier, is_regressor
+
 from robusta.importance import get_importance
 
 
@@ -99,12 +101,12 @@ def _fit_predict(estimator, method, scorer, X, y, X_new=None, trn=None, oof=None
     result = {}
 
     # Data
-    new = np.arange(len(X_new)) if X_new is not None else np.arange(0)
-    trn = np.arange(len(X)) if trn is None else trn
+    new = np.arange(X_new.shape[0]) if X_new is not None else np.arange(0)
+    trn = np.arange(X.shape[0]) if trn is None else trn
     oof = np.arange(0) if oof is None else oof
 
-    X_trn, y_trn = X.iloc[trn], y.iloc[trn]
-    X_oof, y_oof = X.iloc[oof], y.iloc[oof]
+    X_trn, y_trn = _safe_split(estimator, X, y, trn)
+    X_oof, y_oof = _safe_split(estimator, X, y, oof)
 
     # Estimator
     tic = time()
@@ -185,10 +187,14 @@ def _predict(estimator, method, X, y):
         raise AttributeError("<{}> has no method <{}>".format(name, method))
 
     # Format
-    if isinstance(P, list):
+    if not hasattr(X, 'index'):
+        # if X is not DataFrame
+        return P
+    elif isinstance(P, list):
         P = [pd.DataFrame(p, index=X.index) for p in P]
     else:
         P = [pd.DataFrame(P, index=X.index)]
+
 
     P = pd.concat(P, axis=1)
 

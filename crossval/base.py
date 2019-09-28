@@ -279,8 +279,9 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, scoring=None,
 
         result['concat_time'] = time() - tic
 
+    if hasattr(X, 'columns'):
+        result['features'] = list(X.columns)
     result['datetime'] = datetime.now()
-    result['features'] = list(X.columns)
     result['cv'] = cv
 
     # Final score
