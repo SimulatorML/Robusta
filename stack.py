@@ -22,6 +22,7 @@ __all__ = [
     'StackingTransformer',
     'StackingClassifier',
     'StackingRegressor',
+    'stack_preds',
 ]
 
 
@@ -178,7 +179,7 @@ class StackingTransformer(BaseEstimator, TransformerMixin):
             pred = _avg_preds(preds, avg, X, self._y)
             pred_list.append(pred)
 
-        S = _stack_preds(pred_list, self.names_)
+        S = stack_preds(pred_list, self.names_)
         return S
 
 
@@ -201,7 +202,7 @@ class StackingTransformer(BaseEstimator, TransformerMixin):
             pred = _avg_preds(preds, avg, X, self._y)
             pred_list.append(pred)
 
-        S = _stack_preds(pred_list, self.names_)
+        S = stack_preds(pred_list, self.names_)
         return S
 
 
@@ -397,7 +398,7 @@ class StackingClassifier(StackingTransformer, ClassifierMixin):
 
 
 
-def _stack_preds(pred_list, names):
+def stack_preds(pred_list, names):
 
     for name, pred in zip(names, pred_list):
         if hasattr(pred, 'columns'):
