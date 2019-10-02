@@ -402,7 +402,8 @@ def stack_preds(pred_list, names):
 
     for name, pred in zip(names, pred_list):
         if hasattr(pred, 'columns'):
-            cols = ['{}__{}'.format(name, col) for col in pred.columns]
+            cols = [(col, name) for col in pred.columns]
+            cols = pd.MultiIndex.from_tuples(cols)
             pred.columns = cols
         else:
             pred.name = name
