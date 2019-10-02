@@ -235,13 +235,16 @@ class GreedSelector(EmbeddedSelector):
 
     def _subsample_features(self, features):
 
-        features = list(features)
-        n_features = len(features)
+        # TODO: random subsample
+        
+        #features = list(features)
+        #n_features = len(features)
 
-        random_subset = _check_subsample(self.max_candidates, n_features)
-        subset = self.rstate_.choice(features, random_subset, replace=False)
+        #random_subset = _check_subsample(self.max_candidates, n_features)
+        #subset = self.rstate_.choice(features, random_subset, replace=False)
 
-        return set(subset)
+        #return set(subset)
+        return features
 
 
 
