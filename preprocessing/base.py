@@ -104,13 +104,6 @@ class ColumnSelector(BaseEstimator, TransformerMixin):
             This estimator.
 
         '''
-        if isinstance(self.columns, str):
-            self.columns_ = self.columns
-        elif isinstance(self.columns, Iterable):
-            self.columns_ = list(self.columns)
-        else:
-            self.columns_ = X.columns
-
         return self
 
 
@@ -128,11 +121,18 @@ class ColumnSelector(BaseEstimator, TransformerMixin):
             Transformed input.
 
         """
+        if isinstance(self.columns, str):
+            columns = self.columns
+        elif isinstance(self.columns, Iterable):
+            columns = self.columns
+        else:
+            columns = X.columns
+
         try:
-            return X[self.columns_]
+            return X[columns]
 
         except KeyError:
-            cols_error = list(set(self.columns_) - set(X.columns))
+            cols_error = list(set(columns) - set(X.columns))
             raise KeyError("The DataFrame does not include the "
                            "columns: %s" % cols_error)
 
