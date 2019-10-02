@@ -144,8 +144,7 @@ from xgboost import XGBRegressor, XGBClassifier
 #from xlearn import FMModel, FFMModel
 from skrvm import RVR, RVC
 #from pyearth import Earth
-
-from ._blend import *
+from robusta.blend import *
 from ._nng import NonNegativeGarrote
 
 
@@ -153,8 +152,8 @@ from ._nng import NonNegativeGarrote
 
 MODELS = {
     'Blend': {
-        'regressor': BlendRegressor,
-        'classifier': BlendClassifier,
+        'regressor': BlendingRegressor,
+        'classifier': BlendingClassifier,
     },
     'LinReg': {
         'regressor': LinearRegression
