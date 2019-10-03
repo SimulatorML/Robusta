@@ -69,7 +69,7 @@ class BaseBlending(LinearModel):
         if self._estimator_type is 'classifier':
             self.classes_ = np.unique(y)
 
-        self.avg = check_avg(self.avg_type)
+        self.avg = check_avg(self.avg_type, X)
 
         self.n_features_ = X.shape[1]
         self.weights = weights
@@ -150,7 +150,6 @@ class BlendingClassifier(BaseBlending, ClassifierMixin):
 
 AVG_TYPES = {
     'mean': lambda X, w: X.dot(w),
-    'rank': lambda X, w: X.rank(pct=True).dot(w).rank(pct=True),
     'gmean': lambda X, w: np.exp(np.log(X).dot(w)),
     'hmean': lambda X, w: 1/(X**-1).dot(w),
 }
@@ -158,11 +157,21 @@ AVG_TYPES = {
 
 
 
-def check_avg(avg_type):
-    if avg_type in AVG_TYPES:
-        return AVG_TYPES[avg_type]
-    elif hasattr(avg_type, '__call__'):
+def check_avg(avg_type, X):
+
+    avg_types = list(AVG_TYPES) + ['rank']
+
+    if hasattr(avg_type, '__call__'):
         return avg_type
+
+    elif avg_type is AVG_TYPES:
+        return AVG_TYPES[avg_type]
+
+    elif avg_type is 'rank':
+        ranker = RankTransformer(len(X)).fit(X)
+        avg = lambda X, w: ranker.transform(X).dot(w)
+        return avg
+
     else:
         raise ValueError('Invalid value for <avg_type>. '
-                         'Allowed values: {}.'.format(list(AVG_TYPES)))
+                         'Allowed values: {}.'.format(avg_types)

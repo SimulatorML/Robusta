@@ -207,7 +207,7 @@ class GaussRank(BaseEstimator, TransformerMixin):
         """
         Xt = X.copy() if self.copy else X
 
-        Xt = RankTransform(pct=True).fit_transform(X) - 0.5
+        Xt = RankTransformer(pct=True).fit_transform(X) - 0.5
         Xt = MaxAbsScaler().fit_transform(Xt) * (1 - self.eps)
         Xt = scipy.special.erfinv(Xt)
 
@@ -216,7 +216,7 @@ class GaussRank(BaseEstimator, TransformerMixin):
 
 
 
-class RankTransform(BaseEstimator, TransformerMixin):
+class RankTransformer(BaseEstimator, TransformerMixin):
     '''Compute numerical data ranks (1 through n) along axis. Equal values are
     assigned a rank that is the average of the ranks of those values.
 
@@ -224,29 +224,6 @@ class RankTransform(BaseEstimator, TransformerMixin):
     ----------
     copy : boolean, optional, default True
         Set to False to perform inplace row normalization and avoid a copy.
-
-    method : {'average', 'min', 'max', 'first', 'dense'}
-
-        - 'average': average rank of group
-        - 'min': lowest rank in group
-        - 'max': highest rank in group
-        - 'first': ranks assigned in order they appear in the array
-        - 'dense': like 'min', but rank always increases by 1 between groups
-
-    numeric_only : boolean, default None
-        Include only float, int, boolean data. Valid only for DataFrame or Panel
-
-    na_option : {'keep', 'top', 'bottom'}
-
-        - 'keep': leave NA values where they are
-        - 'top': smallest rank if ascending
-        - 'bottom': smallest rank if descending
-
-    ascending : boolean, default True
-        False for ranks by high (1) to low (N)
-
-    pct : boolean, default False
-        Computes percentage rank of data
 
     '''
     def __init__(self, copy=True, **params):
@@ -267,6 +244,7 @@ class RankTransform(BaseEstimator, TransformerMixin):
         self
 
         '''
+        self.transformer = QuantileTransformer(len(X), **self.params).fit(X)
         return self
 
 
@@ -285,7 +263,8 @@ class RankTransform(BaseEstimator, TransformerMixin):
 
         """
         Xt = X.copy() if self.copy else X
-        return Xt.rank(axis=0, **self.params)
+        Xt.loc[:,:] = self.transformer.transform(X)
+        return Xt
 
 
 

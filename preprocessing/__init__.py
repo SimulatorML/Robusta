@@ -15,7 +15,7 @@ __all__ = [
     # Numeric
     'DowncastTransformer',
     'GaussRank',
-    'RankTransform',
+    'RankTransformer',
     'MaxAbsScaler',
     'SyntheticFeatures',
 
