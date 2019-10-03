@@ -147,6 +147,8 @@ class GreedSelector(EmbeddedSelector):
                 try:
                     result = self._eval_subset(candidate, X, y, groups)
                     feature_scores[feature] = np.mean(result['score'])
+                except KeyboardInterrupt:
+                    raise
                 except:
                     feature_scores[feature] = np.nan
 
@@ -197,6 +199,8 @@ class GreedSelector(EmbeddedSelector):
                 try:
                     result = self._eval_subset(candidate, X, y, groups)
                     feature_scores[feature] = np.mean(result['score'])
+                except KeyboardInterrupt:
+                    raise
                 except:
                     feature_scores[feature] = np.nan
 
@@ -229,14 +233,14 @@ class GreedSelector(EmbeddedSelector):
             return list(self.last_subset_)
 
         else:
-            raise NotFittedError('<ExhaustiveSelector> is not fitted')
+            raise NotFittedError('<GreedSelector> is not fitted')
 
 
 
     def _subsample_features(self, features):
 
         # TODO: random subsample
-        
+
         #features = list(features)
         #n_features = len(features)
 

@@ -25,10 +25,10 @@ __all__ = [
 
 
 
-def crossval(estimator, cv, X, y, groups=None, X_new=None, scoring=None,
-             test_avg=True, avg_type='auto', method='predict', return_pred=True,
-             return_estimator=False, verbose=2, n_digits=4, n_jobs=-1,
-             random_state=0):
+def crossval(estimator, cv, X, y, groups=None, X_new=None, new_index=None,
+             scoring=None, test_avg=True, avg_type='auto', method='predict',
+             return_pred=True, return_estimator=False, verbose=2, n_digits=4,
+             n_jobs=-1, random_state=0):
     """Evaluate metric(s) by cross-validation and also record fit/score time,
     feature importances and compute out-of-fold and test predictions.
 
@@ -219,8 +219,8 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, scoring=None,
         # Stacking Type A (test averaging = True)
         result = parallel(
             delayed(_fit_predict)(
-                clone(estimator), method, scorer, X, y, X_new, trn, oof,
-                return_pred, return_estimator, i, logger)
+                clone(estimator), method, scorer, X, y, X_new, new_index,
+                trn, oof, return_estimator, return_pred, i, logger)
             for i, (trn, oof) in enumerate(cv.split(X, y, groups)))
 
         result = ld2dl(result)
@@ -230,8 +230,8 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, scoring=None,
         # Stacking Type B (test_averaging = False)
         result = parallel(
             (delayed(_fit_predict)(
-                clone(estimator), method, scorer, X, y, None, trn, oof,
-                return_pred, return_estimator, i, logger)
+                clone(estimator), method, scorer, X, y, None, None, trn, oof,
+                return_estimator, return_pred, i, logger)
             for i, (trn, oof) in enumerate(cv.split(X, y, groups))))
 
         if verbose >= 2:
@@ -239,8 +239,8 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, scoring=None,
             logmsg('Fitting full train set...')
 
         result_new = _fit_predict(clone(estimator), method, None, X, y, X_new,
-                                  return_estimator=return_estimator,
-                                  return_pred=return_pred, idx=-1)
+                                  new_index, None, None, return_estimator,
+                                  return_pred, fold_idx=-1)
 
         result = ld2dl(result)
         for key, val in result_new.items():

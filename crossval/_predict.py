@@ -18,8 +18,9 @@ __all__ = [
 
 
 
-def _fit_predict(estimator, method, scorer, X, y, X_new=None, trn=None, oof=None,
-                 return_pred=False, return_estimator=False, idx=None, logger=None):
+def _fit_predict(estimator, method, scorer, X, y, X_new=None, new_index=None,
+                 trn=None, oof=None, return_estimator=False, return_pred=False,
+                 fold_idx=None, logger=None):
     """Fit estimator and evaluate metric(s), compute OOF predictions & etc.
 
     Parameters
@@ -107,6 +108,7 @@ def _fit_predict(estimator, method, scorer, X, y, X_new=None, trn=None, oof=None
 
     X_trn, y_trn = _safe_split(estimator, X, y, trn)
     X_oof, y_oof = _safe_split(estimator, X, y, oof)
+    oof_index = y_oof.index
 
     # Estimator
     tic = time()
@@ -128,11 +130,11 @@ def _fit_predict(estimator, method, scorer, X, y, X_new=None, trn=None, oof=None
         tic = time()
 
         if len(oof):
-            oof_pred = _predict(estimator, method, X_oof, y)
+            oof_pred = _predict(estimator, method, oof_index, y)
             result['oof_pred'] = oof_pred
 
         if len(new):
-            new_pred = _predict(estimator, method, X_new, y)
+            new_pred = _predict(estimator, method, new_index, y)
             result['new_pred'] = new_pred
 
         result['pred_time'] = time() - tic
@@ -145,13 +147,13 @@ def _fit_predict(estimator, method, scorer, X, y, X_new=None, trn=None, oof=None
 
     # Logs
     if logger:
-        logger.log(idx, result)
+        logger.log(fold_idx, result)
 
     return result
 
 
 
-def _predict(estimator, method, X, y):
+def _predict(estimator, method, x_index, y):
     """Call <method> of fitted <estimator> on data <X>.
 
     Parameters
@@ -162,10 +164,10 @@ def _predict(estimator, method, X, y):
     method : iterable of string
         Feature names
 
-    X : DataFrame, shape [k_samples, k_features]
-        The unseed data to predict
+    x_index : iterable
+        X indices (for fmt)
 
-    Y : string
+    y : string
         The unseed target (format)
 
 
@@ -190,10 +192,10 @@ def _predict(estimator, method, X, y):
     if not hasattr(X, 'index'):
         # if X is not DataFrame
         return P
-    elif isinstance(P, list):
-        P = [pd.DataFrame(p, index=X.index) for p in P]
+    if isinstance(P, list):
+        P = [pd.DataFrame(p, index=x_index) for p in P]
     else:
-        P = [pd.DataFrame(P, index=X.index)]
+        P = [pd.DataFrame(P, index=x_index)]
 
 
     P = pd.concat(P, axis=1)
