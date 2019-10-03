@@ -63,6 +63,10 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, new_index=None,
     X_new : DataFrame, shape [m_samples, n_features] or None
         The unseed data to predict (test set)
 
+    new_index : iterable or None
+        Indices for test set if passed X_new is not DataFrames.
+        Ignored if X_new is DataFrame or None.
+
     test_avg : bool
         Stacking strategy (essential parameter)
 
@@ -361,9 +365,9 @@ def crossval_score(estimator, cv, X, y, groups=None, scoring=None, n_jobs=-1,
 
 
 
-def crossval_predict(estimator, cv, X, y, groups=None, X_new=None, test_avg=True,
-                     avg_type='auto', method='predict', scoring=None, n_jobs=-1,
-                     verbose=0, n_digits=4, random_state=0):
+def crossval_predict(estimator, cv, X, y, groups=None, X_new=None, new_index=None,
+                     test_avg=True, avg_type='auto', method='predict', scoring=None,
+                     n_jobs=-1, verbose=0, n_digits=4, random_state=0):
     """Get Out-of-Fold and Test predictions.
 
     Parameters
@@ -399,6 +403,10 @@ def crossval_predict(estimator, cv, X, y, groups=None, X_new=None, test_avg=True
 
     X_new : DataFrame, shape [m_samples, n_features] or None
         The unseed data to predict (test set)
+
+    new_index : iterable or None
+        Indices for test set if passed X_new is not DataFrames.
+        Ignored if X_new is DataFrame or None.
 
     test_avg : bool
         Stacking strategy (essential parameter)

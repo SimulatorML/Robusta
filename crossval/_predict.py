@@ -108,7 +108,9 @@ def _fit_predict(estimator, method, scorer, X, y, X_new=None, new_index=None,
 
     X_trn, y_trn = _safe_split(estimator, X, y, trn)
     X_oof, y_oof = _safe_split(estimator, X, y, oof)
-    oof_index = y_oof.index
+
+    oof_index = getattr(X_oof, 'index', y_oof.index)
+    new_index = getattr(X_new, 'index', new_index)
 
     # Estimator
     tic = time()
