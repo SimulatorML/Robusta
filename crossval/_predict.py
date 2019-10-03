@@ -132,11 +132,11 @@ def _fit_predict(estimator, method, scorer, X, y, X_new=None, new_index=None,
         tic = time()
 
         if len(oof):
-            oof_pred = _predict(estimator, method, oof_index, y)
+            oof_pred = _predict(estimator, method, X_oof, y, oof_index)
             result['oof_pred'] = oof_pred
 
         if len(new):
-            new_pred = _predict(estimator, method, new_index, y)
+            new_pred = _predict(estimator, method, X_new, y, new_index)
             result['new_pred'] = new_pred
 
         result['pred_time'] = time() - tic
@@ -155,7 +155,7 @@ def _fit_predict(estimator, method, scorer, X, y, X_new=None, new_index=None,
 
 
 
-def _predict(estimator, method, x_index, y):
+def _predict(estimator, method, X, y, index):
     """Call <method> of fitted <estimator> on data <X>.
 
     Parameters
@@ -166,12 +166,15 @@ def _predict(estimator, method, x_index, y):
     method : iterable of string
         Feature names
 
-    x_index : iterable
-        X indices (for fmt)
+    X : DataFrame or 2d-array
+        Data to predict
 
     y : string
-        The unseed target (format)
+        Target (used for prediction formatting).
+        Could be already seen.
 
+    index : iterable
+        X indices (used for prediction formatting).
 
     Returns
     -------
@@ -191,13 +194,12 @@ def _predict(estimator, method, x_index, y):
         raise AttributeError("<{}> has no method <{}>".format(name, method))
 
     # Format
-    if not hasattr(X, 'index'):
-        # if X is not DataFrame
-        return P
+    index = getattr(X, 'index', index)
+
     if isinstance(P, list):
-        P = [pd.DataFrame(p, index=x_index) for p in P]
+        P = [pd.DataFrame(p, index=index) for p in P]
     else:
-        P = [pd.DataFrame(P, index=x_index)]
+        P = [pd.DataFrame(P, index=index)]
 
 
     P = pd.concat(P, axis=1)
@@ -339,7 +341,7 @@ def _check_avg(estimator, avg_type, method):
 
 
 
-def _avg_preds(preds, avg, X, y):
+def _avg_preds(preds, avg, X, y, index):
 
     # Add fold index
     for i, pred in enumerate(preds):
@@ -348,8 +350,10 @@ def _avg_preds(preds, avg, X, y):
         preds[i] = pred
 
     # Concatenate & sort
+    index = getattr(X, 'index', index)
+
     pred = pd.concat(preds)
-    pred = pred.loc[X.index]
+    pred = pred.loc[index]
 
     # Average predictions
     pred = pred.set_index('_FOLD', append=True)

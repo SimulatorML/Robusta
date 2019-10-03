@@ -262,12 +262,12 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, new_index=None,
 
         if 'oof_pred' in result:
             oof_preds = result['oof_pred']
-            oof_pred = _avg_preds(oof_preds, avg, X, y)
+            oof_pred = _avg_preds(oof_preds, avg, X, y, y.index)
             result['oof_pred'] = oof_pred
 
         if 'new_pred' in result:
             new_preds = result['new_pred']
-            new_pred = _avg_preds(new_preds, avg, X_new, y)
+            new_pred = _avg_preds(new_preds, avg, X_new, y, new_index)
             result['new_pred'] = new_pred
 
         if 'importance' in result:
