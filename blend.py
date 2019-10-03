@@ -174,4 +174,4 @@ def check_avg(avg_type, X):
 
     else:
         raise ValueError('Invalid value for <avg_type>. '
-                         'Allowed values: {}.'.format(avg_types)
+                         'Allowed values: {}.'.format(avg_types))
