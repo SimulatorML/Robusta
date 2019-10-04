@@ -29,15 +29,12 @@ class Selector(TransformerMixin):
             The input samples with only the selected features.
 
         """
-        features = self._select_features()
-        features = list(features)
-
-        Xt = X[features]
-        return Xt
+        features = self.get_features()
+        return X[features]
 
 
     @abc.abstractmethod
-    def _select_features(self):
+    def get_features(self):
         """
         Get list of columns to select
 

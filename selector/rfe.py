@@ -170,15 +170,17 @@ class RFE(EmbeddedSelector):
         return self
 
 
-    def _select_features(self):
+    def get_features(self):
 
-        if hasattr(self, 'best_subset_'):
-            if self.use_best:
-                return self.best_subset_
-            else:
-                return self.last_subset_
+        if (self.use_best is True) and hasattr(self, 'best_subset_'):
+            return list(self.best_subset_)
+
+        elif (self.use_best is False) and len(self.last_subset_) > 0:
+            return list(self.last_subset_)
+
         else:
-            raise NotFittedError('RFE is not fitted')
+            model_name = self.__class__.__name__
+            raise NotFittedError('{} is not fitted'.format(model_name))
 
 
 

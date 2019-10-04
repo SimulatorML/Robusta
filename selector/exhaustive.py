@@ -149,12 +149,13 @@ class ExhaustiveSelector(EmbeddedSelector):
 
 
 
-    def _select_features(self):
+    def get_features(self):
 
         if hasattr(self, 'best_subset_'):
-            return self.best_subset_
+            return list(self.best_subset_)
         else:
-            raise NotFittedError('<ExhaustiveSelector> is not fitted')
+            model_name = self.__class__.__name__
+            raise NotFittedError('{} is not fitted'.format(model_name))
 
 
 

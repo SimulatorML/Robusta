@@ -122,7 +122,7 @@ class SelectFromModel(Selector):
         return pd.concat(imps, axis=1).mean(axis=1)
 
 
-    def _select_features(self):
+    def get_features(self):
 
         imp = self.feature_importances_
 
@@ -133,7 +133,7 @@ class SelectFromModel(Selector):
         ranking_mask = (imp.rank(ascending=False) <= self.max_features_)
 
         use_cols = imp.index[threshold_mask & ranking_mask]
-        return use_cols
+        return list(use_cols)
 
 
 
