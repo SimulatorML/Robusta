@@ -4,10 +4,11 @@ import scipy
 
 from joblib import Parallel, delayed
 
-from sklearn import preprocessing
 from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.preprocessing import QuantileTransformer
 
 from .base import PandasTransformer
+from sklearn import preprocessing
 
 
 
@@ -244,7 +245,7 @@ class RankTransformer(BaseEstimator, TransformerMixin):
         self
 
         '''
-        self.transformer = QuantileTransformer(len(X), **self.params).fit(X)
+        self.transformer_ = QuantileTransformer(len(X), **self.params).fit(X)
         return self
 
 
@@ -263,7 +264,7 @@ class RankTransformer(BaseEstimator, TransformerMixin):
 
         """
         Xt = X.copy() if self.copy else X
-        Xt.loc[:,:] = self.transformer.transform(X)
+        Xt.loc[:,:] = self.transformer_.transform(X)
         return Xt
 
 

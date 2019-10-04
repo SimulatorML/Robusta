@@ -296,7 +296,6 @@ class Identity(BaseEstimator, TransformerMixin):
         self
 
         '''
-        self.columns = X.columns
         return self
 
 
@@ -314,7 +313,7 @@ class Identity(BaseEstimator, TransformerMixin):
             Same data.
 
         """
-        return X[self.columns]
+        return X
 
 
 

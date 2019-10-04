@@ -1,11 +1,13 @@
 import pandas as pd
 import numpy as np
 
-from sklearn.base import ClassifierMixin, RegressorMixin
+from sklearn.base import ClassifierMixin, RegressorMixin, TransformerMixin, BaseEstimator
 from sklearn.linear_model.base import LinearModel
 from sklearn.metrics import get_scorer
 
 from scipy.optimize import minimize
+
+from robusta.preprocessing import RankTransformer
 
 
 __all__ = ['BlendingRegressor', 'BlendingClassifier']
@@ -27,7 +29,7 @@ class BaseBlending(LinearModel):
             - 'gmean': Geometric mean
             - 'median': Median
 
-        If callable, expected signature "mean_func(x, weights, **kwargs)"
+        NOT AVAILABLE: If callable, expected signature "mean_func(X, weights)"
 
     scoring : string or None (default=None)
         Objective for optimization. If None, all weights are equal.
@@ -69,36 +71,51 @@ class BaseBlending(LinearModel):
         if self._estimator_type is 'classifier':
             self.classes_ = np.unique(y)
 
-        self.avg = check_avg(self.avg_type, X)
-
+        Xt = self._set_transformer(X)
         self.n_features_ = X.shape[1]
-        self.weights = weights
+        self.set_weights(weights)
 
         if self.scoring:
 
             self.scorer = get_scorer(self.scoring)
 
-            def objective(w):
-                self.weights = w
-                score = self.score(X, y)
-                return -score
-
-            w0 = np.array(self.coef_)
-
-            cons = [{'type': 'eq', 'fun': lambda w: np.sum(w)-1}]
+            w0 = self.get_weights()
+            objective = lambda w: -self.set_weights(w).score(Xt, y)
+            constraints = [{'type': 'eq', 'fun': lambda w: np.sum(w)-1}]
             bounds = [(0., 1.)] * self.n_features_
             options = {'maxiter': self.max_iter}
 
             result = minimize(objective, w0,
                               method='Nelder-Mead',
-                              options=options,
-                              #constraints=cons,
+                              #constraints=constraints,
                               #bounds=bounds,
-                             )
+                              options=options)
 
-            #score = -objective(result['x'])
+            self.set_weights(result['x'])
+            self.result_ = result
 
         return self
+
+
+    def set_weights(self, weights):
+        if weights is None:
+            self.coef_ = np.ones(self.n_features_) / self.n_features_
+        else:
+            self.coef_ = np.array(weights) / np.sum(weights)
+        return self
+
+
+    def get_weights(self):
+        return self.coef_
+
+
+    def score(self, X, y):
+        return self.scorer(self, X, y)
+
+
+    @property
+    def _is_fitted(self):
+        return (hasattr(self, 'result_') or not self.scoring)
 
 
     @property
@@ -106,23 +123,46 @@ class BaseBlending(LinearModel):
         return .0
 
 
-    @property
-    def coef_(self):
-        if self.weights is None:
-            weights = np.ones(self.n_features_)
-        else:
-            weights = np.array(self.weights)
-        return weights / np.sum(weights)
-
-
-    def score(self, X, y):
-        return self.scorer(self, X, y)
-
-
     def _blend(self, X):
-        return self.avg(X, self.coef_).values
+
+        if self._X_transform and self._is_fitted:
+            X = self._X_transform(X)
+
+        if self._y_transform:
+            y = X.dot(self.coef_)
+            y = self._y_transform(y)
+        else:
+            y = X.dot(self.coef_)
+
+        return y.values
 
 
+    def _set_transformer(self, X):
+
+        avg_types = ['mean', 'rank', 'gmean', 'hmean']
+
+        if self.avg_type == 'mean':
+            self._X_transform = lambda X: X
+            self._y_transform = lambda y: y
+
+        elif self.avg_type == 'hmean':
+            self._X_transform = lambda X: 1/X
+            self._y_transform = lambda y: 1/y
+
+        elif self.avg_type == 'gmean':
+            self._X_transform = lambda X: np.log(X)
+            self._y_transform = lambda y: np.exp(y)
+
+        elif self.avg_type == 'rank':
+            self._transformer = RankTransformer().fit(X)
+            self._X_transform = lambda X: self._transformer.transform(X)
+            self._y_transform = lambda y: y.rank(pct=True)
+
+        else:
+            raise ValueError("Invalid value '{}' for <avg_type>. Allowed "
+                             "values: ".format(self.avg_type, avg_types))
+
+        return self._X_transform(X)
 
 
 
@@ -144,34 +184,3 @@ class BlendingClassifier(BaseBlending, ClassifierMixin):
     def predict(self, X):
         y = self.predict_proba(X)
         return np.rint(y[:, 1]).astype(int)
-
-
-
-
-AVG_TYPES = {
-    'mean': lambda X, w: X.dot(w),
-    'gmean': lambda X, w: np.exp(np.log(X).dot(w)),
-    'hmean': lambda X, w: 1/(X**-1).dot(w),
-}
-
-
-
-
-def check_avg(avg_type, X):
-
-    avg_types = list(AVG_TYPES) + ['rank']
-
-    if hasattr(avg_type, '__call__'):
-        return avg_type
-
-    elif avg_type is AVG_TYPES:
-        return AVG_TYPES[avg_type]
-
-    elif avg_type is 'rank':
-        ranker = RankTransformer(len(X)).fit(X)
-        avg = lambda X, w: ranker.transform(X).dot(w)
-        return avg
-
-    else:
-        raise ValueError('Invalid value for <avg_type>. '
-                         'Allowed values: {}.'.format(avg_types))
