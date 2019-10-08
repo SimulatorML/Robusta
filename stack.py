@@ -22,6 +22,7 @@ __all__ = [
     'StackingTransformer',
     'StackingClassifier',
     'StackingRegressor',
+    'stack_results',
     'stack_preds',
 ]
 
@@ -410,6 +411,20 @@ def stack_preds(pred_list, names):
 
     pred = pd.concat(pred_list, axis=1)
     return pred
+
+
+
+def stack_results(results):
+
+    oof_preds = [result['oof_pred'].copy() for result in results.values()]
+    new_preds = [result['new_pred'].copy() for result in results.values()]
+
+    names = [result['model_name'] for result in results.values()]
+
+    S_train = stack_preds(oof_preds, names)
+    S_test = stack_preds(new_preds, names)
+
+    return S_train, S_test
 
 
 
