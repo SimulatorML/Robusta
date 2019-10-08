@@ -26,7 +26,7 @@ prep_pipe = make_pipeline(
         ("numeric", make_pipeline(
             TypeSelector(np.number),
             Imputer(strategy="median"),
-            GaussRank(),
+            GaussRankTransformer(),
             ColumnRenamer(prefix='gr_'),
         )),
         ("category", make_pipeline(
