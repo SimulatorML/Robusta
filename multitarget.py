@@ -19,14 +19,6 @@ __all__ = [
 
 
 
-def _fit_estimator(estimator, X, y, sample_weight=None):
-    if sample_weight is not None:
-        estimator.fit(X, y, sample_weight=sample_weight)
-    else:
-        estimator.fit(X, y)
-    return estimator
-
-
 
 class MultiTargetRegressor(BaseEstimator, RegressorMixin):
     """Multi target regression
@@ -97,30 +89,9 @@ class MultiTargetRegressor(BaseEstimator, RegressorMixin):
         imps = [e.coef_ for e in self.estimators_]
         return np.concatenate(imps).mean(axis=0)
 
-
     def predict(self, X):
-        """Predict multi-output variable using a model
-         trained for each target variable.
+        return _call_estimator(self, X, 'predict')
 
-        Parameters
-        ----------
-        X : DataFrame, shape (n_samples, n_features)
-            Data.
-
-        Returns
-        -------
-        Y : DataFrame, shape (n_samples, n_targets)
-            Multi-output targets predicted across multiple predictors.
-            Note: Separate models are generated for each predictor.
-
-        """
-        check_is_fitted(self, 'estimators_')
-
-        Y = Parallel(n_jobs=self.n_jobs)(
-            delayed(parallel_helper)(e, 'predict', X)
-            for e in self.estimators_)
-
-        return Y
 
 
 
@@ -155,25 +126,7 @@ class MultiTargetClassifier(BaseEstimator, ClassifierMixin):
 
 
     def fit(self, X, Y, sample_weight=None):
-        """Fit the model to data.
 
-        Fit a separate model for each output variable.
-
-        Parameters
-        ----------
-        X : DataFrame, shape (n_samples, n_features)
-        Y : DataFrame, shape (n_samples, n_targets)
-
-        sample_weight : array-like, shape = (n_samples) or None
-            Sample weights. If None, then samples are equally weighted.
-            Only supported if the underlying regressor supports sample
-            weights.
-
-        Returns
-        -------
-        self : object
-
-        """
         self.targets_ = list(Y.columns)
         self.estimators_ = check_estimator(self.estimator, self.targets_, 'classifier')
 
@@ -198,53 +151,35 @@ class MultiTargetClassifier(BaseEstimator, ClassifierMixin):
         return [e.classes_ for e in self.estimators_]
 
     def predict(self, X):
-        """Predict multi-output variable using a model
-         trained for each target variable.
-
-        Parameters
-        ----------
-        X : DataFrame, shape (n_samples, n_features)
-            Data.
-
-        Returns
-        -------
-        Y : DataFrame, shape (n_samples, n_targets)
-            Multi-output targets predicted across multiple predictors.
-            Note: Separate models are generated for each predictor.
-
-        """
-        check_is_fitted(self, 'estimators_')
-
-        Y = Parallel(n_jobs=self.n_jobs)(
-            delayed(parallel_helper)(e, 'predict', X)
-            for e in self.estimators_)
-
-        return Y
-
+        return _call_estimator(self, X, 'predict')
 
     def predict_proba(self, X):
-        """Predict multi-output variable using a model
-         trained for each target variable.
+        return _call_estimator(self, X, 'predict_proba')
 
-        Parameters
-        ----------
-        X : DataFrame, shape (n_samples, n_features)
-            Data.
+    def decision_function(self, X):
+        return _call_estimator(self, X, 'decision_function')
 
-        Returns
-        -------
-        Y : DataFrame, shape (n_samples, n_targets)
-            Multi-output targets predicted across multiple predictors.
-            Note: Separate models are generated for each predictor.
 
-        """
-        check_is_fitted(self, 'estimators_')
 
-        Y = Parallel(n_jobs=self.n_jobs)(
-            delayed(parallel_helper)(e, 'predict_proba', X)
-            for e in self.estimators_)
 
-        return Y
+def _fit_estimator(estimator, X, y, sample_weight=None):
+    if sample_weight is not None:
+        estimator.fit(X, y, sample_weight=sample_weight)
+    else:
+        estimator.fit(X, y)
+    return estimator
+
+
+
+def _call_estimator(estimator, X, method):
+
+    check_is_fitted(estimator, 'estimators_')
+
+    Y = Parallel(n_jobs=estimator.n_jobs)(
+        delayed(parallel_helper)(e, method, X)
+        for e in estimator.estimators_)
+
+    return Y
 
 
 
