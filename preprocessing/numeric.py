@@ -10,6 +10,8 @@ from sklearn.preprocessing import QuantileTransformer
 from .base import PandasTransformer
 from sklearn import preprocessing
 
+from itertools import combinations
+
 
 
 
@@ -147,7 +149,7 @@ class DowncastTransformer(BaseEstimator, TransformerMixin):
 
 
 
-class GaussRank(BaseEstimator, TransformerMixin):
+class GaussRankTransformer(BaseEstimator, TransformerMixin):
     """Normalize numerical features by Gauss Rank scheme.
     http://fastml.com/preparing-continuous-features-for-neural-networks-with-rankgauss/
 
@@ -208,7 +210,7 @@ class GaussRank(BaseEstimator, TransformerMixin):
         """
         Xt = X.copy() if self.copy else X
 
-        Xt = RankTransformer(pct=True).fit_transform(X) - 0.5
+        Xt = RankTransformer().fit_transform(X) - 0.5
         Xt = MaxAbsScaler().fit_transform(Xt) * (1 - self.eps)
         Xt = scipy.special.erfinv(Xt)
 
@@ -271,7 +273,8 @@ class RankTransformer(BaseEstimator, TransformerMixin):
 
 class SyntheticFeatures(BaseEstimator, TransformerMixin):
 
-    def __init__(self, pair_sum=True, pair_dif=True, pair_mul=True, pair_div=True, join_X=True, eps=1e-2):
+    def __init__(self, pair_sum=True, pair_dif=True, pair_mul=True, pair_div=True,
+                 join_X=True, eps=1e-2):
         self.pair_sum = pair_sum
         self.pair_dif = pair_dif
         self.pair_mul = pair_mul
