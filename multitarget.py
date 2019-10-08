@@ -7,6 +7,7 @@ from sklearn.base import BaseEstimator, RegressorMixin, ClassifierMixin
 from sklearn.base import clone, is_regressor, is_classifier
 from sklearn.utils.validation import check_is_fitted
 from sklearn.utils.fixes import parallel_helper
+from sklearn.preprocessing import LabelBinarizer
 
 from robusta.crossval._predict import _short_binary
 
@@ -128,6 +129,8 @@ class MultiTargetClassifier(BaseEstimator, ClassifierMixin):
     def fit(self, X, Y, sample_weight=None):
 
         self.targets_ = list(Y.columns)
+        self.classes_ = [LabelBinarizer().fit(y).classes_ for _, y in Y.items()]
+
         self.estimators_ = check_estimator(self.estimator, self.targets_, 'classifier')
 
         self.estimators_ = Parallel(n_jobs=self.n_jobs)(
@@ -145,10 +148,6 @@ class MultiTargetClassifier(BaseEstimator, ClassifierMixin):
     def coef_(self):
         imps = [e.coef_ for e in self.estimators_]
         return np.concatenate(imps).mean(axis=0)
-
-    @property
-    def classes_(self):
-        return [e.classes_ for e in self.estimators_]
 
     def predict(self, X):
         return _call_estimator(self, X, 'predict')

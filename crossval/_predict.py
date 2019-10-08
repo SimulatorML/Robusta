@@ -212,7 +212,7 @@ def _predict(estimator, method, X, y, index):
         # [classifier + predict_proba]
         if name in ['MultiOutputClassifier', 'MultiTargetClassifier']:
             # Multiple output classifier
-            Classes = [e.classes_ for e in estimator.estimators_]
+            Classes = estimator.classes_
 
             tuples = []
             for target, classes in zip(Y.columns, Classes):
