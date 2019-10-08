@@ -14,7 +14,7 @@ __all__ = [
 
     # Numeric
     'DowncastTransformer',
-    'GaussRank',
+    'GaussRankTransformer',
     'RankTransformer',
     'MaxAbsScaler',
     'SyntheticFeatures',
@@ -42,6 +42,7 @@ __all__ = [
     'TargetEncoderCV',
     'CatBoostEncoder',
     'LeaveOneOutEncoder',
+    'NaiveBayesTransformer',
     # supervised (binary)
     'JamesSteinEncoder',
     'JamesSteinEncoderCV',

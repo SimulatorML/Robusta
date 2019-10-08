@@ -73,13 +73,9 @@ class OneHotEncoder(BaseEstimator, TransformerMixin):
         of ``transform``).
 
     """
-    def __init__(self, sep='_', categories='auto', sparse=False, dtype=np.uint8,
-                 handle_unknown='ignore'):
+    def __init__(self, sep='_', **params):
         self.sep = sep
-        self.categories = categories
-        self.sparse = sparse
-        self.dtype = dtype
-        self.handle_unknown = handle_unknown
+        self.params = params
 
 
     def fit(self, X, y=None):
@@ -95,8 +91,7 @@ class OneHotEncoder(BaseEstimator, TransformerMixin):
         self
 
         """
-        self.ohe = preprocessing.OneHotEncoder(sparse=self.sparse, dtype=self.dtype,
-            handle_unknown=self.handle_unknown, categories=self.categories)
+        self.ohe = preprocessing.OneHotEncoder(**self.params)
         self.ohe.fit(X, y)
 
         ohe_columns = self.ohe.get_feature_names()
@@ -127,11 +122,18 @@ class OneHotEncoder(BaseEstimator, TransformerMixin):
             Transformed input.
 
         """
+
         X_ohe = self.ohe.transform(X)
-        if self.sparse:
-            return pd.SparseDataFrame(X_ohe, columns=self.columns, index=X.index)
+
+        if self.ohe.sparse:
+            X_ohe = pd.DataFrame.sparse.from_spmatrix(X_ohe)
         else:
-            return pd.DataFrame(X_ohe, columns=self.columns, index=X.index)
+            X_ohe = pd.DataFrame(X_ohe)
+
+        X_ohe.columns = self.columns
+        X_ohe.index = X.index
+
+        return X_ohe
 
 
 
@@ -693,6 +695,27 @@ class EncoderCV(BaseEstimator):
         except Exception:
             raise ValueError('Internal error. '
                              'Please save traceback and inform developers.')
+
+
+
+class NaiveBayesTransformer(BaseEstimator, TransformerMixin):
+
+    def __init__(self, smooth):
+        self.smooth = smooth
+
+
+    def transform(self, X):
+        return X.multiply(self._r)
+
+
+    def fit(self, X, y):
+        self._r = sparse.csr_matrix(np.log(self._pr(X, y, 1) / self._pr(X, y, 0)))
+        return self
+
+
+    def _pr(self, X, y, val):
+        prob = X[y == val].sum(0)
+        return (prob + self.smooth) / ((y == val).sum() + self.smooth)
 
 
 
