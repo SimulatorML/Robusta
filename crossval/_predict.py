@@ -298,6 +298,22 @@ def _check_avg(estimator, avg_type, method):
                 avg = _pass_pred
 
 
+        elif method is 'decision_function':
+
+            if avg_type in ['soft', 'auto']:
+                avg = _soft_vote
+
+            elif avg_type is 'rank':
+                avg = _rank_pred
+
+            elif avg_type is 'pass':
+                avg = _pass_pred
+
+            else:
+                raise ValueError("Passed unavailable avg_type '{}' for method <{}>"
+                                 "".format(avg_type, method))
+
+
     elif is_classifier(estimator) and not hasattr(estimator, 'predict_proba'):
         # classifier (non-probabilistic)
         if method is 'predict_proba':
@@ -305,7 +321,7 @@ def _check_avg(estimator, avg_type, method):
             msg = "<{}> is not available for <{}>".format(method, name)
             raise AttributeError(msg)
 
-        elif method is 'predict':
+        elif method in ['predict', 'decision_function']:
 
             if avg_type in ['hard', 'auto']:
                 avg = _hard_vote
