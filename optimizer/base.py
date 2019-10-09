@@ -147,7 +147,7 @@ class BaseOptimizer(BaseEstimator):
     '''
     def __init__(self, estimator, cv=5, scoring=None, param_space=None,
                  max_time=None, max_iter=None, n_jobs=None, n_digits=4,
-                 verbose=1, plot=False):
+                 verbose=1, plot=False, debug=False):
 
         self.estimator = estimator
         self.param_space = param_space
@@ -163,6 +163,7 @@ class BaseOptimizer(BaseEstimator):
         self.n_digits = n_digits
         self.verbose = verbose
         self.plot = plot
+        self.debug = debug
 
 
 
@@ -198,6 +199,9 @@ class BaseOptimizer(BaseEstimator):
             raise KeyboardInterrupt
 
         except:
+            if self.debug:
+                raise
+                
             trial = {
                 'params': params,
                 'status': 'fail',

@@ -394,7 +394,7 @@ MODEL_PARAMS = {
         'l2_leaf_reg': (1e-6, 1e6, 'log'),
 
         'bagging_temperature': (1e-6, 1e6, 'log'),
-        'random_strength': (1e-6, 1e1, 'log'),
+        'random_strength': (1, 1e1, 'log'),
     },
 
     'MARS': {
