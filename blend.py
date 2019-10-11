@@ -36,12 +36,11 @@ class BaseBlend(LinearModel):
         Objective for optimization. If None, all weights are equal.
         Otherwise, calculate the optimal weights for blending.
 
-    opt_fun : int (default=100)
-        Logging period. 0 means no output.
-        100: print progress each 100 iters.
+    opt_func : function (default=None)
+        Optimization function. First argument should take objective to minimize.
 
-    opt_params : dict, optional (default={'method': 'SLSQP', 'options': {'maxiter': 100000}})
-        Parameters for scipy <minimize> function
+    opt_kws : dict, optional
+        Parameters for <opt_func> function
 
 
     Attributes
@@ -54,9 +53,6 @@ class BaseBlend(LinearModel):
 
     scores_ : list of float
         Evaluation results
-
-    times_ : list of float
-        Iteration time (seconds)
 
     '''
     def __init__(self, avg_type='mean', scoring=None, opt_func=None, **opt_kws):
@@ -82,13 +78,9 @@ class BaseBlend(LinearModel):
 
             if self.opt_func is None:
                 self.opt_func = minimize
-                self.opt_kws = {
-                    'x0': self.get_weights(),
-                    'method': 'SLSQP',
-                    'options': {'maxiter': 1000},
-                    'bounds': [(0., 1.)] * self.n_features_,
-                    'constraints': [{'type': 'eq', 'fun': lambda w: np.sum(w)-1}]
-                }
+                self.opt_kws = dict(x0=self.get_weights(), method='SLSQP',
+                    options={'maxiter': 1000}, bounds=[(0., 1.)] * self.n_features_,
+                    constraints=[{'type': 'eq', 'fun': lambda w: np.sum(w)-1}]),
 
             result = self.opt_func(objective, **self.opt_kws)
 
