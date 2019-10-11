@@ -84,6 +84,7 @@ class BaseBlend(LinearModel):
                 self.opt_func = minimize
                 self.opt_kws = {
                     'x0': self.get_weights(),
+                    'method': 'SLSQP',
                     'options': {'maxiter': 1000},
                     'bounds': [(0., 1.)] * self.n_features_,
                     'constraints': [{'type': 'eq', 'fun': lambda w: np.sum(w)-1}]
