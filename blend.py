@@ -10,32 +10,33 @@ from scipy.optimize import minimize
 from robusta.preprocessing import RankTransformer
 
 
-__all__ = ['BlendingRegressor', 'BlendingClassifier']
+__all__ = [
+    'BlendRegressor',
+    'BlendClassifier',
+    'RankBlendRegressor',
+    'RankBlendClassifier',
+]
 
 
 
 
-class BaseBlending(LinearModel):
+class BaseBlend(LinearModel):
     '''Base Blending Estimator
 
     Parameters
     ----------
-    mean : string or callable (default='mean')
+    avg_type : string or callable (default='mean')
         Select weighted average function:
 
             - 'mean': Arithmetic mean
-            - 'rank': Ranking mean
             - 'hmean': Harmonic mean
             - 'gmean': Geometric mean
-            - 'median': Median
-
-        NOT AVAILABLE: If callable, expected signature "mean_func(X, weights)"
 
     scoring : string or None (default=None)
         Objective for optimization. If None, all weights are equal.
         Otherwise, calculate the optimal weights for blending.
 
-    verbose : int (default=100)
+    opt_fun : int (default=100)
         Logging period. 0 means no output.
         100: print progress each 100 iters.
 
@@ -58,12 +59,11 @@ class BaseBlending(LinearModel):
         Iteration time (seconds)
 
     '''
-    def __init__(self, avg_type='mean', max_iter=10000, scoring=None, verbose=100):
-
+    def __init__(self, avg_type='mean', scoring=None, opt_func=None, **opt_kws):
         self.avg_type = avg_type
-        self.max_iter = max_iter
         self.scoring = scoring
-        self.verbose = verbose
+        self.opt_func = opt_func
+        self.opt_kws = opt_kws
 
 
     def fit(self, X, y, weights=None):
@@ -71,25 +71,25 @@ class BaseBlending(LinearModel):
         if self._estimator_type is 'classifier':
             self.classes_ = np.unique(y)
 
-        Xt = self._set_transformer(X)
+        self.avg = check_avg_type(self.avg_type)
         self.n_features_ = X.shape[1]
         self.set_weights(weights)
 
         if self.scoring:
 
             self.scorer = get_scorer(self.scoring)
-
-            w0 = self.get_weights()
             objective = lambda w: -self.set_weights(w).score(Xt, y)
-            constraints = [{'type': 'eq', 'fun': lambda w: np.sum(w)-1}]
-            bounds = [(0., 1.)] * self.n_features_
-            options = {'maxiter': self.max_iter}
 
-            result = minimize(objective, w0,
-                              method='Nelder-Mead',
-                              #constraints=constraints,
-                              #bounds=bounds,
-                              options=options)
+            if self.opt_func is None:
+                self.opt_func = minimize
+                self.opt_kws = {
+                    'x0': self.get_weights(),
+                    'options': {'maxiter': 1000},
+                    'bounds': [(0., 1.)] * self.n_features_,
+                    'constraints': [{'type': 'eq', 'fun': lambda w: np.sum(w)-1}]
+                }
+
+            result = self.opt_func(objective, **self.opt_kws)
 
             self.set_weights(result['x'])
             self.result_ = result
@@ -124,50 +124,11 @@ class BaseBlending(LinearModel):
 
 
     def _blend(self, X):
-
-        if self._X_transform and self._is_fitted:
-            X = self._X_transform(X)
-
-        if self._y_transform:
-            y = X.dot(self.coef_)
-            y = self._y_transform(y)
-        else:
-            y = X.dot(self.coef_)
-
-        return y.values
-
-
-    def _set_transformer(self, X):
-
-        avg_types = ['mean', 'rank', 'gmean', 'hmean']
-
-        if self.avg_type == 'mean':
-            self._X_transform = lambda X: X
-            self._y_transform = lambda y: y
-
-        elif self.avg_type == 'hmean':
-            self._X_transform = lambda X: 1/X
-            self._y_transform = lambda y: 1/y
-
-        elif self.avg_type == 'gmean':
-            self._X_transform = lambda X: np.log(X)
-            self._y_transform = lambda y: np.exp(y)
-
-        elif self.avg_type == 'rank':
-            self._transformer = RankTransformer().fit(X)
-            self._X_transform = lambda X: self._transformer.transform(X)
-            self._y_transform = lambda y: y.rank(pct=True)
-
-        else:
-            raise ValueError("Invalid value '{}' for <avg_type>. Allowed "
-                             "values: ".format(self.avg_type, avg_types))
-
-        return self._X_transform(X)
+        return self.avg(X, self.coef_).values
 
 
 
-
-class BlendingRegressor(BaseBlending, RegressorMixin):
+class BlendRegressor(BaseBlend, RegressorMixin):
 
     def predict(self, X):
         return self._blend(X)
@@ -175,7 +136,7 @@ class BlendingRegressor(BaseBlending, RegressorMixin):
 
 
 
-class BlendingClassifier(BaseBlending, ClassifierMixin):
+class BlendClassifier(BaseBlend, ClassifierMixin):
 
     def predict_proba(self, X):
         y = self._blend(X)
@@ -184,3 +145,33 @@ class BlendingClassifier(BaseBlending, ClassifierMixin):
     def predict(self, X):
         y = self.predict_proba(X)
         return np.rint(y[:, 1]).astype(int)
+
+
+
+def RankBlendRegressor(**params):
+    return make_pipeline(RankTransformer(), BlendRegressor(**params))
+
+
+
+def RankBlendClassifier(**params):
+    return make_pipeline(RankTransformer(), BlendClassifier(**params))
+
+
+
+AVG_TYPES = {
+    'mean': lambda X, w: X.dot(w),
+    'hmean': lambda X, w: 1/(1/X).dot(w),
+    'gmean': lambda X, w: np.exp(np.log(X).dot(w)),
+}
+
+
+def check_avg_type(avg_type):
+
+    avg_types = list(AVG_TYPES.keys())
+
+    if avg_type in avg_types:
+        return AVG_TYPES[avg_type]
+
+    else:
+        raise ValueError("Invalid value '{}' for <avg_type>. Allowed values: "
+                         "".format(avg_types))
