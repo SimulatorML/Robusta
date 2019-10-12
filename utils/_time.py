@@ -39,6 +39,7 @@ def secfmt(s):
         return '{} ms'.format(int(S*1000))
 
 
+
 def logmsg(msg):
     for m in msg.split('\n'):
         t = datetime.datetime.now().strftime("[%H:%M:%S]")
