@@ -46,7 +46,7 @@ def save_result(result, idx, name, make_submit=True, force_rewrite=False,
 
         if silent_mode:
             path = os.path.join(submit_path, '[{}S] {}.csv'.format(idx, name))
-            pred = POST_PROC[silent_mode](pred)
+            pred = SILENT_MODES[silent_mode](pred)
             pred.to_csv(path, header=True)
             print(path)
     print()
@@ -89,6 +89,6 @@ def list_results(result_path='./results/'):
 
 
 
-POST_PROC = {
+SILENT_MODES = {
     'roc_auc': lambda y: 1-y,
 }

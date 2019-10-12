@@ -357,7 +357,7 @@ def crossval_score(estimator, cv, X, y, groups=None, scoring=None, n_jobs=-1,
     """
     result = crossval(estimator, cv, X, y, groups, n_digits=n_digits,
                       scoring=scoring, n_jobs=n_jobs, verbose=verbose,
-                      random_state=random_state)
+                      return_pred=False, random_state=random_state)
 
     scores = result['score']
     return scores
