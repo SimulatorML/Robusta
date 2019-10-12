@@ -1,15 +1,14 @@
 import time
+import datetime
+
+import numpy as np
 
 
 
 
-<<<<<<< HEAD
 # Source: https://github.com/yaxen/santander-product-recommendation-8th-place/blob/master/utils.py
 class Timer:
 
-=======
-class Timer:
->>>>>>> 9f4d84ffd89f25ef47e922b1f0da73f5afad315a
     def __init__(self, text=None):
         self.text = text
 
@@ -25,7 +24,6 @@ class Timer:
         self.time = time.time() - self.time
         if self.text:
             logmsg("{}: cpu {}, time {}\n".format(self.text, secfmt(self.cpu), secfmt(self.time)))
-
 
 
 

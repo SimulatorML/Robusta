@@ -1,8 +1,6 @@
 import pandas as pd
 import numpy as np
 
-import time, datetime
-
 from pympler.asizeof import asizeof
 
 from itertools import combinations, chain
@@ -12,11 +10,6 @@ from itertools import combinations, chain
 
 def all_subsets(cols, k_range):
     return chain(*map(lambda k: combinations(cols, k), k_range))
-
-
-
-
-
 
 
 
@@ -103,14 +96,6 @@ def sizeof(obj, fmt=True, rnd=True):
 
 
 
-def logmsg(msg):
-    for m in msg.split('\n'):
-        t = datetime.datetime.now().strftime("[%H:%M:%S]")
-        print(t, m)
-        time.sleep(0.01)
-
-
-
 def ld2dl(ld):
     '''Convert list of dict to dict of list
 
@@ -127,27 +112,3 @@ def ld2dl(ld):
     '''
     dl = {key: [d[key] for d in ld] for key in ld[0].keys()}
     return dl
-
-
-
-import math
-import time
-
-import numpy as np
-
-class Timer:
-    def __init__(self, text=None):
-        self.text = text
-
-    def __enter__(self):
-        self.cpu = time.clock()
-        self.time = time.time()
-        if self.text:
-            print("{}...".format(self.text))
-        return self
-
-    def __exit__(self, *args):
-        self.cpu = time.clock() - self.cpu
-        self.time = time.time() - self.time
-        if self.text:
-            print("%s: cpu %0.2f, time %0.2f\n" % (self.text, self.cpu, self.time))
