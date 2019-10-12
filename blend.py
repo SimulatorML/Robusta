@@ -13,48 +13,14 @@ from robusta.preprocessing import RankTransformer
 __all__ = [
     'BlendRegressor',
     'BlendClassifier',
-    'RankBlendRegressor',
     'RankBlendClassifier',
 ]
 
 
 
 
-class BaseBlend(LinearModel):
-    '''Base Blending Estimator
+class Blend(LinearModel):
 
-    Parameters
-    ----------
-    avg_type : string or callable (default='mean')
-        Select weighted average function:
-
-            - 'mean': Arithmetic mean
-            - 'hmean': Harmonic mean
-            - 'gmean': Geometric mean
-
-    scoring : string or None (default=None)
-        Objective for optimization. If None, all weights are equal.
-        Otherwise, calculate the optimal weights for blending.
-
-    opt_func : function (default=None)
-        Optimization function. First argument should take objective to minimize.
-
-    opt_kws : dict, optional
-        Parameters for <opt_func> function
-
-
-    Attributes
-    ----------
-    coef_ : Series, shape (n_features, )
-        Estimated weights of blending model.
-
-    n_iters_ : int
-        Number of evaluations
-
-    scores_ : list of float
-        Evaluation results
-
-    '''
     def __init__(self, avg_type='mean', scoring=None, opt_func=None, **opt_kws):
         self.avg_type = avg_type
         self.scoring = scoring
@@ -82,10 +48,8 @@ class BaseBlend(LinearModel):
                     options={'maxiter': 1000}, bounds=[(0., 1.)] * self.n_features_,
                     constraints=[{'type': 'eq', 'fun': lambda w: np.sum(w)-1}]),
 
-            result = self.opt_func(objective, **self.opt_kws)
-
-            self.set_weights(result['x'])
-            self.result_ = result
+            self.result_ = self.opt_func(objective, **self.opt_kws)
+            self.set_weights(self.result_['x'])
 
         return self
 
@@ -121,16 +85,96 @@ class BaseBlend(LinearModel):
 
 
 
-class BlendRegressor(BaseBlend, RegressorMixin):
+class BlendRegressor(Blend, RegressorMixin):
+    '''Blending Estimator for regression
 
+    Parameters
+    ----------
+    avg_type : string or callable (default='mean')
+        Select weighted average function:
+
+            - 'mean': Arithmetic mean
+            - 'hmean': Harmonic mean
+            - 'gmean': Geometric mean
+
+        If passed callable, expected signature: f(X, weights) -> y.
+
+    scoring : string or None (default=None)
+        Objective for optimization. If None, all weights are equal. Otherwise,
+        calculate the optimal weights for blending. Differentiable scoring are
+        prefered.
+
+    opt_func : function (default=None)
+        Optimization function. First argument should take objective to minimize.
+        Expected signature: f(objective, **opt_kws). If not passed, but scoring
+        is defined, used scipy's <minimize> function with method 'SLSQP'.
+
+        Should return result as dict with key 'x' as optimal weights.
+
+    opt_kws : dict, optional
+        Parameters for <opt_func> function.
+
+
+    Attributes
+    ----------
+    coef_ : Series, shape (n_features, )
+        Estimated weights of blending model.
+
+    n_iters_ : int
+        Number of evaluations
+
+    result_ : dict
+        Evaluation results
+
+    '''
     def predict(self, X):
         return self._blend(X)
 
 
 
 
-class BlendClassifier(BaseBlend, ClassifierMixin):
+class BlendClassifier(Blend, ClassifierMixin):
+    '''Blending Estimator for classification
 
+    Parameters
+    ----------
+    avg_type : string or callable (default='mean')
+        Select weighted average function:
+
+            - 'mean': Arithmetic mean
+            - 'hmean': Harmonic mean
+            - 'gmean': Geometric mean
+
+        If passed callable, expected signature: f(X, weights) -> y.
+
+    scoring : string or None (default=None)
+        Objective for optimization. If None, all weights are equal. Otherwise,
+        calculate the optimal weights for blending. Differentiable scoring are
+        prefered.
+
+    opt_func : function (default=None)
+        Optimization function. First argument should take objective to minimize.
+        Expected signature: f(objective, **opt_kws). If not passed, but scoring
+        is defined, used scipy's <minimize> function with method 'SLSQP'.
+
+        Should return result as dict with key 'x' as optimal weights.
+
+    opt_kws : dict, optional
+        Parameters for <opt_func> function.
+
+
+    Attributes
+    ----------
+    coef_ : Series, shape (n_features, )
+        Estimated weights of blending model.
+
+    n_iters_ : int
+        Number of evaluations
+
+    result_ : dict
+        Evaluation results
+
+    '''
     def predict_proba(self, X):
         y = self._blend(X)
         return np.stack([1-y, y], axis=-1)
@@ -141,19 +185,56 @@ class BlendClassifier(BaseBlend, ClassifierMixin):
 
 
 
-def RankBlendRegressor(**params):
-    return make_pipeline(RankTransformer(), BlendRegressor(**params))
-
-
 
 def RankBlendClassifier(**params):
-    return make_pipeline(RankTransformer(), BlendClassifier(**params))
+    '''Pipeline for ranked Blending Classifier
+
+    Parameters
+    ----------
+    avg_type : string or callable (default='mean')
+        Select weighted average function:
+
+            - 'mean': Arithmetic mean
+            - 'hmean': Harmonic mean
+            - 'gmean': Geometric mean
+
+        If passed callable, expected signature: f(X, weights) -> y.
+
+    scoring : string or None (default=None)
+        Objective for optimization. If None, all weights are equal. Otherwise,
+        calculate the optimal weights for blending. Differentiable scoring are
+        prefered.
+
+    opt_func : function (default=None)
+        Optimization function. First argument should take objective to minimize.
+        Expected signature: f(objective, **opt_kws). If not passed, but scoring
+        is defined, used scipy's <minimize> function with method 'SLSQP'.
+
+        Should return result as dict with key 'x' as optimal weights.
+
+    opt_kws : dict, optional
+        Parameters for <opt_func> function.
+
+
+    Attributes
+    ----------
+    coef_ : Series, shape (n_features, )
+        Estimated weights of blending model.
+
+    n_iters_ : int
+        Number of evaluations
+
+    result_ : dict
+        Evaluation results
+
+    '''
+    return make_pipeline(RankTransformer(), BlendClassifier('mean', **params))
 
 
 
 AVG_TYPES = {
     'mean': lambda X, w: X.dot(w),
-    'hmean': lambda X, w: 1/(1/X).dot(w),
+    'hmean': lambda X, w: 1/(X**-1).dot(w),
     'gmean': lambda X, w: np.exp(np.log(X).dot(w)),
 }
 
