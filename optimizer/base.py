@@ -178,6 +178,8 @@ class BaseOptimizer(BaseEstimator):
         estimator = clone(self.estimator).set_params(**params)
 
         try:
+            if self.debug:
+                print(params)
             scores = crossval_score(estimator, self.cv, self.X, self.y, self.groups,
                                     self.scoring, n_jobs=self.n_jobs, verbose=0)
 
@@ -201,7 +203,7 @@ class BaseOptimizer(BaseEstimator):
         except:
             if self.debug:
                 raise
-                
+
             trial = {
                 'params': params,
                 'status': 'fail',
