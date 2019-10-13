@@ -48,6 +48,6 @@ __all__ = [
     'JamesSteinEncoderCV',
     'MEstimateEncoder',
     'MEstimateEncoderCV',
-    'WOEEncoder',
+    'WOEEncoder', # ln(%good/%bad)
     'WOEEncoderCV',
 ]
