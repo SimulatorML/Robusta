@@ -151,10 +151,6 @@ from ._nng import NonNegativeGarrote
 
 
 MODELS = {
-    'Blend': {
-        'regressor': BlendingRegressor,
-        'classifier': BlendingClassifier,
-    },
     'LinReg': {
         'regressor': LinearRegression
     },
