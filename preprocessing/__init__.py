@@ -1,6 +1,7 @@
 from .base import *
 from .numeric import *
 from .category import *
+from .datetime import *
 
 
 __all__ = [
@@ -18,6 +19,10 @@ __all__ = [
     'RankTransformer',
     'MaxAbsScaler',
     'SyntheticFeatures',
+
+    # Datetime
+    'DatetimeConverter1D',
+    'DatetimeConverter',
 
     # Categorical
     'LabelEncoder1D',

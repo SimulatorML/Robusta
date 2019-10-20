@@ -15,7 +15,8 @@ from itertools import combinations
 
 
 
-INT_DTYPES = ['Int64', 'Int32', 'Int16', 'Int8', 'UInt32', 'UInt16', 'UInt8']
+NP_INT_DTYPES = ['int64', 'int32', 'int16', 'int8', 'uint32', 'uint16', 'uint8']
+PD_INT_DTYPES = ['Int64', 'Int32', 'Int16', 'Int8', 'UInt32', 'UInt16', 'UInt8']
 FLOAT_DTYPES = ['float64', 'float32', 'float16']
 
 
@@ -38,7 +39,8 @@ class DowncastTransformer(BaseEstimator, TransformerMixin):
         If False, change original dataframe
 
     """
-    def __init__(self, errors='raise', copy=True):
+    def __init__(self, numpy_only=True, errors='raise', copy=True):
+        self.numpy_only = numpy_only
         self.errors = errors
         self.copy = copy
 
@@ -115,9 +117,11 @@ class DowncastTransformer(BaseEstimator, TransformerMixin):
         x_max = x.max()
 
         try:
-            x = x.astype('Int64')
+            INT_DTYPES = NP_INT_DTYPES if self.numpy_only else PD_INT_DTYPES
 
-            col_type = 'Int64'
+            x = x.astype(INT_DTYPES[0])
+
+            col_type = INT_DTYPES[0]
             col_bits = np.iinfo(col_type).bits
 
             for int_type in INT_DTYPES:
@@ -131,7 +135,7 @@ class DowncastTransformer(BaseEstimator, TransformerMixin):
                     col_type = int_type
 
         except:
-            col_type = 'float64'
+            col_type = FLOAT_DTYPES[0]
             col_bits = np.finfo(col_type).bits
 
             for float_type in FLOAT_DTYPES:
