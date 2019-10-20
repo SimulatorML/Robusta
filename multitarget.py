@@ -9,8 +9,6 @@ from sklearn.utils.validation import check_is_fitted
 from sklearn.utils.fixes import parallel_helper
 from sklearn.preprocessing import LabelBinarizer
 
-from robusta.crossval._predict import _short_binary
-
 
 __all__ = [
     'MultiTargetRegressor',

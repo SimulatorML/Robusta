@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import gc
 
 from time import time
 
@@ -7,6 +8,7 @@ from sklearn.utils.metaestimators import _safe_split
 from sklearn.base import is_classifier, is_regressor
 
 from robusta.importance import get_importance
+from scipy.stats import mode
 
 
 __all__ = [
@@ -251,7 +253,7 @@ def _check_avg(estimator, avg_type, method):
         raise ValueError("<method> should be in {}".format(set(methods)) \
             + "\n\t\tPassed '{}'".format(method))
 
-    avg_types = ['soft', 'hard', 'rank', 'auto', 'pass']
+    avg_types = ['mean', 'soft', 'hard', 'rank', 'auto', 'pass']
     if avg_type not in avg_types:
         raise ValueError("<avg_type> should be in {}".format(set(avg_types)) \
             + "\n\t\tPassed '{}'".format(avg_type))
@@ -267,11 +269,11 @@ def _check_avg(estimator, avg_type, method):
             elif avg_type is 'rank':
                 avg = _rank_pred
 
-            elif avg_type is 'auto':
+            elif avg_type in ['auto', 'mean']:
                 avg = _mean_pred
 
             else:
-                good_vals = {'auto', 'pass'}
+                good_vals = {'mean', 'auto', 'pass'}
                 bad_vals = {'soft', 'hard'}
                 msg = "Selected <method> value is {}.".format(method) \
                     + "\n\t\tAvailable <avg_type> options are: {}.".format(good_vals) \
@@ -283,25 +285,25 @@ def _check_avg(estimator, avg_type, method):
 
         elif method is 'predict':
 
-            method = 'predict_proba'
-
             if avg_type in ['soft', 'auto']:
+                method = 'predict_proba'
                 avg = _soft_vote
 
             elif avg_type is 'hard':
                 avg = _hard_vote
 
-            elif avg_type is 'rank':
-                avg = _rank_pred
-
             elif avg_type is 'pass':
                 avg = _pass_pred
+
+            else:
+                raise ValueError("Passed unavailable avg_type '{}' for method <{}>"
+                                 "".format(avg_type, method))
 
 
         elif method is 'decision_function':
 
-            if avg_type in ['soft', 'auto']:
-                avg = _soft_vote
+            if avg_type in ['mean', 'auto']:
+                avg = _mean_pred
 
             elif avg_type is 'rank':
                 avg = _rank_pred
@@ -342,12 +344,12 @@ def _check_avg(estimator, avg_type, method):
             avg = _pass_pred
             method = 'predict'
 
-        elif avg_type is 'auto':
+        elif avg_type in ['mean', 'auto']:
             avg = _mean_pred
             method = 'predict'
 
         else:
-            vals = {'auto', 'pass'}
+            vals = {'mean', 'auto', 'pass'}
             msg = "<{}> is a {}. ".format(name, 'regressor') \
                 + "\n\t\tAvailable <avg_type> options are: {}".format(vals) \
                 + "\n\t\tCurrent value set to '{}'".format(avg_type)
@@ -359,37 +361,35 @@ def _check_avg(estimator, avg_type, method):
 
 def _avg_preds(preds, avg, X, y, index):
 
-    # Add fold index
-    for i, pred in enumerate(preds):
-        pred = pd.DataFrame(pred)
-        pred.insert(0, '_FOLD', i)
-        preds[i] = pred
-
-    # Concatenate & sort
+    # Concat & sort
     index = getattr(X, 'index', index)
 
-    pred = pd.concat(preds)
+    pred = pd.concat(preds, axis=1)
     pred = pred.loc[index]
 
-    # Average predictions
-    pred = pred.set_index('_FOLD', append=True)
+    del preds
+    gc.collect()
+
+    # Average
     pred = avg(pred)
 
-    # Short Binary
-    pred = _short_binary(pred, y)
+    # Simplify
+    if hasattr(pred, 'columns') and pred.shape[1] == 1:
+        pred = pred.iloc[:, 0] # regression
+    pred = _drop_zero_class(pred, y) # binary classifier
 
     return pred
 
 
 
-def _short_binary(pred, y):
-
-    # Check if avg_type is not 'pass'
-    if '_FOLD' in getattr(pred.index, 'names', []):
-        return pred
+def _drop_zero_class(pred, y):
 
     # Check if task is not regression
     if len(pred.shape) < 2:
+        return pred
+
+    # Check if avg_type is not 'pass'
+    if (pred.columns.value_counts() > 1).any():
         return pred
 
     if hasattr(pred.columns, 'levels'):
@@ -418,37 +418,34 @@ def _pass_pred(pred):
 
 
 def _mean_pred(pred):
-    pred = pred.copy()
-    pred.reset_index('_FOLD', inplace=True, drop=True)
-    return pred.groupby(pred.index).mean()
+    if hasattr(pred.columns, 'levels'):
+        return _multioutput_vote(pred, _mean_pred)
+    else:
+        return pred.groupby(pred.columns, axis=1).mean()
 
 
 
 def _rank_pred(pred):
-    pred = pred.copy()
-    pred = pred.groupby('_FOLD').rank(pct=True)
-    pred.reset_index('_FOLD', inplace=True, drop=True)
-    return pred.groupby(pred.index).mean()
+    if hasattr(pred.columns, 'levels'):
+        return _multioutput_vote(pred, _rank_pred)
+    else:
+        return pred.rank(pct=True).groupby(pred.columns, axis=1).mean()
 
 
 
 def _soft_vote(pred):
-    pred = pred.copy()
     if hasattr(pred.columns, 'levels'):
         return _multioutput_vote(pred, _soft_vote)
     else:
-        pred.reset_index('_FOLD', inplace=True, drop=True)
-        return pred.groupby(pred.index).mean().idxmax(axis=1)
+        return pred.groupby(pred.columns, axis=1).mean().idxmax(axis=1)
 
 
 
 def _hard_vote(pred):
-    pred = pred.copy()
     if hasattr(pred.columns, 'levels'):
         return _multioutput_vote(pred, _hard_vote)
     else:
-        pred.reset_index('_FOLD', inplace=True, drop=True)
-        return pred.idxmax(axis=1).groupby(pred.index).agg(lambda x: pd.Series.mode(x)[0])
+        return pred.apply(lambda x: mode(x)[0][0], axis=1)
 
 
 

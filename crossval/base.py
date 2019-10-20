@@ -86,7 +86,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, new_index=None,
         ``scorer(estimator, X, y)`` which should return only a single value.
         If None, the estimator's default scorer (if available) is used.
 
-    avg_type : string, {'soft', 'hard', 'auto', 'rank', 'pass'} (default='auto')
+    avg_type : string, {'mean', 'soft', 'hard', 'auto', 'rank', 'pass'} (default='auto')
         Averaging strategy for aggregating different CV folds predictions
 
         - 'hard' : use predicted class labels for majority rule voting.
@@ -119,6 +119,9 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, new_index=None,
         - 'pass' : leave predictions of different folds separated.
 
                    Column '_FOLD' will be added.
+
+        - 'mean' : simple averaging of classifier's probabilities or
+                   regressor's predictions.
 
         Ignored if <return_pred> set to False, or <method> is not 'predict'.
 
@@ -449,6 +452,9 @@ def crossval_predict(estimator, cv, X, y, groups=None, X_new=None, new_index=Non
         - 'pass' : leave predictions of different folds separated.
 
                    Column '_FOLD' will be added.
+
+        - 'mean' : simple averaging of classifier's probabilities or
+                   regressor's predictions.
 
         Ignored if <return_pred> set to False, or <method> is not 'predict'.
 
