@@ -119,7 +119,8 @@ class DowncastTransformer(BaseEstimator, TransformerMixin):
         try:
             INT_DTYPES = NP_INT_DTYPES if self.numpy_only else PD_INT_DTYPES
 
-            x = x.astype(INT_DTYPES[0])
+            if (x.astype(INT_DTYPES[0]) != x).any():
+                raise ValueError()
 
             col_type = INT_DTYPES[0]
             col_bits = np.iinfo(col_type).bits
