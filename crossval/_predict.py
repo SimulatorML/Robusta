@@ -457,3 +457,14 @@ def _multioutput_vote(pred, vote):
     pred.columns = targets
     pred.columns.name = None
     return pred
+
+
+
+def _multioutput_vote(pred, vote):
+    targets = pred.columns.get_level_values(0).unique()
+    preds = [pred.loc[:, target] for target in targets]
+    preds = [vote(p) for p in preds]
+    pred = pd.concat(preds, axis=1)
+    pred.columns = targets
+    pred.columns.name = None
+    return pred
