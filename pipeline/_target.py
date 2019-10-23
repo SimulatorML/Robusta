@@ -73,7 +73,9 @@ class TransformedTargetRegressor(BaseEstimator, RegressorMixin):
         """
         self.y_name = y.name
 
-        self.regressor_ = clone(self.regressor).fit(X, y.apply(self.func))
+        y = self.func(y)
+        self.regressor_ = clone(self.regressor).fit(X, y)
+        self.return_df = hasattr(X, 'index')
 
         return self
 
@@ -96,11 +98,13 @@ class TransformedTargetRegressor(BaseEstimator, RegressorMixin):
             Target values.
 
         """
-        y_pred = self.regressor_.predict(X)
-        y_pred = pd.Series(y_pred, name=self.y_name, index=X.index)
-        y_pred = y_pred.apply(self.inverse_func)
+        y = self.regressor_.predict(X)
+        y = self.inverse_func(y)
 
-        return y_pred
+        if self.return_df:
+            y = pd.Series(y, name=self.y_name, index=X.index)
+
+        return y
 
     @property
     def feature_importances_(self):
