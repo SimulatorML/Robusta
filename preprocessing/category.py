@@ -276,7 +276,7 @@ class LabelEncoder(BaseEstimator, TransformerMixin):
 
 
 
-class CategoryConverter1D(BaseEstimator, TransformerMixin):
+class Categorizer1D(BaseEstimator, TransformerMixin):
     """Convert categories to 'category' dtype of the same range.
     """
     def __init__(self):
@@ -318,7 +318,7 @@ class CategoryConverter1D(BaseEstimator, TransformerMixin):
 
 
 
-class CategoryConverter(BaseEstimator, TransformerMixin):
+class Categorizer(BaseEstimator, TransformerMixin):
     """Convert categories to 'category' dtype of the same range.
     """
     def __init__(self):
