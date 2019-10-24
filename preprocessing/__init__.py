@@ -27,8 +27,8 @@ __all__ = [
     # Categorical
     'LabelEncoder1D',
     'LabelEncoder',
-    'CategoryConverter1D',
-    'CategoryConverter',
+    'Categorizer1D',
+    'Categorizer',
     'OneHotEncoder',
     'FrequencyEncoder',
     'FeatureCombiner',
