@@ -71,11 +71,14 @@ class TransformedTargetRegressor(BaseEstimator, RegressorMixin):
         self : object
 
         """
-        self.y_name = y.name
+
+        if hasattr(X, 'index'):
+            self.return_df = True
+            self.y_name = y.name
 
         y = self.func(y)
+
         self.regressor_ = clone(self.regressor).fit(X, y)
-        self.return_df = hasattr(X, 'index')
 
         return self
 
