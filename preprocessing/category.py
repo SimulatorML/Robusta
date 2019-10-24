@@ -14,6 +14,8 @@ from sklearn.utils.metaestimators import _BaseComposition
 from sklearn.model_selection import check_cv
 from sklearn import preprocessing, impute
 
+import dask_ml.preprocessing.OneHotEncoder
+
 from robusta.utils import all_subsets
 
 from .base import TypeSelector, ColumnSelector
@@ -340,7 +342,7 @@ class Categorizer(BaseEstimator, TransformerMixin):
         """
         self.transformers = {}
         for col in X.columns:
-            self.transformers[col] = CategoryConverter1D().fit(X[col])
+            self.transformers[col] = Categorizer1D().fit(X[col])
 
         return self
 
