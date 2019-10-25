@@ -14,7 +14,7 @@ from sklearn.utils.metaestimators import _BaseComposition
 from sklearn.model_selection import check_cv
 from sklearn import preprocessing, impute
 
-import dask_ml.preprocessing.OneHotEncoder
+#import dask_ml.preprocessing.OneHotEncoder
 
 from robusta.utils import all_subsets
 
