@@ -1,8 +1,6 @@
 import pandas as pd
 import numpy as np
 
-from scipy import sparse
-
 from tqdm import tqdm
 
 from joblib import Parallel, delayed
@@ -704,7 +702,7 @@ class EncoderCV(BaseEstimator):
 
 class NaiveBayesEncoder(BaseEstimator, TransformerMixin):
 
-    def __init__(self, smooth=1.0):
+    def __init__(self, smooth=5.0):
         self.smooth = smooth
 
 
@@ -713,7 +711,7 @@ class NaiveBayesEncoder(BaseEstimator, TransformerMixin):
 
 
     def fit(self, X, y):
-        self._r = sparse.csr_matrix(np.log(self._pr(X, y, 1) / self._pr(X, y, 0)))
+        self._r = np.log(self._pr(X, y, 1) / self._pr(X, y, 0))
         return self
 
 
