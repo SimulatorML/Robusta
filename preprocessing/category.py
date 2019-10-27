@@ -405,22 +405,23 @@ class FastEncoder(BaseEstimator, TransformerMixin):
     def fit(self, X, y):
 
         # Category Columns
-        cats = X.columns[X.dtypes.astype(str).isin(['object', 'category'])]
+        cats = X.columns[X.dtypes.astype('str').isin(['object', 'category'])]
 
         # Fit Smoothed Likelihood Encoder to independent column
-        encoder = lambda x: smoothed_likelihood(x, y, self.smoothing,
-                                                self.min_samples_leaf)
+        encoder = lambda x: smoothed_likelihood(x, y,
+                                                self.min_samples_leaf,
+                                                self.smoothing)
 
         # Save pre-fitted Encoders (key: column name)
-        encoders = {col: encoder(x) for col, x in X.iteritems() if col in cats}
-        self.mapper = lambda x: x.map(encoders[x.name]) if x.name in cats else x
+        encoders = {col: encoder(X[col].astype('str')) for col in cats}
+        self.mapper = lambda x: x.astype('str').map(encoders[x.name]) if x.name in cats else x
 
         return self
 
 
     def transform(self, X):
         # Apply Encoders to each column
-        return X.aggregate(self.mapper)
+        return X.apply(self.mapper)
 
 
 
