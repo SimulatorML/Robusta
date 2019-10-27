@@ -384,18 +384,39 @@ class ColumnRenamer(BaseEstimator, TransformerMixin):
 
 
 
-class SimpleImputer(SimpleImputer):
-    '''Wrapper for sklearn transformers, that takes and returns pandas DataFrames.
+class SimpleImputer(BaseEstimator, TransformerMixin):
+    '''Imputation transformer for completing missing values.
 
     Parameters
     ----------
-    **params :
-        Set the parameters of core estimator.
+    strategy : string, optional (default='mean')
+        The imputation strategy.
+
+            – 'mean': replace missing with mean along each column (numeric only).
+            - 'median': replace missing with median along each column (numeric only).
+            - 'mode': replace missing with most frequent value.
+            - 'const': replace missing with <fill_value>.
+
+    fill_value : string or numeric (default=None)
+        Set value if <strategy> is 'const'. Ignored otherwise.
+
+    copy : bool (default=True)
+        Whether to copy data or impute inplace
+
+    Attributes
+    ----------
+    values_ : Series or single value
+        The imputation fill value for each feature.
 
     '''
+    def __init__(self, strategy='mean', fill_value=None, copy=True):
+        self.strategy = strategy
+        self.fill_value = fill_value
+        self.copy = copy
+
 
     def fit(self, X, y=None):
-        """Fit core transformer using X.
+        """Calculate imputing values
 
         Parameters
         ----------
@@ -411,15 +432,29 @@ class SimpleImputer(SimpleImputer):
             This estimator
 
         """
-        self.columns = X.columns
-        self.dtype = X.dtypes
-        super().fit(X)
+        self.inplace = not self.copy
+
+        if self.strategy in ['mean', 'median']:
+            if not X.dtypes.apply(pd.api.types.is_numeric_dtype).all():
+                raise ValueError("With strategy '{}' all columns must"
+                                 "be numeric.".format(self.strategy))
+            else:
+                self.values_ = X.apply(self.strategy)
+
+        elif self.strategy is 'mode':
+            self.values_ = X_train.apply('mode').loc[0]
+
+        elif self.strategy is 'const':
+            self.values_ = self.fill_value
+
+        else:
+            raise ValueError("Unknown strategy '{}'".format(self.strategy))
 
         return self
 
 
     def transform(self, X):
-        """Transform X using specified transformer.
+        """Impute missing values
 
         Parameters
         ----------
@@ -432,10 +467,7 @@ class SimpleImputer(SimpleImputer):
             Transformed input.
 
         """
-        Xt = super().transform(X)
-        Xt = pd.DataFrame(Xt, index=X.index, columns=self.columns)
-        Xt = Xt.astype(self.dtype)
-        return Xt
+        return X.fillna(self.values_, inplace=np.invert(self.copy))
 
 
 

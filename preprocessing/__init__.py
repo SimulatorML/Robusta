@@ -6,6 +6,7 @@ from .datetime import *
 
 __all__ = [
     # Basic
+    'PandasTransformer',
     'TypeSelector',
     'TypeConverter',
     'ColumnSelector',
