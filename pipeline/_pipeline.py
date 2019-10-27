@@ -1,5 +1,4 @@
 from sklearn.utils.metaestimators import if_delegate_has_method
-from sklearn.externals import six
 
 from collections import defaultdict
 
