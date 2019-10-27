@@ -702,7 +702,7 @@ class EncoderCV(BaseEstimator):
 
 class NaiveBayesEncoder(BaseEstimator, TransformerMixin):
 
-    def __init__(self, smooth):
+    def __init__(self, smooth=1.0):
         self.smooth = smooth
 
 
