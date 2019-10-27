@@ -47,7 +47,7 @@ __all__ = [
     'TargetEncoderCV',
     'CatBoostEncoder',
     'LeaveOneOutEncoder',
-    'NaiveBayesTransformer',
+    'NaiveBayesEncoder',
     # supervised (binary)
     'JamesSteinEncoder',
     'JamesSteinEncoderCV',
