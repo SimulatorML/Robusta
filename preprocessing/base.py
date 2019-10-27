@@ -436,7 +436,7 @@ class SimpleImputer(BaseEstimator, TransformerMixin):
 
         if self.strategy in ['mean', 'median']:
             if not X.dtypes.apply(pd.api.types.is_numeric_dtype).all():
-                raise ValueError("With strategy '{}' all columns must"
+                raise ValueError("With strategy '{}' all columns must "
                                  "be numeric.".format(self.strategy))
             else:
                 self.values_ = X.apply(self.strategy)
