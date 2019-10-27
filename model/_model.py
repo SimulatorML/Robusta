@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 import warnings
-warnings.simplefilter("ignore", UserWarning)
+warnings.simplefilter("ignore", category=UserWarning)
 
 from sklearn.base import BaseEstimator, clone
 
@@ -135,7 +135,7 @@ from sklearn.naive_bayes import *
 from sklearn.neighbors import *
 from sklearn.ensemble import *
 from sklearn.svm import *
-from rgf import *
+#from rgf import *
 
 #from bartpy.sklearnmodel import SklearnModel as BART
 from catboost import CatBoostRegressor, CatBoostClassifier
@@ -243,17 +243,17 @@ MODELS = {
         'regressor': ExtraTreesRegressor,
         'classifier': ExtraTreesClassifier
     },
-    'RGF': {
-        'regressor': RGFRegressor,
-        'classifier': RGFClassifier
-    },
-    'FastRGF': {
+    #'RGF': {
+    #    'regressor': RGFRegressor,
+    #    'classifier': RGFClassifier
+    #},
+    #'FastRGF': {
     #    'regressor': FastRGFRegressor,
     #    'classifier': FastRGFClassifier
-    },
-    'BART': {
+    #},
+    #'BART': {
     #    'regressor': BART
-    },
+    #},
 
     # Distance Based
     'KNN': {
@@ -660,26 +660,3 @@ MODEL_PARAMS = {
         'scale': {True, False},
     }
 }
-
-
-
-
-
-'''FIT_PARAMS = {
-# X dependent parameters
-    'Blend': {
-        'weights': lambda X, use_cols: [(0,1)]*(np.shape(X)[1] if not use_cols else len(use_cols))
-    },
-    'CatBoost': {
-        'cat_features': lambda X: get_cats(X, as_idx=True)
-    },
-    'LGB': {
-        'categorical_feature': lambda X: get_cats(X, as_idx=True)
-    },
-}'''
-
-
-'''CAT_PARAMS = {
-    'CatBoost': 'cat_features',
-    'LGB': 'categorical_feature'
-}'''
