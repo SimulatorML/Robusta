@@ -4,6 +4,7 @@ import pandas as pd
 from joblib import Parallel, delayed
 import multiprocessing
 
+from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.model_selection import check_cv
 from category_encoders import *
 

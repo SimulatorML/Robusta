@@ -440,7 +440,7 @@ class SimpleImputer(BaseEstimator, TransformerMixin):
                 self.values_ = X.apply(self.strategy)
 
         elif self.strategy is 'mode':
-            self.values_ = X_train.apply('mode').loc[0]
+            self.values_ = X.apply('mode').loc[0]
 
         elif self.strategy is 'const':
             self.values_ = self.fill_value
