@@ -6,19 +6,13 @@ from tqdm import tqdm
 from joblib import Parallel, delayed
 import multiprocessing
 
-from pandas.api.types import CategoricalDtype
 from category_encoders import *
 
 from sklearn.base import clone, BaseEstimator, TransformerMixin
-from sklearn.utils.metaestimators import _BaseComposition
 from sklearn.model_selection import check_cv
-from sklearn import preprocessing, impute
-
-#import dask_ml.preprocessing.OneHotEncoder
+import sklearn.preprocessing
 
 from robusta.utils import all_subsets
-
-from .base import TypeSelector, ColumnSelector
 
 
 
@@ -93,7 +87,7 @@ class OneHotEncoder(BaseEstimator, TransformerMixin):
         self
 
         """
-        self.ohe = preprocessing.OneHotEncoder(**self.params)
+        self.ohe = sklearn.preprocessing.OneHotEncoder(**self.params)
         self.ohe.fit(X, y)
 
         ohe_columns = self.ohe.get_feature_names()
