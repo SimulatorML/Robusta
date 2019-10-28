@@ -461,3 +461,96 @@ class FeatureCombiner(BaseEstimator, TransformerMixin):
                         for subset in subsets], axis=1)
 
         return Xt
+
+
+
+
+class SVDEncoder(BaseEstimator, TransformerMixin):
+    """Encode categorical features by pairwise transforming
+    categorical features to the counter matrix
+    and embedding with SVD.
+
+    """
+    def __init__(self, n_components=0.9):
+        self.n_components = n_components
+
+
+    def fit(self, X, y=None):
+        """Fit data
+
+        Parameters
+        ----------
+        X : DataFrame, shape [n_samples, n_features]
+            The data to determine frequencies.
+
+        Returns
+        -------
+        self
+
+        """
+
+        # Check data
+        assert not X.isna().any().any(), 'Missing values are not allowed'
+
+        columns = X.columns
+        self.embeddings_ = {col: pd.DataFrame(index=X[col].unique()) for col in columns}
+
+        self.n_components_ = pd.DataFrame(index=columns, columns=columns)
+        self.sigmas_ = {}
+
+        for a, b in combinations(columns, 2):
+
+            # Count Matrix
+            x = X.groupby([a, b]).size().unstack().fillna(0)
+
+            # SVD
+            u, s, v = svd(x, full_matrices=False)
+            v = v.T
+
+            # n_components
+            if isinstance(self.n_components, int):
+                n_components_ = min(self.n_components, len(s))
+
+            elif isinstance(self.n_components, float):
+                ratio = s.cumsum()/s.sum()
+                n_components_ = (ratio > self.n_components).argmax() + 1
+
+            else:
+                raise ValueError('Unknown n_components type:', self.n_components)
+
+            self.n_components_[a, b] = n_components_
+            self.n_components_[b, a] = n_components_
+
+            # Truncate
+            u_cols, v_cols = [], []
+
+            for i in range(n_components_):
+                u_cols.append('({},{})_svd{}'.format(a, b, i+1))
+                v_cols.append('({},{})_svd{}'.format(b, a, i+1))
+
+            u = pd.DataFrame(u[:, :n_components_], columns=u_cols, index=x.index)
+            v = pd.DataFrame(v[:, :n_components_], columns=v_cols, index=x.columns)
+
+            # Append to Embeddings
+            self.embeddings_[a] = self.embeddings_[a].join(u)
+            self.embeddings_[b] = self.embeddings_[b].join(v)
+
+        return self
+
+
+    def transform(self, X):
+        """Transform data
+
+        Parameters
+        ----------
+        X : DataFrame, shape [n_samples, n_features]
+            The data to transform.
+
+        Returns
+        -------
+        Xt : DataFrame, shape [n_samples, n_features]
+            Transformed input.
+
+        """
+        return pd.concat([self.embeddings_[col].loc[x].set_index(x.index)
+                          for col, x in X.items()], axis=1)
