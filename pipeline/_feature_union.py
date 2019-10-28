@@ -65,9 +65,9 @@ class FeatureUnion(_BaseComposition, TransformerMixin):
         """
         names = [name for name, _ in self.transformers]
 
-        transformers = Parallel(n_jobs=self.n_jobs, require='sharedmem')(
-            delayed(clone(transformer).fit)(X, y)
-                for _, transformer in self.transformers)
+        transformers = Parallel(n_jobs=self.n_jobs)(
+            delayed(self._fit)(clone(transformer), X, y)
+            for _, transformer in self.transformers)
 
         self.named_transformers_ = dict(zip(names, transformers))
 
@@ -89,41 +89,61 @@ class FeatureUnion(_BaseComposition, TransformerMixin):
             sum of n_components (output dimension) over transformers.
 
         """
-        Xt_list = Parallel(n_jobs=self.n_jobs, require='sharedmem')(
-            delayed(transformer.transform)(X)
-                for transformer in self.named_transformers_.values())
+        Xt_list = Parallel(n_jobs=self.n_jobs)(
+            delayed(self._transform)(transformer, X)
+            for transformer in self.named_transformers_.values())
 
         Xt = pd.concat(Xt_list, axis=1)
         return Xt
 
 
-    def get_params(self, deep=True):
-        """Get parameters for this estimator.
+    def fit_transform(self, X, y=None):
+        """Fit & transform X separately by each transformer, concatenate results.
 
         Parameters
         ----------
-        deep : boolean, optional
-            If True, will return the parameters for this estimator and
-            contained subobjects that are estimators.
+        X : DataFrame of shape [n_samples, n_features]
+            Input data, of which specified subsets are used to fit the transformers.
+
         Returns
         -------
-        params : mapping of string to any
-            Parameter names mapped to their values.
+        Xt : DataFrame, shape (n_samples, sum_n_components)
+            hstack of results of transformers. sum_n_components is the
+            sum of n_components (output dimension) over transformers.
 
         """
+        names = [name for name, _ in self.transformers]
+
+        paths = Parallel(n_jobs=self.n_jobs)(
+            delayed(self._fit_transform)(clone(transformer), X, y)
+            for _, transformer in self.transformers)
+
+        transformers, Xt_list = zip(*paths)
+
+        self.named_transformers_ = dict(zip(names, transformers))
+
+        Xt = pd.concat(Xt_list, axis=1)
+        return Xt
+
+
+    def _fit_transform(self, transformer, X, y):
+        Xt = transformer.fit_transform(X, y)
+        return transformer, Xt
+
+
+    def _fit(self, transformer, X, y):
+        return transformer.fit(X, y)
+
+
+    def _transform(self, transformer, X):
+        return transformer.transform(X)
+
+
+    def get_params(self, deep=True):
         return self._get_params('transformers', deep=deep)
 
 
     def set_params(self, **kwargs):
-        """Set the parameters of this estimator.
-
-        Valid parameter keys can be listed with ``get_params()``.
-
-        Returns
-        -------
-        self
-
-        """
         self._set_params('transformers', **kwargs)
         return self
 
