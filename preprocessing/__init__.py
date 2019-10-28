@@ -41,6 +41,7 @@ __all__ = [
     'SumEncoder',
     'PolynomialEncoder',
     'BaseNEncoder',
+    'SVDEncoder',
     # supervised (binary/regression)
     'FastEncoder',
     'FastEncoderCV',
