@@ -2,10 +2,11 @@ import numpy as np
 import pandas as pd
 
 from joblib import Parallel, delayed
-import multiprocessing
 
 from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.utils.multiclass import type_of_target
 from sklearn.model_selection import check_cv
+
 from category_encoders import *
 
 
@@ -65,7 +66,7 @@ class FastEncoder(BaseEstimator, TransformerMixin):
 
 
 
-class EncoderCV(BaseEstimator):
+class EncoderCV(BaseEstimator, TransformerMixin):
     """Cross Encoder for supervised encoders.
 
     Parameters
@@ -93,149 +94,71 @@ class EncoderCV(BaseEstimator):
         Controls the verbosity level.
 
     """
-    def __init__(self, encoder=FastEncoder(), cv=4, n_jobs=-1, verbose=0):
+    def __init__(self, encoder, cv=5, n_jobs=None):
         self.encoder = encoder
         self.cv = cv
-
-        self.verbose = verbose
         self.n_jobs = n_jobs
 
 
-    def fit(self, X, y):
+    def fit(self, X, y, groups=None):
 
-        self._pre_fit(X, y)
+        self.cv_ = self._check_cv(y)
 
-        jobs = (delayed(self._path_fit)(clone(self.encoder), X, y, trn)
-                for trn, oof in self.folds)
-        paths = Parallel(backend='multiprocessing', max_nbytes='256M', pre_dispatch='all',
-                         n_jobs=self.n_jobs, verbose=self.verbose)(jobs)
+        self.encoders_ = Parallel(n_jobs=self.n_jobs)(
+            delayed(self._fit)(clone(self.encoder), X, y, trn)
+            for trn, oof in self.cv_.split(X, y, groups))
 
-        self.encoders = paths
         return self
 
 
-    def transform(self, X, is_train_set=None):
+    def fit_transform(self, X, y, groups=None):
 
-        if is_train_set is None and hasattr(self, 'train_shape_'):
-            is_train_set = self._check_identity(X)
-        else:
-            is_train_set = False
+        self.cv_ = self._check_cv(y)
 
-        if is_train_set:
-            # In case if user directly tells that it is train set but shape is different
-            if self.train_shape_ != X.shape:
-                raise ValueError('Train set must have the same shape '
-                                 'in order to be transformed.')
+        preds = Parallel(n_jobs=self.n_jobs)(
+            delayed(self._fit_transform)(clone(self.encoder), X, y, trn, oof)
+            for trn, oof in self.cv_.split(X, y, groups))
 
-            # If everything is OK, get out-of-fold predictions
-            jobs = (delayed(self._path_enc)(encoder, X, oof=self.folds[i][1])
-                    for i, encoder in enumerate(self.encoders))
-
-        else:
-            # For test set just averaging all predictions
-            jobs = (delayed(self._path_enc)(encoder, X)
-                    for i, encoder in enumerate(self.encoders))
-
-        paths = Parallel(backend='multiprocessing', max_nbytes='256M', pre_dispatch='all',
-                         n_jobs=self.n_jobs, verbose=self.verbose)(jobs)
-
-        preds = paths
-        return self._mean_preds(preds)
+        return self._mean_preds(preds)[X.columns]
 
 
-    def fit_transform(self, X, y):
+    def transform(self, X):
 
-        self._pre_fit(X, y, footprint=False)
+        preds = Parallel(n_jobs=self.n_jobs)(
+            delayed(self._transform)(encoder, X)
+            for encoder in self.encoders_)
 
-        jobs = (delayed(self._path_fit_enc)(clone(self.encoder), X, y, trn, oof)
-                for trn, oof in self.folds)
-        paths = Parallel(backend='multiprocessing', max_nbytes='256M', pre_dispatch='all',
-                         n_jobs=self.n_jobs, verbose=self.verbose)(jobs)
-
-        self.encoders, preds = zip(*paths)
-        return self._mean_preds(preds)
-
+        return self._mean_preds(preds)[X.columns]
 
 
     def _mean_preds(self, preds):
         return pd.concat(preds, axis=1).groupby(level=0, axis=1).mean()
 
 
-    def _path_fit(self, encoder, X, y, trn):
+    def _fit(self, encoder, X, y, trn):
         return encoder.fit(X.iloc[trn], y.iloc[trn])
 
 
-    def _path_enc(self, encoder, X, oof=None):
-        if oof is None:
-            return encoder.transform(X)
+    def _fit_transform(self, encoder, X, y, trn, oof):
+        return encoder.fit(X.iloc[trn], y.iloc[trn]).transform(X.iloc[oof])
+
+
+    def _transform(self, encoder, X):
+        return encoder.transform(X)
+
+
+    def _check_cv(self, y):
+
+        task_type = type_of_target(y)
+
+        if task_type == 'binary':
+            classifier = True
+        elif task_type == 'continuous':
+            classifier = False
         else:
-            return encoder.transform(X.iloc[oof])
+            raise ValueError("Unsupported task type '{}'".format(task_type))
 
-
-    def _path_fit_enc(self, encoder, X, y, trn, oof):
-        encoder.fit(X.iloc[trn], y.iloc[trn])
-        return encoder, encoder.transform(X.iloc[oof])
-
-
-    def _pre_fit(self, X, y, footprint=True):
-
-        #self.encoder.set_params(**self.params)
-
-        is_classifier = len(np.unique(y)) < 100 # hack
-        cv = check_cv(self.cv, y, is_classifier)
-        self.folds = list(cv.split(X, y))
-
-        if footprint:
-            self.train_footprint_ = self._get_footprint(X)
-            self.train_shape_ = X.shape
-
-
-    def _check_identity(self, X, rtol=1e-05, atol=1e-08, equal_nan=False):
-        """Checks 2d numpy array or sparse matrix identity
-        by its shape and footprint.
-        """
-        try:
-            X = X.values
-            # Check shape
-            if X.shape != self.train_shape_:
-                return False
-            # Check footprint
-            try:
-                for coo in self.train_footprint_:
-                    assert np.isclose(X[coo[0], coo[1]], coo[2], rtol=rtol, atol=atol,
-                                      equal_nan=equal_nan)
-                return True
-            except AssertionError:
-                return False
-
-        except Exception:
-            raise ValueError('Internal error. '
-                             'Please save traceback and inform developers.')
-
-
-    def _get_footprint(self, X, n_items=1000):
-        """Selects ``n_items`` random elements from 2d numpy array or
-        sparse matrix (or all elements if their number is less or equal
-        to ``n_items``).
-        """
-        try:
-            X = X.values
-            footprint = []
-            r, c = X.shape
-            n = r * c
-            # np.random.seed(0) # for development
-            ids = np.random.choice(n, min(n_items, n), replace=False)
-
-            for i in ids:
-                row = i // c
-                col = i - row * c
-                footprint.append((row, col, X[row, col]))
-
-            return footprint
-
-        except Exception:
-            raise ValueError('Internal error. '
-                             'Please save traceback and inform developers.')
+        return check_cv(self.cv, y, classifier)
 
 
 
@@ -257,15 +180,6 @@ class NaiveBayesEncoder(BaseEstimator, TransformerMixin):
     def _pr(self, X, y, val):
         prob = X[y == val].sum(0)
         return (prob + self.smooth) / ((y == val).sum() + self.smooth)
-
-
-
-FastEncoderCV = lambda **params: EncoderCV(FastEncoder(), **params)
-TargetEncoderCV = lambda **params: EncoderCV(TargetEncoder(), **params)
-MEstimateEncoderCV = lambda **params: EncoderCV(MEstimateEncoder(), **params)
-JamesSteinEncoderCV = lambda **params: EncoderCV(JamesSteinEncoder(), **params)
-WOEEncoderCV = lambda **params: EncoderCV(WOEEncoder(), **params)
-
 
 
 
