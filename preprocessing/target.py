@@ -100,33 +100,47 @@ class EncoderCV(BaseEstimator):
         self.n_jobs = n_jobs
 
 
-    def fit(self, X, y, groups=None):
+    def fit(self, X, y):
 
-        self.cv_ = self._check_cv(y)
+        self._fit_data(X, y)
 
         self.encoders_ = Parallel(n_jobs=self.n_jobs)(
             delayed(self._fit)(clone(self.encoder), X, y, trn)
-            for trn, oof in self.cv_.split(X, y, groups))
+            for trn, oof in self._get_folds(X))
 
         return self
 
 
-    def fit_transform(self, X, y, groups=None):
+    def fit_transform(self, X, y):
 
-        self.cv_ = self._check_cv(y)
+        self._fit_data(X, y)
 
-        preds = Parallel(n_jobs=self.n_jobs)(
+        paths = Parallel(n_jobs=self.n_jobs)(
             delayed(self._fit_transform)(clone(self.encoder), X, y, trn, oof)
-            for trn, oof in self.cv_.split(X, y, groups))
+            for trn, oof in self._get_folds(X))
+
+        self.encoders_, preds = zip(*paths)
 
         return self._mean_preds(preds)[X.columns]
 
 
     def transform(self, X):
 
+        if self._is_train(X):
+            return transform_train(X)
+
         preds = Parallel(n_jobs=self.n_jobs)(
             delayed(self._transform)(encoder, X)
             for encoder in self.encoders_)
+
+        return self._mean_preds(preds)[X.columns]
+
+
+    def transform_train(self, X):
+
+        preds = Parallel(n_jobs=self.n_jobs)(
+            delayed(self._transform)(encoder, X, oof)
+            for encoder, (_, oof) in zip(self.encoders_, self._get_folds(X)))
 
         return self._mean_preds(preds)[X.columns]
 
@@ -140,16 +154,27 @@ class EncoderCV(BaseEstimator):
 
 
     def _fit_transform(self, encoder, X, y, trn, oof):
-        return encoder.fit(X.iloc[trn], y.iloc[trn]).transform(X.iloc[oof])
+        Xt = encoder.fit(X.iloc[trn], y.iloc[trn]).transform(X.iloc[oof])
+        return encoder, Xt
 
 
     def _transform(self, encoder, X):
         return encoder.transform(X)
 
 
-    def _check_cv(self, y):
+    def _transform_train(self, encoder, X, oof):
+        return encoder.transform(X.iloc[oof])
 
-        task_type = type_of_target(y)
+
+    def _fit_data(self, X, y):
+
+        # Fit train dataset
+        self.train_target = y.copy()
+        self.train_shape_ = X.shape
+        self.train_index_ = X.index
+
+        # Define cross-validation
+        task_type = type_of_target(self.train_target)
 
         if task_type == 'binary':
             classifier = True
@@ -158,7 +183,18 @@ class EncoderCV(BaseEstimator):
         else:
             raise ValueError("Unsupported task type '{}'".format(task_type))
 
-        return check_cv(self.cv, y, classifier)
+        self.cv_ = check_cv(self.cv, self.train_target, classifier)
+
+        return self
+
+
+    def _get_folds(self, X):
+        return self.cv_.split(X, self.train_target)
+
+
+    def _is_train(self, X):
+        return (X.shape is self.train_shape_) and (X.index is self.train_index_)
+
 
 
 
