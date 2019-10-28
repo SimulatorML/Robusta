@@ -41,7 +41,7 @@ class FeatureUnion(_BaseComposition, TransformerMixin):
         Access the fitted transformer by name.
 
     '''
-    def __init__(self, transformers, n_jobs=-1, **kwargs):
+    def __init__(self, transformers, n_jobs=None, **kwargs):
         self.transformers = transformers
         self.n_jobs = n_jobs
 
