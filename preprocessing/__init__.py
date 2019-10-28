@@ -44,18 +44,14 @@ __all__ = [
     'BaseNEncoder',
     'SVDEncoder',
     # supervised (binary/regression)
+    'EncoderCV',
     'FastEncoder',
-    'FastEncoderCV',
     'TargetEncoder',
-    'TargetEncoderCV',
     'CatBoostEncoder',
     'LeaveOneOutEncoder',
     'NaiveBayesEncoder',
     # supervised (binary)
     'JamesSteinEncoder',
-    'JamesSteinEncoderCV',
     'MEstimateEncoder',
-    'MEstimateEncoderCV',
     'WOEEncoder', # ln(%good/%bad)
-    'WOEEncoderCV',
 ]

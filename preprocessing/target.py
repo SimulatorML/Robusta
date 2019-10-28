@@ -3,7 +3,7 @@ import pandas as pd
 
 from joblib import Parallel, delayed
 
-from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.base import clone, BaseEstimator, TransformerMixin
 from sklearn.utils.multiclass import type_of_target
 from sklearn.model_selection import check_cv
 
@@ -66,12 +66,12 @@ class FastEncoder(BaseEstimator, TransformerMixin):
 
 
 
-class EncoderCV(BaseEstimator, TransformerMixin):
+class EncoderCV(BaseEstimator):
     """Cross Encoder for supervised encoders.
 
     Parameters
     ----------
-    encoder : encoder instance, default=TargetEncoder()
+    encoder : supervised transformer
 
     cv : int, cross-validation generator or an iterable, optional
         Determines the cross-validation splitting strategy.
