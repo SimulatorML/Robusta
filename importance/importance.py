@@ -6,20 +6,17 @@ __all__ = ['get_importance']
 
 
 
-def get_importance(model, X=None):
+def get_importance(model):
     '''Get <feature_importances_> of <coef_> attrs from fitted estimator.
 
     Parameters
     ----------
-    estimator : object
+    model : estimator object
         Fitted estimator
-
-    X : DataFrame, shape (n_objects, n_features), optional
-        If passed, convert <imp> to Series with <X.columns> as index
 
     Returns
     -------
-    imp : array or Series of shape (n_features, )
+    imp : array of shape (n_features, )
         Feature importances of fitted estimator
 
     '''
@@ -29,13 +26,10 @@ def get_importance(model, X=None):
         imp = model.feature_importances_
 
     elif hasattr(model, 'coef_'):
-        imp = np.abs(model.coef_)
+        imp = model.coef_
 
     else:
         msg = "<{}> has neither <feature_importances_>, nor <coef_>".format(name)
         raise AttributeError(msg)
-
-    if hasattr(X, 'columns'):
-        imp = pd.Series(imp, index=X.columns)
 
     return imp
