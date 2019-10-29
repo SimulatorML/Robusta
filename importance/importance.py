@@ -26,7 +26,7 @@ def get_importance(model):
         imp = model.feature_importances_
 
     elif hasattr(model, 'coef_'):
-        imp = model.coef_
+        imp = np.abs(model.coef_)
 
     else:
         msg = "<{}> has neither <feature_importances_>, nor <coef_>".format(name)
