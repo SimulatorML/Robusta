@@ -48,7 +48,7 @@ class Selector(TransformerMixin):
 
 
 
-class EmbeddedSelector(Selector):
+class BlackBoxSelector(Selector):
 
     @abc.abstractmethod
     def __init__(self, estimator, cv=5, scoring=None, max_iter=20, max_time=None,
@@ -110,8 +110,8 @@ class EmbeddedSelector(Selector):
             }
 
             if 'importance' in result:
-                trial['importance'] = result['importance'].mean(axis=1)
-                trial['importance_std'] = result['importance'].std(axis=1)
+                trial['importance'] = result['importance'].mean(axis=0)
+                trial['importance_std'] = result['importance'].std(axis=0)
 
         self._append_trial(trial)
 

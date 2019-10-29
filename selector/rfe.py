@@ -15,7 +15,7 @@ from .base import EmbeddedSelector
 
 
 
-class RFE(EmbeddedSelector):
+class RFE(BlackBoxSelector):
     """Feature ranking with recursive feature elimination (RFE) and
     cross-validated selection of the best number of features.
 

@@ -11,7 +11,7 @@ from robusta.utils import logmsg
 
 
 
-class GreedSelector(EmbeddedSelector):
+class GreedSelector(BlackBoxSelector):
     '''Greed Forward/Backward Feature Selector
 
     Parameters

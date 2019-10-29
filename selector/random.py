@@ -9,7 +9,7 @@ from .base import EmbeddedSelector
 
 
 
-class RandomSubset(EmbeddedSelector):
+class RandomSubset(BlackBoxSelector):
     '''Random feature selector for sampling and evaluating randomly choosen
     feature subsets of specified size
 

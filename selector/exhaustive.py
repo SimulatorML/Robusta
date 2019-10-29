@@ -9,7 +9,7 @@ from .base import EmbeddedSelector
 
 
 
-class ExhaustiveSelector(EmbeddedSelector):
+class ExhaustiveSelector(BlackBoxSelector):
     '''Exhaustive feature selector for sampling and evaluating all possible
     feature subsets of specified size.
 
