@@ -90,7 +90,7 @@ class BlackBoxSelector(Selector):
 
 
 
-    def _eval_subset(self, subset, X, y, groups, **kwargs):
+    def _eval_subset(self, subset, X, y, groups):
 
         trial = self._find_trial(subset)
 
@@ -100,7 +100,7 @@ class BlackBoxSelector(Selector):
             features = list(subset)
             result = crossval(self.estimator, self.cv, X[features], y, groups,
                               scoring=self.scoring, n_jobs=self.n_jobs,
-                              return_pred=False, verbose=0, **kwargs)
+                              return_pred=False, verbose=0)
 
             trial = {
                 'score': np.mean(result['score']),

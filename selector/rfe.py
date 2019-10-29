@@ -149,9 +149,7 @@ class RFE(BlackBoxSelector):
 
     def _fit(self, X, y, groups):
 
-        kwargs = dict(return_importance=True)
-
-        trial = self._eval_subset(self.last_subset_, X, y, groups, **kwargs)
+        trial = self._eval_subset(self.last_subset_, X, y, groups)
         imp = trial['importance']
 
         for k_features in self.k_range_:
