@@ -121,8 +121,8 @@ class RFE(BlackBoxSelector):
 
         if not partial:
 
-            self.features_ = list(X.columns)
-            self.last_subset_ = list(self.features_)
+            self.features_ = X.columns.values
+            self.last_subset_ = self.features_
 
             self._save_importance = True
 
@@ -152,10 +152,10 @@ class RFE(BlackBoxSelector):
         trial = self._eval_subset(self.last_subset_, X, y, groups)
         imp = trial['importance']
 
-        for k_features in self.k_range_:
+        for k in self.k_range_:
             try:
                 last_subset = set(self.last_subset_)
-                self.last_subset_ = _select_k_best(imp, k_features)
+                self.last_subset_ = _select_k_best(self.last_subset_, imp, k)
 
                 if self.verbose > 1:
                     subset_diff = set(last_subset) - set(self.last_subset_)
@@ -242,21 +242,9 @@ class PermutationRFE(RFE):
 
 
 
-# TODO: _extract_importances
-def _extract_importances(estimators):
-    importances = [get_importance(e) for e in estimators]
-    return importances
 
-
-
-
-def _select_k_best(scores, k_best):
-
-    sort_scores = scores.sort_values(ascending=False)
-    best_scores = sort_scores.iloc[:k_best]
-
-    use_cols = list(best_scores.index)
-    return use_cols
+def _select_k_best(features, scores, k_best):
+    return features[np.argsort(-scores)][:k_best]
 
 
 

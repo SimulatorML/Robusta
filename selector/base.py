@@ -110,8 +110,8 @@ class BlackBoxSelector(Selector):
             }
 
             if 'importance' in result:
-                trial['importance'] = result['importance'].mean(axis=0)
-                trial['importance_std'] = result['importance'].std(axis=0)
+                trial['importance'] = np.mean(result['importance'], axis=0)
+                trial['importance_std'] = np.std(result['importance'], axis=0)
 
         self._append_trial(trial)
 
@@ -120,9 +120,7 @@ class BlackBoxSelector(Selector):
 
     def _append_trial(self, trial):
 
-        if not hasattr(self, 'trials_'):
-            self._reset_trials()
-
+        if not hasattr(self, 'trials_'): self._reset_trials()
         self.trials_ = self.trials_.append(trial, ignore_index=True)
 
         _print_last(self)
