@@ -123,10 +123,10 @@ def _fit_predict(estimator, method, scorer, X, y, X_new=None, new_index=None,
         result['estimator'] = estimator
 
     # Feature Importances
-    '''try:
+    try:
         result['importance'] = get_importance(estimator)
     except:
-        pass'''
+        pass
 
     # Predict
     if return_pred and (len(oof) or len(new)):

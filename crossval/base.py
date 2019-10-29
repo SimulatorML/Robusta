@@ -195,9 +195,9 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, new_index=None,
                 The fitted estimator objects for each cv split (and ).
                 Ignored if return_estimator=False.
 
-            ``importance`` : Series, shape [n_features]
-                Averaged <feature_importances_> or <coef_> of all estimators.
-                Ignored if return_importance=False.
+            ``importance`` : list of arrays, shape [n_splits, n_features]
+                List of importances. If estimator has <coef_> attribute,
+                return np.abs(coef_).
 
             ``features`` : list, shape [n_features]
                 List of features.
@@ -272,13 +272,6 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, new_index=None,
             new_preds = result['new_pred']
             new_pred = _avg_preds(new_preds, avg, X_new, y, new_index)
             result['new_pred'] = new_pred
-
-        if 'importance' in result:
-            importance = np.array(result['importance']).T
-            display(importance)
-            print(importance.shape)
-            importance = pd.DataFrame(importance, index=X.columns)
-            result['importance'] = importance
 
         for key in ['fit_time', 'score_time', 'pred_time']:
             if key in result:
