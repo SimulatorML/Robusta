@@ -4,14 +4,14 @@ import numpy as np
 from sklearn.utils.random import check_random_state
 from sklearn.exceptions import NotFittedError
 
-from .base import BlackBoxSelector
-
 from robusta.utils import logmsg
 
+from .base import SequentialAgnosticSelector
 
 
 
-class GreedSelector(BlackBoxSelector):
+
+class GreedSelector(SequentialAgnosticSelector):
     '''Greed Forward/Backward Feature Selector
 
     Parameters
@@ -45,7 +45,7 @@ class GreedSelector(BlackBoxSelector):
     '''
     def __init__(self, estimator, cv=5, scoring=None, forward=True, floating=False,
                  k_features=0.5, max_candidates=None, max_time=None, use_best=True,
-                 random_state=0, n_jobs=-1, verbose=1, n_digits=4, plot=False):
+                 random_state=0, n_jobs=None, verbose=1, n_digits=4, plot=False):
 
         self.estimator = estimator
         self.k_features = k_features
@@ -145,7 +145,7 @@ class GreedSelector(BlackBoxSelector):
                     candidate = subset - {feature}
 
                 try:
-                    result = self._eval_subset(candidate, X, y, groups)
+                    result = self._eval_subset(candidate, X, y, groups, prev_subset=subset)
                     feature_scores[feature] = np.mean(result['score'])
                 except KeyboardInterrupt:
                     raise
@@ -193,11 +193,10 @@ class GreedSelector(BlackBoxSelector):
                     candidate = subset | {feature}
 
                 if self._find_trial(candidate):
-                    print(candidate)
                     continue
 
                 try:
-                    result = self._eval_subset(candidate, X, y, groups)
+                    result = self._eval_subset(candidate, X, y, groups, prev_subset=subset)
                     feature_scores[feature] = np.mean(result['score'])
                 except KeyboardInterrupt:
                     raise

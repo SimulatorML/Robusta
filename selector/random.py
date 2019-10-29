@@ -4,12 +4,11 @@ import numpy as np
 from sklearn.utils.random import check_random_state
 from sklearn.exceptions import NotFittedError
 
-from .base import BlackBoxSelector
+from .base import AgnosticSelector
 
 
 
-
-class RandomSubset(BlackBoxSelector):
+class RandomSubset(AgnosticSelector):
     '''Random feature selector for sampling and evaluating randomly choosen
     feature subsets of specified size
 

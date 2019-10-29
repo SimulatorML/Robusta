@@ -5,11 +5,11 @@ from sklearn.exceptions import NotFittedError
 
 from robusta.utils import all_subsets
 
-from .base import BlackBoxSelector
+from .base import AgnosticSelector
 
 
 
-class ExhaustiveSelector(BlackBoxSelector):
+class ExhaustiveSelector(AgnosticSelector):
     '''Exhaustive feature selector for sampling and evaluating all possible
     feature subsets of specified size.
 

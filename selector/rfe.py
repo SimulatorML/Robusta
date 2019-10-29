@@ -10,12 +10,12 @@ from sklearn.base import clone, is_classifier
 
 from robusta.importance import PermutationImportance, get_importance
 
-from .base import BlackBoxSelector
+from .base import SequentialAgnosticSelector
 
 
 
 
-class RFE(BlackBoxSelector):
+class RFE(SequentialAgnosticSelector):
     """Feature ranking with recursive feature elimination (RFE) and
     cross-validated selection of the best number of features.
 
@@ -154,14 +154,10 @@ class RFE(BlackBoxSelector):
 
         for k in self.k_range_:
             try:
-                last_subset = self.subset_
+                prev_subset = self.subset_
                 self.subset_ = _select_k_best(self.subset_, imp, k)
 
-                if self.verbose > 1:
-                    subset_diff = set(last_subset) - set(self.subset_)
-                    print('           DROP: {}'.format(subset_diff))
-
-                trial = self._eval_subset(self.subset_, X, y, groups)
+                trial = self._eval_subset(self.subset_, X, y, groups, prev_subset=prev_subset)
                 imp = trial['importance']
 
                 if self.k_features_ <= self.min_features_:
@@ -211,7 +207,7 @@ class PermutationRFE(RFE):
         self.plot = plot
 
 
-    def _eval_subset(self, subset, X, y, groups):
+    def _eval_subset(self, subset, X, y, groups, prev_subset=None):
 
         trial = self._find_trial(subset)
 
@@ -235,6 +231,11 @@ class PermutationRFE(RFE):
                 'importance_std': perm.feature_importances_std_,
                 'time': time() - tic,
             }
+
+            if prev_subset is not None:
+                prev_trial = self._find_trial(prev_subset)
+                trial['prev_subset'] = prev_trial['subset'] if prev_trial else set()
+                trial['prev_score'] = prev_trial['score'] if prev_trial else None
 
         self._append_trial(trial)
 

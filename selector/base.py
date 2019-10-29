@@ -48,7 +48,7 @@ class Selector(BaseEstimator, TransformerMixin):
 
 
 
-class BlackBoxSelector(Selector):
+class AgnosticSelector(Selector):
 
     @abc.abstractmethod
     def __init__(self, estimator, cv=5, scoring=None, max_iter=20, max_time=None,
@@ -202,6 +202,44 @@ class BlackBoxSelector(Selector):
         subset = self._select_features()
         trial = _find_trial(subset)
         return pd.Series(trial['importance_std'], index=self.features_)
+
+
+
+class SequentialAgnosticSelector(AgnosticSelector):
+
+    def _eval_subset(self, subset, X, y, groups, prev_subset=None):
+
+        trial = self._find_trial(subset)
+
+        if not trial:
+            tic = time()
+
+            features = list(subset)
+            result = crossval(self.estimator, self.cv, X[subset], y, groups,
+                              scoring=self.scoring, n_jobs=self.n_jobs,
+                              return_pred=False, verbose=0)
+
+            trial = {
+                'score': np.mean(result['score']),
+                'score_std': np.std(result['score']),
+                'subset': set(subset),
+                'time': time() - tic,
+            }
+
+            if prev_subset is not None:
+                prev_trial = self._find_trial(prev_subset)
+                trial['prev_subset'] = prev_trial['subset'] if prev_trial else set()
+                trial['prev_score'] = prev_trial['score'] if prev_trial else None
+
+            if 'importance' in result:
+                imp = result['importance']
+                trial['importance'] = np.mean(imp, axis=0).reshape(len(subset))
+                trial['importance_std'] = np.std(imp, axis=0).reshape(len(subset))
+
+        self._append_trial(trial)
+
+        return trial
+
 
 
 def _same_set(a, b):
