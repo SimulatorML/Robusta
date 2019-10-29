@@ -161,7 +161,7 @@ class RFE(BlackBoxSelector):
                     subset_diff = set(last_subset) - set(self.last_subset_)
                     print('           DROP: {}'.format(subset_diff))
 
-                trial = self._eval_subset(self.last_subset_, X, y, groups, **kwargs)
+                trial = self._eval_subset(self.last_subset_, X, y, groups)
                 imp = trial['importance']
 
                 if self.k_features_ <= self.min_features_:
@@ -191,7 +191,7 @@ class RFE(BlackBoxSelector):
 class PermutationRFE(RFE):
 
     def __init__(self, estimator, cv=5, scoring=None, min_features=0.5, step=1,
-                 n_repeats=5, random_state=0, use_best=True, n_jobs=-1,
+                 n_repeats=5, random_state=0, use_best=True, n_jobs=None,
                  verbose=1, n_digits=4, plot=False):
 
         self.estimator = estimator
@@ -211,7 +211,7 @@ class PermutationRFE(RFE):
         self.plot = plot
 
 
-    def _eval_subset(self, subset, X, y, groups, **kwargs):
+    def _eval_subset(self, subset, X, y, groups):
 
         trial = self._find_trial(subset)
 
@@ -221,7 +221,7 @@ class PermutationRFE(RFE):
             progress_bar = (self.verbose >= 5)
             features = list(subset)
 
-            perm = PermutationImportance(self.estimator, self.scoring, self.cv,
+            perm = PermutationImportance(self.estimator, self.cv, self.scoring,
                                          self.n_repeats, n_jobs=self.n_jobs,
                                          random_state=self.random_state,
                                          progress_bar=progress_bar)

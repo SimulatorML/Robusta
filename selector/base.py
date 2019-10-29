@@ -4,7 +4,7 @@ import abc
 
 from time import time
 
-from sklearn.base import TransformerMixin
+from sklearn.base import BaseEstimator, TransformerMixin
 
 from robusta.crossval import crossval
 
@@ -12,7 +12,7 @@ from ._verbose import _print_last
 
 
 
-class Selector(TransformerMixin):
+class Selector(BaseEstimator, TransformerMixin):
 
 
     def transform(self, X):
