@@ -54,6 +54,18 @@ def _print_last(fs):
 
         logmsg(msg)
 
+
+    if fs.verbose >= 2 and getattr(trial, 'prev_subset', None) is not None:
+
+        new, old = trial['subset'], trial['prev_subset']
+
+        diff = new - old
+        if diff: logmsg('ADD : {}'.format(diff))
+
+        diff = old - new
+        if diff: logmsg('DROP: {}'.format(diff))
+
+
     if fs.verbose >= 10:
         # Last feature subset
         print(trial['subset'])
