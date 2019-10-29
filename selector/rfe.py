@@ -122,7 +122,7 @@ class RFE(BlackBoxSelector):
         if not partial:
 
             self.features_ = X.columns.values
-            self.last_subset_ = self.features_
+            self.subset_ = X.columns.values
 
             self._save_importance = True
 
@@ -144,24 +144,24 @@ class RFE(BlackBoxSelector):
 
     @property
     def k_features_(self):
-        return len(self.last_subset_)
+        return len(self.subset_)
 
 
     def _fit(self, X, y, groups):
 
-        trial = self._eval_subset(self.last_subset_, X, y, groups)
+        trial = self._eval_subset(self.subset_, X, y, groups)
         imp = trial['importance']
 
         for k in self.k_range_:
             try:
-                last_subset = set(self.last_subset_)
-                self.last_subset_ = _select_k_best(self.last_subset_, imp, k)
+                last_subset = self.subset_
+                self.subset_ = _select_k_best(self.subset_, imp, k)
 
                 if self.verbose > 1:
-                    subset_diff = set(last_subset) - set(self.last_subset_)
+                    subset_diff = set(last_subset) - set(self.subset_)
                     print('           DROP: {}'.format(subset_diff))
 
-                trial = self._eval_subset(self.last_subset_, X, y, groups)
+                trial = self._eval_subset(self.subset_, X, y, groups)
                 imp = trial['importance']
 
                 if self.k_features_ <= self.min_features_:
@@ -178,8 +178,8 @@ class RFE(BlackBoxSelector):
         if (self.use_best is True) and hasattr(self, 'best_subset_'):
             return list(self.best_subset_)
 
-        elif (self.use_best is False) and len(self.last_subset_) > 0:
-            return list(self.last_subset_)
+        elif (self.use_best is False) and len(self.subset_) > 0:
+            return list(self.subset_)
 
         else:
             model_name = self.__class__.__name__
@@ -228,7 +228,7 @@ class PermutationRFE(RFE):
             perm.fit(X[features], y, groups)
 
             trial = {
-                'subset': features,
+                'subset': set(subset),
                 'score': np.mean(perm.scores_),
                 'score_std': np.std(perm.scores_),
                 'importance': perm.feature_importances_,

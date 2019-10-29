@@ -98,20 +98,21 @@ class BlackBoxSelector(Selector):
             tic = time()
 
             features = list(subset)
-            result = crossval(self.estimator, self.cv, X[features], y, groups,
+            result = crossval(self.estimator, self.cv, X[subset], y, groups,
                               scoring=self.scoring, n_jobs=self.n_jobs,
                               return_pred=False, verbose=0)
 
             trial = {
                 'score': np.mean(result['score']),
                 'score_std': np.std(result['score']),
-                'subset': result['features'],
+                'subset': set(result['features']),
                 'time': time() - tic,
             }
 
             if 'importance' in result:
-                trial['importance'] = np.mean(result['importance'], axis=0)
-                trial['importance_std'] = np.std(result['importance'], axis=0)
+                imp = result['importance']
+                trial['importance'] = np.mean(imp, axis=0).reshape(len(subset))
+                trial['importance_std'] = np.std(imp, axis=0).reshape(len(subset))
 
         self._append_trial(trial)
 
@@ -179,7 +180,7 @@ class BlackBoxSelector(Selector):
         if self.n_iters_ == 0:
             return None
 
-        same_subsets = self.trials_['subset'].map(lambda x: _same_set(subset, x))
+        same_subsets = self.trials_['subset'] == set(subset)
 
         if same_subsets.any():
             trial = self.trials_[same_subsets].iloc[0]
@@ -203,9 +204,8 @@ class BlackBoxSelector(Selector):
         return pd.Series(trial['importance_std'], index=self.features_)
 
 
-def _same_set(set1, set2):
-    set1, set2 = set(set1), set(set2)
-    return len(set1 ^ set2) is 0
+def _same_set(a, b):
+    return set(a) == set(b)
 
 
 
