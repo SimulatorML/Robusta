@@ -1,3 +1,6 @@
+import numpy as np
+import pandas as pd
+
 from sklearn.base import clone, BaseEstimator, ClassifierMixin
 from sklearn.model_selection import GroupKFold
 from sklearn.exceptions import NotFittedError
