@@ -1,4 +1,5 @@
 from .base import *
+from .schemes import *
 from .saveload import *
 
 
@@ -7,6 +8,12 @@ __all__ = [
     'crossval',
     'crossval_score',
     'crossval_predict',
+
+    # Custom Schemes
+    'RepeatedGroupKFold',
+    'AdversarialValidation',
+    'make_adversarial_validation',
+
     # SaveLoad
     'save_result',
     'load_result',
