@@ -4,7 +4,7 @@ import numpy as np
 from sklearn.utils.random import check_random_state
 from sklearn.exceptions import NotFittedError
 
-from .base import EmbeddedSelector
+from .base import BlackBoxSelector
 
 from robusta.utils import logmsg
 

@@ -5,7 +5,7 @@ from sklearn.exceptions import NotFittedError
 
 from robusta.utils import all_subsets
 
-from .base import EmbeddedSelector
+from .base import BlackBoxSelector
 
 
 

@@ -10,7 +10,7 @@ from sklearn.base import clone, is_classifier
 
 from robusta.importance import PermutationImportance, get_importance
 
-from .base import EmbeddedSelector
+from .base import BlackBoxSelector
 
 
 
@@ -36,6 +36,19 @@ class RFE(BlackBoxSelector):
         The estimator must have either a <feature_importances_> or <coef_>
         attribute after fitting.
 
+    cv : int, cross-validation generator or iterable
+        Determines the cross-validation splitting strategy.
+        Possible inputs for cv are:
+
+            - integer, to specify the number of folds.
+            - An object to be used as a cross-validation generator.
+            - An iterable yielding train/test splits.
+
+    scoring : string, callable or None, optional, default: None
+        A string or a scorer callable object / function with signature
+        ``scorer(estimator, X, y)`` which should return only a single value.
+        If None, the estimator's default scorer (if available) is used.
+
     min_features : int or float, optional (default=0.5)
         The number of features to select. Float values means percentage of
         features to select. E.g. value 0.5 (by default) means 50% of features.
@@ -44,14 +57,6 @@ class RFE(BlackBoxSelector):
         The number of features to remove on each step. Float values means
         percentage of left features. E.g. 0.2 means 20% reduction on each step:
         500 => 400 => 320 => ...
-
-    cv : int, cross-validation generator or iterable
-        Determines the cross-validation splitting strategy.
-        Possible inputs for cv are:
-
-            - integer, to specify the number of folds.
-            - An object to be used as a cross-validation generator.
-            - An iterable yielding train/test splits.
 
     random_state : int or None (default=0)
         Random seed for permutations in PermutationImportance.
@@ -80,7 +85,7 @@ class RFE(BlackBoxSelector):
     """
 
     def __init__(self, estimator, cv=5, scoring=None, min_features=0.5, step=1,
-                 use_best=True, n_jobs=-1, verbose=1, n_digits=4, plot=False):
+                 use_best=True, n_jobs=None, verbose=1, n_digits=4, plot=False):
 
         self.estimator = estimator
         self.scoring = scoring
