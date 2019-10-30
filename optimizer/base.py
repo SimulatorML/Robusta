@@ -15,14 +15,7 @@ import numpy as np
 from ._verbose import plot_progress, _print_last
 
 from robusta.crossval import crossval_score
-#from ..model._model import MODEL_PARAMS, PREP_PARAMS, FIT_PARAMS
 
-
-
-
-
-#__all__ = ['GridSearchCV', 'RandomSearchCV', 'OptunaCV']
-#__all__ = ['BaseOptimizer', 'qround', 'ranking']
 
 
 
@@ -313,12 +306,7 @@ class BaseOptimizer(BaseEstimator):
 
         self.X, self.y, self.groups = X, y, groups
 
-
-
-
-
-
-
+        return self
 
 
 
