@@ -347,13 +347,18 @@ class ColumnRenamer(BaseEstimator, TransformerMixin):
         self
 
         '''
-        if self.column:
-            if isinstance(self.column, str):
+        if self.column is not None:
+            if hasattr(self.column, '__iter__') and len(self.column) is X.shape[1]:
+                features = map(str, self.column)
+
+            elif isinstance(self.column, str):
                 features = [self.column + str(x) for x in range(X.shape[1])]
-            elif hasattr(self.column, '__iter__') and len(self.column) is X.shape[1]:
-                features = self.column
+
+            elif callable(self.column):
+                features = [self.column(x) for x in X]
+
             else:
-                raise ValueError('Unknown <body> type passed')
+                raise ValueError('Unknown <column> type passed: {}'.format(self.column))
         else:
             features = X.columns
 
