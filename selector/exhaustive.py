@@ -81,7 +81,7 @@ class ExhaustiveSelector(AgnosticSelector):
     '''
 
     def __init__(self, estimator, cv=5, scoring=None, min_features=0.5, n_jobs=-1,
-                 max_features=0.9, verbose=1, n_digits=4, plot=False):
+                 max_features=0.9, verbose=1, n_digits=4):
 
         self.estimator = estimator
         self.min_features = min_features
@@ -93,7 +93,6 @@ class ExhaustiveSelector(AgnosticSelector):
 
         self.verbose = verbose
         self.n_digits = n_digits
-        self.plot = plot
 
 
 

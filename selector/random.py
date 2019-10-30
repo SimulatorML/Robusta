@@ -60,9 +60,6 @@ class RandomSubset(AgnosticSelector):
     verbose : int, optional (default=1)
         Verbosity level
 
-    plot : bool, optional (default=False)
-        Whether to plot progress
-
     Attributes
     ----------
     features_ : list of string

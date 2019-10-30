@@ -12,7 +12,8 @@ from numbers import Number
 import pandas as pd
 import numpy as np
 
-from ._verbose import plot_progress, _print_last
+from ._verbose import _print_last
+from ._plot import _plot_progress
 
 from robusta.crossval import crossval_score
 
@@ -95,9 +96,6 @@ class BaseOptimizer(BaseEstimator):
         2: Also print trial's parameters
         3: Also print cv output for each fold
 
-    plot : bool, optional (default: False)
-        Plot scores if True
-
     Attributes
     ----------
 
@@ -138,9 +136,8 @@ class BaseOptimizer(BaseEstimator):
         Total optimization time
 
     '''
-    def __init__(self, estimator, cv=5, scoring=None, param_space=None,
-                 max_time=None, max_iter=None, n_jobs=None, n_digits=4,
-                 verbose=1, plot=False, debug=False):
+    def __init__(self, estimator, cv=5, scoring=None, param_space=None, n_jobs=None,
+                 max_time=None, max_iter=None, n_digits=4, verbose=1):
 
         self.estimator = estimator
         self.param_space = param_space
@@ -152,11 +149,8 @@ class BaseOptimizer(BaseEstimator):
         self.max_iter = max_iter
 
         self.n_jobs = n_jobs
-
         self.n_digits = n_digits
         self.verbose = verbose
-        self.plot = plot
-        self.debug = debug
 
 
 
@@ -171,8 +165,6 @@ class BaseOptimizer(BaseEstimator):
         estimator = clone(self.estimator).set_params(**params)
 
         try:
-            if self.debug:
-                print(params)
             scores = crossval_score(estimator, self.cv, self.X, self.y, self.groups,
                                     self.scoring, n_jobs=self.n_jobs, verbose=0)
 
@@ -192,10 +184,6 @@ class BaseOptimizer(BaseEstimator):
 
         except KeyboardInterrupt:
             raise KeyboardInterrupt
-
-        except:
-            if self.debug:
-                raise
 
             trial = {
                 'params': params,
@@ -307,6 +295,10 @@ class BaseOptimizer(BaseEstimator):
         self.X, self.y, self.groups = X, y, groups
 
         return self
+
+
+    def plot(self, **kwargs):
+        _plot_progress(self, **kwargs)
 
 
 

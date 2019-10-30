@@ -5,7 +5,7 @@ import numpy as np
 
 
 
-def _plot_progress(fs, marker='.', color = 'g', alpha=0.6):
+def _plot_progress(fs, marker='.', color='g', alpha=0.6):
 
     fig, ax = plt.subplots(1,1)
 

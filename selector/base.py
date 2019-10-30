@@ -204,7 +204,7 @@ class AgnosticSelector(Selector):
         return pd.Series(trial['importance_std'], index=self.features_)
 
 
-    def plot_progress(self, **kwargs):
+    def plot(self, **kwargs):
         _plot_progress(self, **kwargs)
 
 
