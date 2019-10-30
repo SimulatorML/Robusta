@@ -73,6 +73,13 @@ class BaseOptimizer(BaseEstimator):
                 Constant value.
                 Pass single value (int, float, string, None, ...).
 
+    warm_start : bool (default: False)
+        If True, continue optimization after last <fit> call. If False, reset
+        trials history and start new optimization.
+
+        Warning: if last <fit> call ended with iteration / time limit exceed,
+        you should change them before new <fit> call.
+
     max_time : int or NoneType (default: None)
         Stop optimization after given number of seconds.
         None means no time limitation. If <max_iter> is also set to None,
@@ -95,6 +102,9 @@ class BaseOptimizer(BaseEstimator):
         1: Print time, iters, score & eta
         2: Also print trial's parameters
         3: Also print cv output for each fold
+
+    n_digits : int (default=4)
+        Verbose score(s) precision
 
     Attributes
     ----------
@@ -136,11 +146,13 @@ class BaseOptimizer(BaseEstimator):
         Total optimization time
 
     '''
-    def __init__(self, estimator, cv=5, scoring=None, param_space=None, n_jobs=None,
-                 max_time=None, max_iter=None, n_digits=4, verbose=1):
+    def __init__(self, estimator, cv=5, scoring=None, param_space=None,
+                 warm_start=False, max_time=None, max_iter=None, n_jobs=None,
+                 verbose=1, n_digits=4):
 
         self.estimator = estimator
         self.param_space = param_space
+        self.warm_start = warm_start
 
         self.cv = cv
         self.scoring = scoring
@@ -148,13 +160,13 @@ class BaseOptimizer(BaseEstimator):
         self.max_time = max_time
         self.max_iter = max_iter
 
-        self.n_jobs = n_jobs
-        self.n_digits = n_digits
         self.verbose = verbose
+        self.n_digits = n_digits
+        self.n_jobs = n_jobs
 
 
 
-    def eval_params(self, params):
+    def eval_params(self, params, X, y, groups=None):
 
         self._check_max_iter()
         self._check_max_time()
@@ -165,8 +177,9 @@ class BaseOptimizer(BaseEstimator):
         estimator = clone(self.estimator).set_params(**params)
 
         try:
-            scores = crossval_score(estimator, self.cv, self.X, self.y, self.groups,
-                                    self.scoring, n_jobs=self.n_jobs, verbose=0)
+            scores = crossval_score(estimator, self.cv, X, y, groups,
+                                    self.scoring, n_jobs=self.n_jobs,
+                                    verbose=0)
 
             trial = {
                 'params': params,
@@ -199,10 +212,6 @@ class BaseOptimizer(BaseEstimator):
 
 
     def _append_trial(self, trial):
-
-        if not hasattr(self, 'trials_'):
-            self.trials_ = pd.DataFrame()
-
         self.trials_ = self.trials_.append(trial, ignore_index=True)
 
 
@@ -251,48 +260,17 @@ class BaseOptimizer(BaseEstimator):
 
     def fit(self, X, y, groups=None):
 
-        self._fit_start(X, y, groups)
-        self._fit(X, y)
+        # Define new space
+        if not self.warm_start or not hasattr(self, 'btypes'):
+            self.btypes = get_bound_types(self.param_space)
+            self.space = self._get_space(self.param_space)
 
-        return self
+        # Reset trials
+        if not self.warm_start or not hasattr(self, 'trials_'):
+            self.trials_ = pd.DataFrame()
 
-
-
-    def partial_fit(self, X, y, groups=None):
-
-        self._fit_start(X, y, groups, partial=True)
-        self._fit(X, y)
-
-        return self
-
-
-
-    def _fit_start(self, X, y, groups=None, partial=False):
-        '''Starting routine. Initialize trials, space, starting time and define
-        evaluator function (estimator -> score).
-
-        Args
-        ----
-            X : DataFrame, shape [n_samples, n_features]
-                The data to fit, score and calculate out-of-fold predictions
-
-            y : Series, shape [n_samples]
-                The target variable to try to predict
-
-            groups : None
-                Group labels for the samples used while splitting the dataset
-                into train/test set
-
-            partial_fit : boolean
-                Whether to update existent trials
-
-        '''
-        #if not partial: self.trials_ = pd.DataFrame()
-
-        self.btypes = get_bound_types(self.param_space)
-        self.space = self._get_space(self.param_space)
-
-        self.X, self.y, self.groups = X, y, groups
+        # Custom core fit
+        self._fit(X, y, groups)
 
         return self
 

@@ -59,15 +59,14 @@ class OptunaCV(BaseOptimizer):
 
         def objective(trial):
             params = self._get_params(trial)
-            score = self.eval_params(params)
+            score = self.eval_params(params, X, y, groups)
             return score
 
         try:
             if not hasattr(self, 'study'):
                 # TODO: set seed & other params
                 sampler = optuna.samplers.TPESampler(seed=0)
-                self.study = optuna.create_study(direction='maximize',
-                                                 sampler=sampler)
+                self.study = optuna.create_study(direction='maximize', sampler=sampler)
 
             self.study.optimize(objective)
 
@@ -86,15 +85,14 @@ class RandomSearchCV(OptunaCV):
 
         def objective(trial):
             params = self._get_params(trial)
-            score = self.eval_params(params)
+            score = self.eval_params(params, X, y, groups)
             return score
 
         try:
             if not hasattr(self, 'study'):
                 # TODO: set seed & other params
                 sampler = optuna.samplers.RandomSampler(seed=0)
-                self.study = optuna.create_study(direction='maximize',
-                                                 sampler=sampler)
+                self.study = optuna.create_study(direction='maximize', sampler=sampler)
 
             self.study.optimize(objective)
 
