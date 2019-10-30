@@ -103,7 +103,7 @@ class RandomSubset(AgnosticSelector):
 
     def __init__(self, estimator, cv=5, scoring=None, max_iter=20, max_time=None,
                  min_features=0.5, max_features=0.9, weights='uniform', n_jobs=-1,
-                 random_state=0, verbose=1, n_digits=4, plot=False):
+                 random_state=0, verbose=1, n_digits=4):
 
         self.estimator = estimator
         self.min_features = min_features
@@ -119,7 +119,6 @@ class RandomSubset(AgnosticSelector):
 
         self.verbose = verbose
         self.n_digits = n_digits
-        self.plot = plot
 
 
 
@@ -169,12 +168,6 @@ class RandomSubset(AgnosticSelector):
 
         self.features_ = list(X.columns)
 
-        self.min_features_ = _check_k_features(self.min_features, self.n_features_)
-        self.max_features_ = _check_k_features(self.max_features, self.n_features_)
-
-        if self.min_features_ > self.max_features_:
-            raise ValueError('<max_features> must not be less than <min_features>')
-
         weights_values = ['uniform', 'binomal']
 
         if self.weights is 'binomal':
@@ -198,30 +191,6 @@ class RandomSubset(AgnosticSelector):
             model_name = self.__class__.__name__
             raise NotFittedError('{} is not fitted'.format(model_name))
 
-
-
-
-
-def _check_k_features(k_features, n_features):
-
-    if isinstance(k_features, int):
-        if k_features < 1:
-            raise ValueError('Parameters <min_features> & <max_features> must be \
-                              integer (greater than 0) or float (0..1)')
-
-    elif isinstance(k_features, float):
-        if 0 < k_features < 1:
-            k_features = max(k_features * n_features, 1)
-            k_features = int(k_features)
-        else:
-            raise ValueError('Parameters <min_features> & <max_features> must be \
-                              integer (greater than 0) or float (0..1)')
-
-    else:
-        raise ValueError('Parameters <min_features> & <max_features> must be \
-                          integer (greater than 0) or float (0..1)')
-
-    return k_features
 
 
 

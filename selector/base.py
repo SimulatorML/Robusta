@@ -9,6 +9,7 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from robusta.crossval import crossval
 
 from ._verbose import _print_last
+from ._plot import _plot_progress
 
 
 
@@ -52,7 +53,7 @@ class AgnosticSelector(Selector):
 
     @abc.abstractmethod
     def __init__(self, estimator, cv=5, scoring=None, max_iter=20, max_time=None,
-                 random_state=0, n_jobs=-1, verbose=1, n_digits=4, plot=False):
+                 random_state=0, n_jobs=-1, verbose=1, n_digits=4):
 
         self.estimator = estimator
         self.scoring = scoring
@@ -63,7 +64,6 @@ class AgnosticSelector(Selector):
         self.n_jobs = n_jobs
         self.verbose = verbose
         self.n_digits = n_digits
-        self.plot = plot
 
 
     @property
@@ -202,6 +202,10 @@ class AgnosticSelector(Selector):
         subset = self._select_features()
         trial = _find_trial(subset)
         return pd.Series(trial['importance_std'], index=self.features_)
+
+
+    def plot_progress(self, **kwargs):
+        _plot_progress(self, **kwargs)
 
 
 

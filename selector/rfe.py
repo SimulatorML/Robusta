@@ -68,9 +68,6 @@ class RFE(SequentialAgnosticSelector):
     verbose : int, optional (default=1)
         Verbosity level
 
-    plot : bool, optional (default=False)
-        Whether to plot progress
-
     Attributes
     ----------
     use_cols_ : list of string
@@ -85,7 +82,7 @@ class RFE(SequentialAgnosticSelector):
     """
 
     def __init__(self, estimator, cv=5, scoring=None, min_features=0.5, step=1,
-                 use_best=True, n_jobs=None, verbose=1, n_digits=4, plot=False):
+                 use_best=True, n_jobs=None, verbose=1, n_digits=4):
 
         self.estimator = estimator
         self.scoring = scoring
@@ -98,7 +95,6 @@ class RFE(SequentialAgnosticSelector):
         self.n_jobs = n_jobs
         self.verbose = verbose
         self.n_digits = n_digits
-        self.plot = plot
 
 
     def fit(self, X, y, groups=None):
@@ -147,6 +143,11 @@ class RFE(SequentialAgnosticSelector):
         return len(self.subset_)
 
 
+    @property
+    def forward(self):
+        return False
+
+
     def _fit(self, X, y, groups):
 
         trial = self._eval_subset(self.subset_, X, y, groups)
@@ -184,11 +185,13 @@ class RFE(SequentialAgnosticSelector):
 
 
 
+
+
 class PermutationRFE(RFE):
 
     def __init__(self, estimator, cv=5, scoring=None, min_features=0.5, step=1,
                  n_repeats=5, random_state=0, use_best=True, n_jobs=None,
-                 verbose=1, n_digits=4, plot=False):
+                 verbose=1, n_digits=4):
 
         self.estimator = estimator
         self.scoring = scoring
@@ -204,7 +207,6 @@ class PermutationRFE(RFE):
         self.n_jobs = n_jobs
         self.verbose = verbose
         self.n_digits = n_digits
-        self.plot = plot
 
 
     def _eval_subset(self, subset, X, y, groups, prev_subset=None):

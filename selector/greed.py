@@ -45,7 +45,7 @@ class GreedSelector(SequentialAgnosticSelector):
     '''
     def __init__(self, estimator, cv=5, scoring=None, forward=True, floating=False,
                  k_features=0.5, max_candidates=None, max_time=None, use_best=True,
-                 random_state=0, n_jobs=None, verbose=1, n_digits=4, plot=False):
+                 random_state=0, n_jobs=None, verbose=1, n_digits=4):
 
         self.estimator = estimator
         self.k_features = k_features
@@ -62,7 +62,6 @@ class GreedSelector(SequentialAgnosticSelector):
 
         self.verbose = verbose
         self.n_digits = n_digits
-        self.plot = plot
 
 
 
