@@ -6,12 +6,12 @@ from sklearn.exceptions import NotFittedError
 
 from robusta.utils import logmsg
 
-from .base import SequentialAgnosticSelector
+from .base import SequentialSelector
 
 
 
 
-class GreedSelector(SequentialAgnosticSelector):
+class GreedSelector(SequentialSelector):
     '''Greed Forward/Backward Feature Selector
 
     Parameters

@@ -209,7 +209,7 @@ class AgnosticSelector(Selector):
 
 
 
-class SequentialAgnosticSelector(AgnosticSelector):
+class SequentialSelector(AgnosticSelector):
 
     def _eval_subset(self, subset, X, y, groups, prev_subset=None):
 

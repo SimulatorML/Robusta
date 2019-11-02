@@ -8,7 +8,7 @@ from .base import AgnosticSelector
 
 
 
-class RandomSubset(AgnosticSelector):
+class RandomSelector(AgnosticSelector):
     '''Random feature selector for sampling and evaluating randomly choosen
     feature subsets of specified size
 

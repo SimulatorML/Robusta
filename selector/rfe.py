@@ -10,12 +10,12 @@ from sklearn.base import clone, is_classifier
 
 from robusta.importance import PermutationImportance, get_importance
 
-from .base import SequentialAgnosticSelector
+from .base import SequentialSelector
 
 
 
 
-class RFE(SequentialAgnosticSelector):
+class RFE(SequentialSelector):
     """Feature ranking with recursive feature elimination (RFE) and
     cross-validated selection of the best number of features.
 

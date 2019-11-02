@@ -11,5 +11,5 @@ __all__ = [
     'RFE', 'PermutationRFE',
     'ExhaustiveSelector',
     'GreedSelector',
-    'RandomSubset',
+    'RandomSelector',
 ]
