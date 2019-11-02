@@ -57,6 +57,36 @@ def get_col_score(estimator, X, y, col, n_repeats=5, scoring=None, random_state=
 
 
 
+def _get_group_score(estimator, X, y, g, n_repeats, scorer, rstate):
+    """Calculate score when columns group `g` is permuted."""
+
+    x = X.loc[:, g].copy()
+    scores = np.zeros(n_repeats)
+
+    for i in range(n_repeats):
+
+        X.loc[:, g] = rstate.permutation(x)
+        X[g] = X[g].astype(x.dtypes)
+
+        score = scorer(estimator, X, y) # bottleneck
+        scores[i] = score
+
+    return scores
+
+
+
+def get_group_score(estimator, X, y, g, n_repeats=5, scoring=None, random_state=None):
+    """Calculate score when columns group `g` is permuted."""
+
+    scorer = check_scoring(estimator, scoring=scoring)
+    rstate = check_random_state(random_state)
+
+    scores = _get_group_score(estimator, X, y, g, n_repeats, scorer, rstate)
+
+    return scores
+
+
+
 def permutation_importance(estimator, X, y, scoring=None, n_repeats=5, n_jobs=-1,
                            random_state=0, progress_bar=False):
     """Permutation importance for feature evaluation [BRE].
@@ -146,6 +176,36 @@ def permutation_importance(estimator, X, y, scoring=None, n_repeats=5, n_jobs=-1
 
 
 
+def group_permutation_importance(estimator, X, y, scoring=None, n_repeats=10,
+                                 n_jobs=-1, random_state=0, progress_bar=False):
+
+    col_group = X.columns.get_level_values(0).unique()
+    col_group = tqdm_notebook(col_group) if progress_bar else col_group
+
+    scorer = check_scoring(estimator, scoring=scoring)
+    rstate = check_random_state(random_state)
+
+    baseline_score = scorer(estimator, X, y)
+    scores = np.zeros((len(col_group), n_repeats))
+
+    # FIXME: avoid <max_nbytes>
+    scores = Parallel(n_jobs=n_jobs, max_nbytes='512M', backend='multiprocessing')(
+        delayed(_get_group_score)(estimator, X, y, g, n_repeats, scorer, rstate)
+        for g in col_group)
+
+    importances = baseline_score - np.array(scores)
+
+    result = {'importances_mean': np.mean(importances, axis=1),
+              'importances_std': np.std(importances, axis=1),
+              'importances': importances,
+              'score': baseline_score}
+
+    return result
+
+
+
+
+
 class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
     """Meta-estimator which computes ``feature_importances_`` attribute
     based on permutation importance (also known as mean score decrease).
@@ -193,14 +253,14 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
 
     Attributes
     ----------
-    feature_importances_ : Series, shape (n_features, )
+    feature_importances_ : Series, shape (n_groups, )
         Feature importances, computed as mean decrease of the score when
         a feature is permuted (i.e. becomes noise).
 
-    feature_importances_std_ : Series, shape (n_features, )
+    feature_importances_std_ : Series, shape (n_groups, )
         Standard deviations of feature importances.
 
-    raw_importances_ : list of Dataframes, shape (n_folds, n_features, n_repeats)
+    raw_importances_ : list of Dataframes, shape (n_folds, n_groups, n_repeats)
 
     scores_ : list of floats, shape (n_folds, )
 
@@ -306,8 +366,7 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
 
     @property
     def wrapped_estimator_(self):
-        if self.cv == "prefit" or not self.refit:
-            return self.estimator
+        if self.cv == "prefit" or not self.refit: return self.estimator
         return self.estimator_
 
     @property
@@ -317,3 +376,75 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
     @property
     def classes_(self):
         return self.wrapped_estimator_.classes_
+
+
+
+
+class GroupPermutationImportance(PermutationImportance):
+
+    def fit(self, X, y, groups=None, **fit_params):
+        """Compute ``feature_importances_`` attribute.
+
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            The training input samples.
+
+        y : array-like, shape (n_samples,)
+            The target values (integers that correspond to classes in
+            classification, real numbers in regression).
+
+        groups : array-like, with shape (n_samples,), optional
+            Group labels for the samples used while splitting the dataset into
+            train/test set.
+
+        **fit_params : Other estimator specific parameters
+
+        Returns
+        -------
+        self : object
+            Returns self.
+
+        """
+
+        col_group = X.columns.get_level_values(0).unique()
+
+        if self.cv in ['prefit', None]:
+            ii = np.arange(X.shape[0]) # full dataset
+            cv = np.array([(ii, ii)])
+        else:
+            cv = self.cv
+
+        cv = check_cv(cv, y, classifier=is_classifier(self.estimator))
+
+        self.raw_importances_ = []
+        self.scores_ = []
+
+        for trn, oof in cv.split(X, y, groups):
+
+            X_trn, y_trn = X.iloc[trn], y.iloc[trn]
+            X_oof, y_oof = X.iloc[oof], y.iloc[oof]
+
+            if self.cv is 'prefit':
+                estimator = self.estimator
+            else:
+                estimator = clone(self.estimator).fit(X_trn, y_trn)
+
+            pi = group_permutation_importance(estimator, X_oof, y_oof,
+                                              n_repeats=self.n_repeats,
+                                              scoring=self.scoring,
+                                              random_state=self.random_state,
+                                              progress_bar=self.progress_bar,
+                                              n_jobs=self.n_jobs)
+
+            imp = pd.DataFrame(pi['importances'], index=col_group)
+
+            self.raw_importances_.append(imp)
+            self.scores_.append(pi['score'])
+
+        imps = pd.concat(self.raw_importances_, axis=1)
+
+        self.feature_importances_ = imps.mean(axis=1)
+        self.feature_importances_std_ = imps.std(axis=1)
+
+        return self
