@@ -13,7 +13,7 @@ from ._plot import _plot_progress
 
 
 
-class Selector(BaseEstimator, TransformerMixin):
+class _Selector(BaseEstimator, TransformerMixin):
 
 
     def transform(self, X):
@@ -49,7 +49,7 @@ class Selector(BaseEstimator, TransformerMixin):
 
 
 
-class AgnosticSelector(Selector):
+class _AgnosticSelector(_Selector):
 
     @abc.abstractmethod
     def __init__(self, estimator, cv=5, scoring=None, max_iter=20, max_time=None,
@@ -209,7 +209,7 @@ class AgnosticSelector(Selector):
 
 
 
-class SequentialSelector(AgnosticSelector):
+class _SequentialSelector(_AgnosticSelector):
 
     def _eval_subset(self, subset, X, y, groups, prev_subset=None):
 

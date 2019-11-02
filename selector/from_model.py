@@ -8,13 +8,13 @@ from sklearn.base import clone, is_classifier
 from robusta.importance import get_importance
 from robusta.crossval import crossval
 
-from .base import Selector
+from .base import _Selector
 
 # Original: sklearn.feature_selection.SelectFromModel
 
 
 
-class SelectFromModel(Selector):
+class SelectFromModel(_Selector):
     """Meta-transformer for selecting features based on importance weights.
 
     Parameters
