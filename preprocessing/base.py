@@ -475,4 +475,59 @@ class SimpleImputer(BaseEstimator, TransformerMixin):
 
 
 
-Imputer = lambda **params: PandasTransformer(impute.SimpleImputer(), **params)
+class ColumnGrouper(BaseEstimator, TransformerMixin):
+    '''MultiIndex DataFrame constructor
+
+    Parameters
+    ----------
+    group : string, or list of strings
+        Name or names for first level in MultiIndex
+
+    '''
+    def __init__(self, group, copy=True):
+        self.group = group
+        self.copy = copy
+
+
+    def fit(self, X, y=None):
+        '''Form new MultiIndex column names
+
+        Parameters
+        ----------
+        X : DataFrame, shape [n_samples, n_features]
+            The data to transform.
+
+        Returns
+        -------
+        self
+
+        '''
+        features = X.columns
+
+        if isinstance(self.group, str):
+            groups = [self.group] * len(features)
+
+        elif isinstance(self.group, Iterable):
+            groups = self.group
+
+        self.features_ = pd.MultiIndex.from_arrays([groups, features])
+        return self
+
+
+    def transform(self, X):
+        """Renames columns
+
+        Parameters
+        ----------
+        X : DataFrame, shape [n_samples, n_features]
+            The data to transform.
+
+        Returns
+        -------
+        Xt : DataFrame, shape [n_samples, n_features]
+            Same data.
+
+        """
+        X = X.copy() if self.copy else X
+        X.columns = self.features_
+        return X

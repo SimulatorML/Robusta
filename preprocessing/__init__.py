@@ -12,6 +12,7 @@ __all__ = [
     'TypeConverter',
     'ColumnSelector',
     'ColumnRenamer',
+    'ColumnGrouper',
     'SimpleImputer',
     'Identity',
 
