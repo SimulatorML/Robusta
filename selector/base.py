@@ -52,10 +52,10 @@ class _Selector(BaseEstimator, TransformerMixin):
         return list(X.columns)
 
 
-class _GroupSelector():
+class _GroupSelector:
 
     def _get_features(self, X):
-        return X.columns.get_level_values(0).unique()
+        return list(X.columns.get_level_values(0).unique())
 
 
 
@@ -259,11 +259,6 @@ class _SequentialSelector(_AgnosticSelector):
         self._append_trial(trial)
 
         return trial
-
-
-
-def _same_set(a, b):
-    return set(a) == set(b)
 
 
 

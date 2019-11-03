@@ -189,7 +189,7 @@ class RandomSelector(_AgnosticSelector):
             raise NotFittedError('{} is not fitted'.format(model_name))
 
 
-class GroupRandomSelector(RandomSelector, _GroupSelector):
+class GroupRandomSelector(_GroupSelector, RandomSelector):
     pass
 
 

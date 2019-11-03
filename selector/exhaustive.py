@@ -157,5 +157,5 @@ class ExhaustiveSelector(_AgnosticSelector):
 
 
 
-class GroupExhaustiveSelector(ExhaustiveSelector, _GroupSelector):
+class GroupExhaustiveSelector(_GroupSelector, ExhaustiveSelector):
     pass

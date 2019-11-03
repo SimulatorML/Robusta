@@ -245,7 +245,7 @@ class PermutationRFE(RFE):
 
 
 
-class GroupPermutationRFE(PermutationRFE, _GroupSelector):
+class GroupPermutationRFE(_GroupSelector, PermutationRFE):
 
 
     def _eval_subset(self, subset, X, y, groups, prev_subset=None):
