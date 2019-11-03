@@ -10,7 +10,7 @@ from sklearn.base import clone, is_classifier
 
 from robusta.importance import *
 
-from .base import _SequentialSelector
+from .base import _SequentialSelector, _GroupSelector
 
 
 
@@ -170,10 +170,6 @@ class RFE(_SequentialSelector):
         return self
 
 
-    def _get_features(self, X):
-        return list(X.columns)
-
-
     def get_features(self):
 
         if (self.use_best is True) and hasattr(self, 'best_subset_'):
@@ -249,10 +245,7 @@ class PermutationRFE(RFE):
 
 
 
-class GroupPermutationRFE(PermutationRFE):
-
-    def _get_features(self, X):
-        return X.columns.get_level_values(0).unique()
+class GroupPermutationRFE(PermutationRFE, _GroupSelector):
 
 
     def _eval_subset(self, subset, X, y, groups, prev_subset=None):

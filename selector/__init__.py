@@ -3,7 +3,7 @@ from .rfe import RFE, PermutationRFE, GroupPermutationRFE
 
 from .exhaustive import ExhaustiveSelector, GroupExhaustiveSelector
 from .random import RandomSelector, GroupRandomSelector
-from .greed import GreedSelector
+from .greed import GreedSelector, GroupGreedSelector
 
 
 __all__ = [
@@ -11,5 +11,5 @@ __all__ = [
     'RFE', 'PermutationRFE', 'GroupPermutationRFE',
     'ExhaustiveSelector', 'GroupExhaustiveSelector',
     'RandomSelector', 'GroupRandomSelector',
-    'GreedSelector',
+    'GreedSelector', 'GroupGreedSelector'
 ]

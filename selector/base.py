@@ -48,6 +48,16 @@ class _Selector(BaseEstimator, TransformerMixin):
         return []
 
 
+    def _get_features(self, X):
+        return list(X.columns)
+
+
+class _GroupSelector():
+
+    def _get_features(self, X):
+        return X.columns.get_level_values(0).unique()
+
+
 
 class _AgnosticSelector(_Selector):
 

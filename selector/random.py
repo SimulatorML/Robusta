@@ -4,7 +4,7 @@ import numpy as np
 from sklearn.utils.random import check_random_state
 from sklearn.exceptions import NotFittedError
 
-from .base import _AgnosticSelector
+from .base import _AgnosticSelector, _GroupSelector
 
 
 
@@ -180,10 +180,6 @@ class RandomSelector(_AgnosticSelector):
         return self
 
 
-    def _get_features(self, X):
-        return list(X.columns)
-
-
     def get_features(self):
 
         if hasattr(self, 'best_subset_'):
@@ -193,10 +189,8 @@ class RandomSelector(_AgnosticSelector):
             raise NotFittedError('{} is not fitted'.format(model_name))
 
 
-class GroupRandomSelector(RandomSelector):
-
-    def _get_features(self, X):
-        return X.columns.get_level_values(0).unique()
+class GroupRandomSelector(RandomSelector, _GroupSelector):
+    pass
 
 
 

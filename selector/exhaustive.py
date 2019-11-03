@@ -4,7 +4,7 @@ import numpy as np
 from sklearn.exceptions import NotFittedError
 
 from robusta.utils import all_subsets
-from .base import _AgnosticSelector
+from .base import _AgnosticSelector, _GroupSelector
 
 
 
@@ -147,10 +147,6 @@ class ExhaustiveSelector(_AgnosticSelector):
         return self
 
 
-    def _get_features(self, X):
-        return list(X.columns)
-
-
     def get_features(self):
 
         if hasattr(self, 'best_subset_'):
@@ -161,7 +157,5 @@ class ExhaustiveSelector(_AgnosticSelector):
 
 
 
-class GroupExhaustiveSelector(ExhaustiveSelector):
-
-    def _get_features(self, X):
-        return X.columns.get_level_values(0).unique()
+class GroupExhaustiveSelector(ExhaustiveSelector, _GroupSelector):
+    pass
