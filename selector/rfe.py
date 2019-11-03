@@ -117,8 +117,8 @@ class RFE(_SequentialSelector):
 
         if not partial:
 
-            self.features_ = X.columns.values
-            self.subset_ = X.columns.values
+            self.features_ = self._get_features(X)
+            self.subset_ = self._get_features(X)
 
             self._save_importance = True
 
@@ -168,6 +168,10 @@ class RFE(_SequentialSelector):
                 break
 
         return self
+
+
+    def _get_features(self, X):
+        return list(X.columns)
 
 
     def get_features(self):
@@ -247,29 +251,8 @@ class PermutationRFE(RFE):
 
 class GroupPermutationRFE(PermutationRFE):
 
-    def _fit_start(self, X, partial=False):
-
-        if not partial:
-
-            self.features_ = X.columns.get_level_values(0).unique()
-            self.subset_ = self.features_
-
-            self._save_importance = True
-
-            self._reset_trials()
-
-        self.k_range_ = []
-        k_features = self.n_features_
-
-        while k_features > self.min_features_:
-            step = _check_step(self.step, k_features, self.min_features_)
-            k_features = k_features - step
-            self.k_range_.append(k_features)
-
-        self.max_iter = len(self.k_range_) + self.n_iters_ + 1
-        self.k_range_ = iter(self.k_range_)
-
-        return self
+    def _get_features(self, X):
+        return X.columns.get_level_values(0).unique()
 
 
     def _eval_subset(self, subset, X, y, groups, prev_subset=None):

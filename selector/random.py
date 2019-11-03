@@ -163,7 +163,7 @@ class RandomSelector(_AgnosticSelector):
         if not partial and hasattr(self, 'random_state'):
             self.rstate_ = check_random_state(self.random_state)
 
-        self.features_ = list(X.columns)
+        self.features_ = self._get_features(X)
 
         weights_values = ['uniform', 'binomal']
 
@@ -178,6 +178,10 @@ class RandomSelector(_AgnosticSelector):
             raise ValueError('<weights> must be from {}'.format(weights_values))
 
         return self
+
+
+    def _get_features(self, X):
+        return list(X.columns)
 
 
     def get_features(self):
@@ -189,32 +193,10 @@ class RandomSelector(_AgnosticSelector):
             raise NotFittedError('{} is not fitted'.format(model_name))
 
 
-
 class GroupRandomSelector(RandomSelector):
 
-    def _fit(self, X, partial=False):
-
-        if not partial:
-            self._reset_trials()
-
-        if not partial and hasattr(self, 'random_state'):
-            self.rstate_ = check_random_state(self.random_state)
-
-        self.features_ = X.columns.get_level_values(0).unique()
-
-        weights_values = ['uniform', 'binomal']
-
-        if self.weights is 'binomal':
-            self.weights_ = binomal_weights(self.min_features_,
-                                            self.max_features_,
-                                            self.n_features_)
-        elif self.weights is 'uniform':
-            self.weights_ = uniform_weights(self.min_features_,
-                                            self.max_features_)
-        else:
-            raise ValueError('<weights> must be from {}'.format(weights_values))
-
-        return self
+    def _get_features(self, X):
+        return X.columns.get_level_values(0).unique()
 
 
 
