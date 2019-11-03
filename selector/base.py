@@ -97,7 +97,7 @@ class _AgnosticSelector(_Selector):
         if not trial:
             tic = time()
 
-            features = list(subset)
+            subset = list(subset)
             result = crossval(self.estimator, self.cv, X[subset], y, groups,
                               scoring=self.scoring, n_jobs=self.n_jobs,
                               return_pred=False, verbose=0)
@@ -105,14 +105,17 @@ class _AgnosticSelector(_Selector):
             trial = {
                 'score': np.mean(result['score']),
                 'score_std': np.std(result['score']),
-                'subset': set(result['features']),
+                'subset': set(subset),
                 'time': time() - tic,
             }
 
             if 'importance' in result:
+
                 imp = result['importance']
-                trial['importance'] = np.mean(imp, axis=0).reshape(len(subset))
-                trial['importance_std'] = np.std(imp, axis=0).reshape(len(subset))
+                n = max(np.shape(imp))
+
+                trial['importance'] = np.mean(imp, axis=0).reshape(n)
+                trial['importance_std'] = np.std(imp, axis=0).reshape(n)
 
         self._append_trial(trial)
 
@@ -236,9 +239,12 @@ class _SequentialSelector(_AgnosticSelector):
                 trial['prev_score'] = prev_trial['score'] if prev_trial else None
 
             if 'importance' in result:
+
                 imp = result['importance']
-                trial['importance'] = np.mean(imp, axis=0).reshape(len(subset))
-                trial['importance_std'] = np.std(imp, axis=0).reshape(len(subset))
+                n = max(np.shape(imp))
+
+                trial['importance'] = np.mean(imp, axis=0).reshape(n)
+                trial['importance_std'] = np.std(imp, axis=0).reshape(n)
 
         self._append_trial(trial)
 

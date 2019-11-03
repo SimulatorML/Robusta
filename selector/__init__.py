@@ -1,15 +1,15 @@
 from .from_model import SelectFromModel
-from .rfe import RFE, PermutationRFE
+from .rfe import RFE, PermutationRFE, GroupPermutationRFE
 
 from .exhaustive import ExhaustiveSelector
-from .random import RandomSubset
+from .random import RandomSelector, GroupRandomSelector
 from .greed import GreedSelector
 
 
 __all__ = [
     'SelectFromModel',
-    'RFE', 'PermutationRFE',
+    'RFE', 'PermutationRFE', 'GroupPermutationRFE',
     'ExhaustiveSelector',
+    'RandomSelector', 'GroupRandomSelector',
     'GreedSelector',
-    'RandomSelector',
 ]
