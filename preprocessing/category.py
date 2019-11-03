@@ -407,7 +407,7 @@ class FrequencyEncoder(BaseEstimator, TransformerMixin):
         for col, vc in self.value_counts_.items():
             Xt[col] = X[col].map(vc)
 
-        return Xt
+        return Xt.astype(float)
 
 
 
