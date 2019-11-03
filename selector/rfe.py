@@ -8,7 +8,7 @@ from sklearn.model_selection import check_cv
 from sklearn.exceptions import NotFittedError
 from sklearn.base import clone, is_classifier
 
-from robusta.importance import PermutationImportance, get_importance
+from robusta.importance import *
 
 from .base import _SequentialSelector
 
@@ -217,13 +217,76 @@ class PermutationRFE(RFE):
             tic = time()
 
             progress_bar = (self.verbose >= 5)
-            features = list(subset)
+            subset = list(subset)
 
             perm = PermutationImportance(self.estimator, self.cv, self.scoring,
                                          self.n_repeats, n_jobs=self.n_jobs,
                                          random_state=self.random_state,
                                          progress_bar=progress_bar)
-            perm.fit(X[features], y, groups)
+            perm.fit(X[subset], y, groups)
+
+            trial = {
+                'subset': set(subset),
+                'score': np.mean(perm.scores_),
+                'score_std': np.std(perm.scores_),
+                'importance': perm.feature_importances_,
+                'importance_std': perm.feature_importances_std_,
+                'time': time() - tic,
+            }
+
+            if prev_subset is not None:
+                prev_trial = self._find_trial(prev_subset)
+                trial['prev_subset'] = prev_trial['subset'] if prev_trial else set()
+                trial['prev_score'] = prev_trial['score'] if prev_trial else None
+
+        self._append_trial(trial)
+
+        return trial
+
+
+
+class GroupPermutationRFE(PermutationRFE):
+
+    def _fit_start(self, X, partial=False):
+
+        if not partial:
+
+            self.features_ = X.columns.get_level_values(0).unique()
+            self.subset_ = self.features_
+
+            self._save_importance = True
+
+            self._reset_trials()
+
+        self.k_range_ = []
+        k_features = self.n_features_
+
+        while k_features > self.min_features_:
+            step = _check_step(self.step, k_features, self.min_features_)
+            k_features = k_features - step
+            self.k_range_.append(k_features)
+
+        self.max_iter = len(self.k_range_) + self.n_iters_ + 1
+        self.k_range_ = iter(self.k_range_)
+
+        return self
+
+
+    def _eval_subset(self, subset, X, y, groups, prev_subset=None):
+
+        trial = self._find_trial(subset)
+
+        if not trial:
+            tic = time()
+
+            progress_bar = (self.verbose >= 5)
+            subset = list(subset)
+
+            perm = GroupPermutationImportance(self.estimator, self.cv, self.scoring,
+                                              self.n_repeats, n_jobs=self.n_jobs,
+                                              random_state=self.random_state,
+                                              progress_bar=progress_bar)
+            perm.fit(X[subset], y, groups)
 
             trial = {
                 'subset': set(subset),
