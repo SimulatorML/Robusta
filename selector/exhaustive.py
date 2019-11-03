@@ -4,7 +4,6 @@ import numpy as np
 from sklearn.exceptions import NotFittedError
 
 from robusta.utils import all_subsets
-
 from .base import _AgnosticSelector
 
 
@@ -116,17 +115,17 @@ class ExhaustiveSelector(_AgnosticSelector):
 
     def _fit_start(self, X, partial=False):
 
-        self.features_ = list(X.columns)
-        self.min_features_ = _check_k_features(self.min_features, self.n_features_)
-        self.max_features_ = _check_k_features(self.max_features, self.n_features_)
-
-        if self.min_features_ > self.max_features_:
-            raise ValueError('<max_features> must not be less than <min_features>')
+        self.features_ = self._get_features(X)
 
         if not partial:
             k_range = range(self.min_features_, self.max_features_+1)
             self.subsets_ = all_subsets(self.features_, k_range)
+            self.subsets_ = list(self.subsets_)
+            self.max_iter = len(self.subsets_)
             self._reset_trials()
+
+        if not hasattr(self, 'k_iter') or not partial:
+            self.k_iter = 0
 
         return self
 
@@ -134,15 +133,22 @@ class ExhaustiveSelector(_AgnosticSelector):
 
     def _fit(self, X, y, groups):
 
-        for subset in self.subsets_:
-            try:
-                self._eval_subset(list(subset), X, y, groups)
+        while self.k_iter < self.max_iter:
 
+            subset = self.subsets_[self.k_iter]
+
+            try:
+                self._eval_subset(subset, X, y, groups)
             except KeyboardInterrupt:
                 break
 
+            self.k_iter += 1
+
         return self
 
+
+    def _get_features(self, X):
+        return list(X.columns)
 
 
     def get_features(self):
@@ -155,28 +161,7 @@ class ExhaustiveSelector(_AgnosticSelector):
 
 
 
-def _check_k_features(k_features, n_features):
+class GroupExhaustiveSelector(ExhaustiveSelector):
 
-    if isinstance(k_features, int):
-        if k_features < 1:
-            raise ValueError('Parameters <min_features> & <max_features> must be \
-                              integer (greater than 0) or float (0..1)')
-
-    elif isinstance(k_features, float):
-        if 0 < k_features < 1:
-            k_features = max(k_features * n_features, 1)
-            k_features = int(k_features)
-        else:
-            raise ValueError('Parameters <min_features> & <max_features> must be \
-                              integer (greater than 0) or float (0..1)')
-
-    else:
-        raise ValueError('Parameters <min_features> & <max_features> must be \
-                          integer (greater than 0) or float (0..1)')
-
-    return k_features
-
-
-
-def all_subsets(cols, k_min, k_max):
-    return chain(*map(lambda k: combinations(cols, k), range(k_min, k_max+1)))
+    def _get_features(self, X):
+        return X.columns.get_level_values(0).unique()
