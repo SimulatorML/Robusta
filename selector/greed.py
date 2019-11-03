@@ -6,7 +6,7 @@ from sklearn.exceptions import NotFittedError
 
 from robusta.utils import logmsg
 
-from .base import _SequentialSelector
+from .base import _SequentialSelector, _GroupSelector, _check_k_features
 
 
 
@@ -85,8 +85,8 @@ class GreedSelector(_SequentialSelector):
 
     def _fit_start(self, X, partial=False):
 
-        self.features_ = list(X.columns)
-        self.k_features_ = _check_k_features(self.k_features, self.n_features_)
+        self.features_ = self._get_features(X)
+        self.k_features_ = _check_k_features(self.k_features, self.n_features_, 'k_features')
 
         if not partial:
             self.rstate_ = check_random_state(self.random_state)
@@ -250,26 +250,8 @@ class GreedSelector(_SequentialSelector):
 
 
 
-def _check_k_features(k_features, n_features):
-
-    if isinstance(k_features, int):
-        if k_features < 1:
-            raise ValueError('Parameters <k_features> must be integer \
-                              (greater than 0) or float (0..1)')
-
-    elif isinstance(k_features, float):
-        if 0 < k_features < 1:
-            k_features = max(k_features * n_features, 1)
-            k_features = int(k_features)
-        else:
-            raise ValueError('Parameters <k_features> must be integer \
-                              (greater than 0) or float (0..1)')
-
-    else:
-        raise ValueError('Parameters <k_features> must be integer \
-                          (greater than 0) or float (0..1)')
-
-    return k_features
+class GroupGreedSelector(_GroupSelector, GreedSelector):
+    pass
 
 
 
