@@ -51,6 +51,8 @@ class _Selector(BaseEstimator, TransformerMixin):
     def _get_features(self, X):
         return list(X.columns)
 
+        
+
 
 class _GroupSelector:
 
@@ -100,11 +102,14 @@ class _AgnosticSelector(_Selector):
 
 
 
-    def _eval_subset(self, subset, X, y, groups):
+    def _eval_subset(self, subset, X, y, groups, parents=[]):
 
         trial = self._find_trial(subset)
 
-        if not trial:
+        if trial:
+            trial['idx'] = len(self.trials_)
+
+        else:
             tic = time()
 
             subset = list(subset)
@@ -113,6 +118,7 @@ class _AgnosticSelector(_Selector):
                               return_pred=False, verbose=0)
 
             trial = {
+                'idx': len(self.trials_),
                 'score': np.mean(result['score']),
                 'score_std': np.std(result['score']),
                 'subset': set(subset),
@@ -120,12 +126,12 @@ class _AgnosticSelector(_Selector):
             }
 
             if 'importance' in result:
-
                 imp = result['importance']
-                n = max(np.shape(imp))
+                trial['importance'] = np.mean(imp, axis=0).reshape(len(subset))
+                trial['importance_std'] = np.std(imp, axis=0).reshape(len(subset))
 
-                trial['importance'] = np.mean(imp, axis=0).reshape(n)
-                trial['importance_std'] = np.std(imp, axis=0).reshape(n)
+        if parents:
+            trial['parents'] = [parent['idx'] for parent in parents]
 
         self._append_trial(trial)
 
@@ -196,8 +202,8 @@ class _AgnosticSelector(_Selector):
         same_subsets = self.trials_['subset'] == set(subset)
 
         if same_subsets.any():
-            trial = self.trials_[same_subsets].iloc[0]
-            return trial.to_dict()
+            trial = self.trials_[same_subsets].iloc[-1]
+            return trial
 
         else:
             return None
@@ -220,45 +226,6 @@ class _AgnosticSelector(_Selector):
     def plot(self, **kwargs):
         _plot_progress(self, **kwargs)
 
-
-
-class _SequentialSelector(_AgnosticSelector):
-
-    def _eval_subset(self, subset, X, y, groups, prev_subset=None):
-
-        trial = self._find_trial(subset)
-
-        if not trial:
-            tic = time()
-
-            features = list(subset)
-            result = crossval(self.estimator, self.cv, X[subset], y, groups,
-                              scoring=self.scoring, n_jobs=self.n_jobs,
-                              return_pred=False, verbose=0)
-
-            trial = {
-                'score': np.mean(result['score']),
-                'score_std': np.std(result['score']),
-                'subset': set(subset),
-                'time': time() - tic,
-            }
-
-            if prev_subset is not None:
-                prev_trial = self._find_trial(prev_subset)
-                trial['prev_subset'] = prev_trial['subset'] if prev_trial else set()
-                trial['prev_score'] = prev_trial['score'] if prev_trial else None
-
-            if 'importance' in result:
-
-                imp = result['importance']
-                n = max(np.shape(imp))
-
-                trial['importance'] = np.mean(imp, axis=0).reshape(n)
-                trial['importance_std'] = np.std(imp, axis=0).reshape(n)
-
-        self._append_trial(trial)
-
-        return trial
 
 
 
