@@ -6,6 +6,7 @@ from copy import copy
 from time import time
 
 from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.utils.random import check_random_state
 
 from robusta.crossval import crossval
 
@@ -26,7 +27,7 @@ class FeatureSubset:
         if group:
             self.features = features.get_level_values(0).unique()
         else:
-            self.features = np.sort(features)
+            self.features = np.array(features)
 
         # subset OR mask
         if subset is not None and mask is not None:
@@ -76,8 +77,7 @@ class FeatureSubset:
         msg = 'All <subset> values must be unique'
         assert len(set(subset)) == len(subset), msg
 
-        self.subset = np.sort(subset)
-        self.mask = np.isin(self.features, self.subset)
+        self.set_mask(np.isin(self.features, subset))
 
         return self
 
@@ -88,9 +88,22 @@ class FeatureSubset:
         assert len(mask) == self.n_features, msg
 
         self.mask = np.array(mask, dtype=bool)
-        self.subset = self.features[self.mask].copy()
+        self.subset = self.features[self.mask]
 
         return self
+
+
+    def sample(self, size=None, random_state=None):
+
+        rstate = check_random_state(random_state)
+
+        if size:
+            subset = rstate.choice(self.features, size=size, replace=False)
+            return self.copy().set_subset(subset)
+
+        else:
+            mask = rstate.randint(0, 2, size=self.n_features, dtype=bool)
+            return self.copy().set_mask(mask)
 
 
     def remove(self, *features, copy=True):
