@@ -5,7 +5,7 @@ import numpy as np
 
 
 
-def _plot_progress(fs, marker='.', color='g', alpha=0.6):
+def _plot_progress(fs, **kwargs):
 
     fig, ax = plt.subplots(1,1)
 
@@ -18,29 +18,36 @@ def _plot_progress(fs, marker='.', color='g', alpha=0.6):
     if not forward:
         plt.gca().invert_xaxis()
 
-    for _, trial in fs.trials_.iterrows():
+    for trial in fs.trials_:
 
-        # current point
-        xx = [len(trial['subset'])]
-        yy = [trial['score']]
+        # Current Point
+        x1 = trial.n_selected
+        y1 = trial.score
 
-        # previous point
-        if getattr(trial, 'prev_subset', None) and np.isfinite(trial.prev_score):
-            xx += [len(trial['prev_subset'])]
-            yy += [trial['prev_score']]
+        ax.plot([x1], [y1], **kwargs)
 
-            forward = getattr(fs, 'forward', True)
-            if (xx[0] > xx[1]) == forward:
-                line_style = marker + '-'
-                alpha0 = alpha
-            else:
-                line_style = marker + '--'
-                alpha0 = alpha / 2
-        else:
-            line_style = marker
-            alpha0 = alpha
+        # Previous Point
+        if hasattr(trial, 'parents'):
 
-        ax.plot(xx, yy, line_style, c=color, alpha=alpha0)
-        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+            for parent in trial.parents:
+
+                if not hasattr(parent, 'score'): continue
+
+                x0 = parent.n_selected
+                y0 = parent.score
+
+                ax.plot([x0, x1], [y0, y1], **kwargs)
+
+            #if (xx[0] > xx[1]) == forward:
+            #    line_style = marker + '-'
+            #    alpha0 = alpha
+            #else:
+            #    line_style = marker + '--'
+            #    alpha0 = alpha / 2
+        #else:
+            #line_style = marker
+            #alpha0 = alpha
+
+        #ax.xaxis.set_major_locator(MaxNLocator(integer=True))
 
     fig.show()

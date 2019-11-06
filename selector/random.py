@@ -121,7 +121,7 @@ class RandomSelector(_AgnosticSelector):
 
     def fit(self, X, y, groups=None):
 
-        self._fit(X)
+        self._fit_start(X)
 
         while True:
             try:
@@ -139,12 +139,12 @@ class RandomSelector(_AgnosticSelector):
 
     def partial_fit(self, X, y, groups=None):
 
-        self._fit(X, partial=True)
+        self._fit_start(X, partial=True)
 
         while True:
             try:
                 k = weighted_choice(self.weights_, self.rstate_)
-                subset = self.rstate_.choice(self.features_, k, replace=False)
+                subset = self.rstate_.choice(list(self.features_), k, replace=False)
 
                 self._eval_subset(subset, X, y, groups)
 
@@ -155,7 +155,7 @@ class RandomSelector(_AgnosticSelector):
 
 
 
-    def _fit(self, X, partial=False):
+    def _fit_start(self, X, partial=False):
 
         if not partial:
             self._reset_trials()
@@ -163,7 +163,7 @@ class RandomSelector(_AgnosticSelector):
         if not partial and hasattr(self, 'random_state'):
             self.rstate_ = check_random_state(self.random_state)
 
-        self.features_ = self._get_features(X)
+        self._set_features(X)
 
         weights_values = ['uniform', 'binomal']
 
@@ -180,10 +180,10 @@ class RandomSelector(_AgnosticSelector):
         return self
 
 
-    def get_features(self):
+    def get_subset(self):
 
         if hasattr(self, 'best_subset_'):
-            return list(self.best_subset_)
+            return self.best_subset_
         else:
             model_name = self.__class__.__name__
             raise NotFittedError('{} is not fitted'.format(model_name))

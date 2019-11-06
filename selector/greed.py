@@ -85,16 +85,16 @@ class GreedSelector(_AgnosticSelector):
 
     def _fit_start(self, X, partial=False):
 
-        self.features_ = self._get_features(X)
+        self._set_features(X)
         self.k_features_ = _check_k_features(self.k_features, self.n_features_, 'k_features')
 
         if not partial:
+
             self.rstate_ = check_random_state(self.random_state)
+            self.subset_ = self.features_.copy()
 
             if self.forward:
-                self.last_subset_ = []
-            else:
-                self.last_subset_ = self.features_
+                self.subset_.set_subset([])
 
             self._reset_trials()
 
@@ -104,130 +104,122 @@ class GreedSelector(_AgnosticSelector):
 
     def _fit(self, X, y, groups):
 
-        all_features = set(self.features_)
-        subset = set(self.last_subset_)
-
         if self.forward:
             is_final = lambda subset: len(subset) >= self.k_features_
-            is_start = lambda subset: len(subset) == 1
         else:
             is_final = lambda subset: len(subset) <= self.k_features_
-            is_start = lambda subset: len(subset) == self.n_features_
 
-            trial = self._eval_subset(subset, X, y, groups)
-            score = trial['score']
+            self._eval_subset(self.subset_, X, y, groups)
+            self.score_ = self.subset_.score
 
 
-        while not is_final(subset):
+        while not is_final(self.subset_):
 
-            # Step 1. Step Forward/Backward
+            # STEP 1. Step Forward/Backward
             if self.verbose:
                 logmsg('STEP {}'.format('FORWARD' if self.forward else 'BACKWARD'))
 
             if self.forward:
-                subset_updates = all_features - subset
+                updates = self.features_.remove(*self.subset_)
             else:
-                subset_updates = subset
+                updates = self.subset_
 
-            # Evaluate only random subset
-            subset_updates = self._subsample_features(subset_updates)
+            # Find Next Best Update
+            score  = -np.inf
+            subset = None
 
-            # Score gain
-            feature_scores = pd.Series(np.nan, index=subset_updates)
+            for feature in updates:
 
-            for feature in subset_updates:
-
-                # include/exclude (trial)
+                # Include/Exclude Feature
                 if self.forward:
-                    candidate = subset | {feature}
+                    candidate = self.subset_.append(feature)
                 else:
-                    candidate = subset - {feature}
+                    candidate = self.subset_.remove(feature)
 
+                candidate.parents = (self.subset_, )
+
+                # Evaluate Candidate
                 try:
-                    result = self._eval_subset(candidate, X, y, groups, prev_subset=subset)
-                    feature_scores[feature] = np.mean(result['score'])
+                    self._eval_subset(candidate, X, y, groups)
+
+                    if candidate.score > score:
+                        score  = candidate.score
+                        subset = candidate
+
                 except KeyboardInterrupt:
                     raise
+
                 except:
-                    feature_scores[feature] = np.nan
+                    pass
 
-            feature_scores = feature_scores.sort_values(ascending=False)
-            subset_update = feature_scores.index[0]
+            # Update Subset
+            self.subset_ = subset
+            self.score_  = score
 
-            old_score = feature_scores.iloc[0]
-
-            # include/exclude (final)
-            if self.forward:
-                subset = subset | {subset_update}
-            else:
-                subset = subset - {subset_update}
-
-            self.last_subset_ = list(subset)
-
-            # stop criteria
-            if not self.floating or is_final(subset) or is_start(subset):
+            # Stop Criteria
+            if not self.floating or is_final(subset):
                 continue
 
-            # Step 2. Step Backward/Forward
+
+            # STEP 2. Step Backward/Forward
             if self.verbose:
                 logmsg('STEP {}'.format('BACKWARD' if self.forward else 'FORWARD'))
 
-            if self.forward:
-                subset_updates = subset
+            if not self.forward:
+                updates = self.features_.remove(*self.subset_)
             else:
-                subset_updates = all_features - subset
+                updates = self.subset_
 
-            # Evaluate only random subset
-            subset_updates = self._subsample_features(subset_updates)
+            # Find Next Best Update
+            score  = -np.inf
+            subset = None
 
-            # Score gain
-            feature_scores = pd.Series(np.nan, index=subset_updates)
+            for feature in updates:
 
-            for feature in subset_updates:
-
-                # include/exclude (trial)
-                if self.forward:
-                    candidate = subset - {feature}
+                # Exclude/Include Feature
+                if not self.forward:
+                    candidate = self.subset_.append(feature)
                 else:
-                    candidate = subset | {feature}
+                    candidate = self.subset_.remove(feature)
 
-                if self._find_trial(candidate):
+                candidate.parents = (self.subset_, )
+
+                # Check if Already Exsists
+                if candidate in self.trials_:
                     continue
 
+                # Evaluate Candidate
                 try:
-                    result = self._eval_subset(candidate, X, y, groups, prev_subset=subset)
-                    feature_scores[feature] = np.mean(result['score'])
+                    self._eval_subset(candidate, X, y, groups)
+
+                    if candidate.score > score:
+                        score  = candidate.score
+                        subset = candidate
+
                 except KeyboardInterrupt:
                     raise
-                except:
-                    feature_scores[feature] = np.nan
 
-            if not (feature_scores > old_score).any():
+                except:
+                    pass
+
+            # Stop Criteria
+            if score < self.score_:
                 continue
 
-            feature_scores = feature_scores.dropna()
-            feature_scores = feature_scores.sort_values(ascending=False)
-
-            subset_update = feature_scores.index[0]
-
-            # include/exclude (final)
-            if self.forward:
-                subset = subset - {subset_update}
-            else:
-                subset = subset | {subset_update}
-
-            self.last_subset_ = list(subset)
+            # Update Subset
+            self.subset_ = subset
+            self.score_  = score
 
         return self
 
 
-    def get_features(self):
+    def get_subset(self):
 
         if (self.use_best is True) and hasattr(self, 'best_subset_'):
-            return list(self.best_subset_)
+            return self.best_subset_
 
-        elif (self.use_best is False) and len(self.last_subset_) > 0:
-            return list(self.last_subset_)
+        elif (self.use_best is False) and len(self.subset_) > 0:
+            return self.last_subset_
 
         else:
             model_name = self.__class__.__name__
@@ -235,25 +227,5 @@ class GreedSelector(_AgnosticSelector):
 
 
 
-    def _subsample_features(self, features):
-
-        # TODO: random subsample
-
-        #features = list(features)
-        #n_features = len(features)
-
-        #random_subset = _check_subsample(self.max_candidates, n_features)
-        #subset = self.rstate_.choice(features, random_subset, replace=False)
-
-        #return set(subset)
-        return features
-
-
-
 class GroupGreedSelector(_GroupSelector, GreedSelector):
     pass
-
-
-
-def _check_subsample(subsample, n_features):
-    return n_features

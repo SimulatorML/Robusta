@@ -117,10 +117,8 @@ class RFE(_AgnosticSelector):
 
         if not partial:
 
-            self.features_ = self._get_features(X)
-            self.subset_ = self._get_features(X)
-
-            self._save_importance = True
+            self._set_features(X)
+            self.subset_ = self.features_
 
             self._reset_trials()
 
@@ -132,7 +130,7 @@ class RFE(_AgnosticSelector):
             k_features = k_features - step
             self.k_range_.append(k_features)
 
-        self.max_iter = len(self.k_range_) + self.n_iters_ + 1
+        self.max_iter = len(self.k_range_) + getattr(self, 'n_iters_', 0) + 1
         self.k_range_ = iter(self.k_range_)
 
         return self
@@ -150,16 +148,19 @@ class RFE(_AgnosticSelector):
 
     def _fit(self, X, y, groups):
 
-        trial = self._eval_subset(self.subset_, X, y, groups)
-        imp = trial['importance']
+        self._eval_subset(self.subset_, X, y, groups)
 
         for k in self.k_range_:
             try:
-                prev_subset = self.subset_
-                self.subset_ = _select_k_best(self.subset_, imp, k)
+                scores = self.subset_.importance
+                subset = _select_k_best(scores, k)
+                parent = self.subset_
 
-                trial = self._eval_subset(self.subset_, X, y, groups, prev_subset=prev_subset)
-                imp = trial['importance']
+                self.subset_ = self.subset_.copy()
+                self.subset_.set_subset(subset)
+                self.subset_.parents = [parent]
+
+                self._eval_subset(self.subset_, X, y, groups)
 
                 if self.k_features_ <= self.min_features_:
                     break
@@ -170,13 +171,13 @@ class RFE(_AgnosticSelector):
         return self
 
 
-    def get_features(self):
+    def get_subset(self):
 
-        if (self.use_best is True) and hasattr(self, 'best_subset_'):
-            return list(self.best_subset_)
+        if (self.use_best is True) and self.n_iters_ > 0:
+            return self.best_subset_
 
         elif (self.use_best is False) and len(self.subset_) > 0:
-            return list(self.subset_)
+            return self.subset_
 
         else:
             model_name = self.__class__.__name__
@@ -285,8 +286,8 @@ class GroupPermutationRFE(_GroupSelector, PermutationRFE):
 
 
 
-def _select_k_best(features, scores, k_best):
-    return features[np.argsort(-scores)][:k_best]
+def _select_k_best(scores, k_best):
+    return scores.index[np.argsort(-scores.values)][:k_best]
 
 
 

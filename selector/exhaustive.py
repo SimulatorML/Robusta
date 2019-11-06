@@ -115,7 +115,7 @@ class ExhaustiveSelector(_AgnosticSelector):
 
     def _fit_start(self, X, partial=False):
 
-        self.features_ = self._get_features(X)
+        self._set_features(X)
 
         if not partial:
             k_range = range(self.min_features_, self.max_features_+1)
@@ -146,11 +146,10 @@ class ExhaustiveSelector(_AgnosticSelector):
 
         return self
 
-
-    def get_features(self):
+    def get_subset(self):
 
         if hasattr(self, 'best_subset_'):
-            return list(self.best_subset_)
+            return self.best_subset_
         else:
             model_name = self.__class__.__name__
             raise NotFittedError('{} is not fitted'.format(model_name))

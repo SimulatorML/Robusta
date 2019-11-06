@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import abc
 
+from copy import copy
 from time import time
 
 from sklearn.base import BaseEstimator, TransformerMixin
@@ -10,6 +11,137 @@ from robusta.crossval import crossval
 
 from ._verbose import _print_last
 from ._plot import _plot_progress
+
+
+
+
+class FeatureSubset:
+
+    def __init__(self, features, subset=None, mask=None, group=False):
+
+        # Features
+        msg = '<features> must be unique'
+        assert len(set(features)) == len(features), msg
+
+        if group:
+            self.features = features.get_level_values(0).unique()
+        else:
+            self.features = np.sort(features)
+
+        # subset OR mask
+        if subset is not None and mask is not None:
+            raise ValueError('<subset> & <mask> could not be set at once')
+
+        elif subset is not None:
+            self.set_subset(subset)
+
+        elif mask is not None:
+            self.set_mask(mask)
+
+        else:
+            self.set_mask([True]*self.n_features)
+
+
+    def __iter__(self):
+        return iter(self.subset)
+
+
+    def __len__(self):
+        return self.n_selected
+
+
+    def __array__(self, *args, **kwargs):
+        return np.array(self.subset, *args, **kwargs)
+
+
+    def __str__(self):
+        return self.subset.__str__()
+
+
+    def __repr__(self):
+        nm = self.__class__.__name__
+        st = self.__str__().replace('\n', '\n ' + ' '*len(nm))
+        return '{}({})'.format(nm, st)
+
+
+    def __eq__(self, other):
+        return np.all(self.mask == other.mask)
+
+
+    def set_subset(self, subset):
+
+        msg = 'Not all <subset> values are in <features>'
+        assert np.isin(subset, self.features).all(), msg
+
+        msg = 'All <subset> values must be unique'
+        assert len(set(subset)) == len(subset), msg
+
+        self.subset = np.sort(subset)
+        self.mask = np.isin(self.features, self.subset)
+
+        return self
+
+
+    def set_mask(self, mask):
+
+        msg = '<mask> length must be the same as <features>'
+        assert len(mask) == self.n_features, msg
+
+        self.mask = np.array(mask, dtype=bool)
+        self.subset = self.features[self.mask].copy()
+
+        return self
+
+
+    def remove(self, *features, copy=True):
+
+        self = self.copy() if copy else self
+
+        msg = 'All elements must be unique'
+        assert len(set(features)) == len(features), msg
+
+        msg = 'All elements must be in <subset>'
+        assert np.isin(features, self.subset).all(), msg
+
+        mask = np.isin(self.features, features)
+        self.set_mask(self.mask ^ mask)
+
+        return self
+
+
+    def append(self, *features, copy=True):
+
+        self = self.copy() if copy else self
+
+        msg = 'All elements must be unique'
+        assert len(set(features)) == len(features), msg
+
+        msg = 'All elements must be in <features>'
+        assert np.isin(features, self.features).all(), msg
+
+        msg = 'Some elements already in <subset>'
+        assert not np.isin(features, self.subset).any(), msg
+
+        self.set_subset(np.append(self.subset, features))
+
+        return self
+
+
+    def copy(self):
+        return copy(self)
+
+    @property
+    def n_features(self):
+        return len(self.features)
+
+    @property
+    def n_selected(self):
+        return len(self.subset)
+
+    @property
+    def shape(self):
+        return (self.n_selected, )
+
 
 
 
@@ -30,12 +162,11 @@ class _Selector(BaseEstimator, TransformerMixin):
             The input samples with only the selected features.
 
         """
-        features = self.get_features()
-        return X[features]
+        return X[self.get_subset()]
 
 
     @abc.abstractmethod
-    def get_features(self):
+    def get_subset(self):
         """
         Get list of columns to select
 
@@ -45,19 +176,19 @@ class _Selector(BaseEstimator, TransformerMixin):
             Columns to selct
 
         """
-        return []
+        return self.features_
 
 
-    def _get_features(self, X):
-        return list(X.columns)
+    def _set_features(self, X):
+        self.features_ = FeatureSubset(X.columns)
 
-        
+
 
 
 class _GroupSelector:
 
-    def _get_features(self, X):
-        return list(X.columns.get_level_values(0).unique())
+    def _set_features(self, X):
+        self.features_ = FeatureSubset(X.columns, group=True)
 
 
 
@@ -80,7 +211,7 @@ class _AgnosticSelector(_Selector):
 
     @property
     def n_features_(self):
-        return len(self.features_)
+        return self.features_.n_features
 
 
     @property
@@ -102,82 +233,45 @@ class _AgnosticSelector(_Selector):
 
 
 
-    def _eval_subset(self, subset, X, y, groups, parents=[]):
+    def _eval_subset(self, subset, X, y, groups):
 
-        trial = self._find_trial(subset)
+        tic = time()
 
-        if trial:
-            trial['idx'] = len(self.trials_)
+        # Convert to FeatureSubset
+        if type(subset) != type(self.features_):
+            subset = self.features_.copy().set_subset(subset)
 
-        else:
-            tic = time()
+        # Evaluate subset
+        result = crossval(self.estimator, self.cv, X[subset], y, groups,
+                          scoring=self.scoring, n_jobs=self.n_jobs,
+                          return_pred=False, verbose=0)
 
-            subset = list(subset)
-            result = crossval(self.estimator, self.cv, X[subset], y, groups,
-                              scoring=self.scoring, n_jobs=self.n_jobs,
-                              return_pred=False, verbose=0)
+        subset.time  = time() - tic
+        subset.score     = np.mean(result['score'])
+        subset.score_std = np.std(result['score'])
 
-            trial = {
-                'idx': len(self.trials_),
-                'score': np.mean(result['score']),
-                'score_std': np.std(result['score']),
-                'subset': set(subset),
-                'time': time() - tic,
-            }
+        # Extract importances
+        if 'importance' in result:
+            imp = result['importance']
+            subset.importance = pd.Series(np.mean(imp, axis=0), index=subset)
 
-            if 'importance' in result:
-                imp = result['importance']
-                trial['importance'] = np.mean(imp, axis=0).reshape(len(subset))
-                trial['importance_std'] = np.std(imp, axis=0).reshape(len(subset))
+        # Update history
+        subset.idx = self.n_iters_
+        self.trials_.append(subset)
 
-        if parents:
-            trial['parents'] = [parent['idx'] for parent in parents]
+        # Update stats
+        self.total_time_ = getattr(self, 'total_time_', .0) + subset.time
 
-        self._append_trial(trial)
+        if not hasattr(self, 'best_score_') or self.best_score_ < subset.score:
+            self.best_subset_ = subset
+            self.best_score_  = subset.score
 
-        return trial
-
-
-    def _append_trial(self, trial):
-
-        if not hasattr(self, 'trials_'): self._reset_trials()
-        self.trials_ = self.trials_.append(trial, ignore_index=True)
-
+        # Verbose
         _print_last(self)
 
+        # Check limits
         self._check_max_iter()
         self._check_max_time()
-
-
-    def _reset_trials(self):
-        self.trials_ = pd.DataFrame()
-
-
-    @property
-    def total_time_(self):
-        return self.trials_['time'].sum() if hasattr(self, 'trials_') else .0
-
-
-    @property
-    def n_iters_(self):
-        return self.trials_.shape[0] if hasattr(self, 'trials_') else 0
-
-    @property
-    def best_iter_(self):
-        return self.trials_['score'].idxmax() if hasattr(self, 'trials_') else None
-
-
-    @property
-    def best_score_(self):
-        if hasattr(self, 'trials_'):
-            return self.trials_.loc[self.best_iter_, 'score']
-        else:
-            return -np.inf
-
-
-    @property
-    def best_subset_(self):
-        return self.trials_.loc[self.best_iter_, 'subset']
 
 
     def _check_max_iter(self):
@@ -194,33 +288,27 @@ class _AgnosticSelector(_Selector):
                 raise KeyboardInterrupt
 
 
-    def _find_trial(self, subset):
-
-        if self.n_iters_ == 0:
-            return None
-
-        same_subsets = self.trials_['subset'] == set(subset)
-
-        if same_subsets.any():
-            trial = self.trials_[same_subsets].iloc[-1]
-            return trial
-
-        else:
-            return None
+    def _reset_trials(self):
+        self.trials_ = []
 
 
     @property
-    def feature_importances_(self):
-        subset = self._select_features()
-        trial = _find_trial(subset)
-        return pd.Series(trial['importance'], index=self.features_)
+    def n_iters_(self):
+        return len(self.trials_)
 
 
-    @property
-    def feature_importances_std_(self):
-        subset = self._select_features()
-        trial = _find_trial(subset)
-        return pd.Series(trial['importance_std'], index=self.features_)
+    #@property
+    #def feature_importances_(self):
+    #    subset = self._select_features()
+    #    trial = _find_trial(subset)
+    #    return pd.Series(trial['importance'], index=self.features_)
+
+
+    #@property
+    #def feature_importances_std_(self):
+    #    subset = self._select_features()
+    #    trial = _find_trial(subset)
+    #    return pd.Series(trial['importance_std'], index=self.features_)
 
 
     def plot(self, **kwargs):
