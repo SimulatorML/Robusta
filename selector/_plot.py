@@ -38,16 +38,4 @@ def _plot_progress(fs, **kwargs):
 
                 ax.plot([x0, x1], [y0, y1], **kwargs)
 
-            #if (xx[0] > xx[1]) == forward:
-            #    line_style = marker + '-'
-            #    alpha0 = alpha
-            #else:
-            #    line_style = marker + '--'
-            #    alpha0 = alpha / 2
-        #else:
-            #line_style = marker
-            #alpha0 = alpha
-
-        #ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-
     fig.show()
