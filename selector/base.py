@@ -246,7 +246,7 @@ class _AgnosticSelector(_Selector):
 
 
 
-    def _eval_subset(self, subset, X, y, groups):
+    def _eval_subset(self, subset, X, y, groups=None):
 
         tic = time()
 
