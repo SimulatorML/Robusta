@@ -264,7 +264,7 @@ class _AgnosticSelector(_Selector):
         subset.score_std = np.std(result['score'])
 
         # Extract importances
-        if 'importance' in result:
+        if 'importance' in result and len(subset) == len(result['features']):
             imp = result['importance']
             subset.importance = pd.Series(np.mean(imp, axis=0), index=subset)
 
