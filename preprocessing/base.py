@@ -147,8 +147,9 @@ class ColumnFilter(BaseEstimator, TransformerMixin):
         Columns to select.
 
     '''
-    def __init__(self, func):
+    def __init__(self, func, **kwargs):
         self.func = func
+        self.kwargs = kwargs
 
 
     def fit(self, X, y=None):
@@ -165,7 +166,7 @@ class ColumnFilter(BaseEstimator, TransformerMixin):
             This estimator.
 
         '''
-        self.features = [X.columns.map(self.func)]
+        self.features = list(filter(self.func, X.columns))
         return self
 
 
