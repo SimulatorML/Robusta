@@ -325,7 +325,7 @@ class _AgnosticSelector(_Selector):
 
 
     def plot(self, **kwargs):
-        _plot_progress(self, **kwargs)
+        return _plot_progress(self, **kwargs)
 
 
 

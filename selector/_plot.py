@@ -39,3 +39,4 @@ def _plot_progress(fs, **kwargs):
                 ax.plot([x0, x1], [y0, y1], **kwargs)
 
     fig.show()
+    return fig, ax

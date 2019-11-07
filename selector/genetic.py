@@ -4,6 +4,7 @@ import pandas as pd
 from sklearn.utils.random import check_random_state
 from deap import creator, base, tools, algorithms
 
+from robusta.utils import logmsg
 from .base import _GroupSelector, _AgnosticSelector
 
 
@@ -53,7 +54,7 @@ def mutSubset(ind, indpb, random_state=None):
 class GeneticSelector(_AgnosticSelector):
 
     def __init__(self, estimator, cv=5, scoring=None, mut_prob=0.1, mut_rate=0.05,
-                 crossover=0.7, pop_size=50, max_time=None, max_iter=None, std=-0.1,
+                 crossover=0.5, pop_size=20, max_time=None, max_iter=None, std=-0.1,
                  random_state=None, n_jobs=None, verbose=1, n_digits=4):
 
         self.estimator = estimator
@@ -124,7 +125,13 @@ class GeneticSelector(_AgnosticSelector):
         self.toolbox.register("select", tools.selTournament, tournsize=3,
                               fit_attr='score')
 
+        self.n_gen_ = 0
         while not self.max_iter or self.n_iters_ < self.max_iter:
+
+            self.n_gen_ += 1
+            if self.verbose:
+                logmsg('GENERATION {}'.format(self.n_gen_))
+
             try:
                 # Select the next generation individuals
                 offspring = [ind.copy() for ind in self.population]
