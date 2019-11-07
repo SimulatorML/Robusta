@@ -17,16 +17,6 @@ class ExhaustiveSelector(_AgnosticSelector):
     estimator : object
         The base estimator from which the transformer is built.
 
-    min_features, max_features : int or float
-        Minimum & maximum number of features. If float, interpreted as
-        percentage of total number of features. <max_features> must be greater
-        or equal to the <min_features>.
-
-    scoring : string, callable or None, optional, default: None
-        A string or a scorer callable object / function with signature
-        ``scorer(estimator, X, y)`` which should return only a single value.
-        If None, the estimator's default scorer (if available) is used.
-
     cv : int, cross-validation generator or iterable
         Determines the cross-validation splitting strategy.
         Possible inputs for cv are:
@@ -34,6 +24,16 @@ class ExhaustiveSelector(_AgnosticSelector):
             - integer, to specify the number of folds.
             - An object to be used as a cross-validation generator.
             - An iterable yielding train/test splits.
+
+    scoring : string, callable or None, optional, default: None
+        A string or a scorer callable object / function with signature
+        ``scorer(estimator, X, y)`` which should return only a single value.
+        If None, the estimator's default scorer (if available) is used.
+
+    min_features, max_features : int or float
+        Minimum & maximum number of features. If float, interpreted as
+        percentage of total number of features. <max_features> must be greater
+        or equal to the <min_features>.
 
     n_jobs : int or None, optional (default=-1)
         The number of jobs to run in parallel. None means 1.

@@ -10,12 +10,26 @@ from .base import _AgnosticSelector, _GroupSelector
 
 class RandomSelector(_AgnosticSelector):
     '''Random feature selector for sampling and evaluating randomly choosen
-    feature subsets of specified size
+    feature subsets of specified size.
+
 
     Parameters
     ----------
     estimator : object
         The base estimator from which the transformer is built.
+
+    cv : int, cross-validation generator or iterable
+        Determines the cross-validation splitting strategy.
+        Possible inputs for cv are:
+
+            - integer, to specify the number of folds.
+            - An object to be used as a cross-validation generator.
+            - An iterable yielding train/test splits.
+
+    scoring : string, callable or None, optional, default: None
+        A string or a scorer callable object / function with signature
+        ``scorer(estimator, X, y)`` which should return only a single value.
+        If None, the estimator's default scorer (if available) is used.
 
     min_features, max_features : int or float
         Minimum & maximum number of features. If float, interpreted as
@@ -29,19 +43,6 @@ class RandomSelector(_AgnosticSelector):
     max_time : float or None
         Maximum time (in seconds). None for no limits. Use <max_iter>
         or Ctrl+C for KeyboardInterrupt to stop optimization in this case.
-
-    scoring : string, callable or None, optional, default: None
-        A string or a scorer callable object / function with signature
-        ``scorer(estimator, X, y)`` which should return only a single value.
-        If None, the estimator's default scorer (if available) is used.
-
-    cv : int, cross-validation generator or iterable
-        Determines the cross-validation splitting strategy.
-        Possible inputs for cv are:
-
-            - integer, to specify the number of folds.
-            - An object to be used as a cross-validation generator.
-            - An iterable yielding train/test splits.
 
     weights : {'binomal', 'uniform'}
         Probability for subset sizes:
@@ -59,6 +60,7 @@ class RandomSelector(_AgnosticSelector):
 
     verbose : int, optional (default=1)
         Verbosity level
+
 
     Attributes
     ----------
@@ -126,7 +128,7 @@ class RandomSelector(_AgnosticSelector):
         while True:
             try:
                 k = weighted_choice(self.weights_, self.rstate_)
-                subset = self.rstate_.choice(self.features_, k, replace=False)
+                subset = self.features_.sample(size=k, random_state=self.rstate_)
 
                 score = self._eval_subset(subset, X, y, groups)
 

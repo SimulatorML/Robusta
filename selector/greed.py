@@ -19,12 +19,18 @@ class GreedSelector(_AgnosticSelector):
     estimator : object
         The base estimator from which the transformer is built.
 
-    k_features : int or float (default=0.5)
-        Number of features to select. If float, interpreted as percentage
-        of total # of features:
+    cv : int, cross-validation generator or iterable
+        Determines the cross-validation splitting strategy.
+        Possible inputs for cv are:
 
-            - If <forward> is True, <k_features> is maximum # of features.
-            - If <forward> is False, <k_features> is minimum # of features.
+            - integer, to specify the number of folds.
+            - An object to be used as a cross-validation generator.
+            - An iterable yielding train/test splits.
+
+    scoring : string, callable or None, optional, default: None
+        A string or a scorer callable object / function with signature
+        ``scorer(estimator, X, y)`` which should return only a single value.
+        If None, the estimator's default scorer (if available) is used.
 
     forward : boolean (default=True)
         Whether to start from empty set or full set of features:
@@ -38,14 +44,41 @@ class GreedSelector(_AgnosticSelector):
             - If <forward> is True, drop feature on each step
             - If <forward> is False, drop feature on each step
 
-    max_candidates : int, float or NoneType (default=None)
-        ...
+    k_features : int or float (default=0.5)
+        Number of features to select. If float, interpreted as percentage
+        of total # of features:
 
+            - If <forward> is True, <k_features> is maximum # of features.
+            - If <forward> is False, <k_features> is minimum # of features.
+
+    max_iter : int or None
+        Maximum number of iterations. None for no limits. Use <max_time>
+        or Ctrl+C for KeyboardInterrupt to stop optimization in this case.
+
+    max_time : float or None
+        Maximum time (in seconds). None for no limits. Use <max_iter>
+        or Ctrl+C for KeyboardInterrupt to stop optimization in this case.
+
+    use_best : bool (default=True)
+        Whether to use subset with best score or last selected subset.
+
+    random_state : int or None (default=0)
+        Random seed for permutations in PermutationImportance.
+        Ignored if <importance_type> set to 'inbuilt'.
+
+    n_jobs : int or None, optional (default=-1)
+        The number of jobs to run in parallel. None means 1.
+
+    verbose : int, optional (default=1)
+        Verbosity level
+
+    n_digits : int (default=4)
+        Verbose score(s) precision
 
     '''
     def __init__(self, estimator, cv=5, scoring=None, forward=True, floating=False,
-                 k_features=0.5, max_candidates=None, max_time=None, use_best=True,
-                 random_state=0, n_jobs=None, verbose=1, n_digits=4):
+                 k_features=0.5, max_time=None, use_best=True, random_state=0,
+                 n_jobs=None, verbose=1, n_digits=4):
 
         self.estimator = estimator
         self.k_features = k_features
