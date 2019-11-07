@@ -119,7 +119,7 @@ class GeneticSelector(_AgnosticSelector):
         self.crossover = crossover
         self.mut_freq = mut_prob
         self.mut_prob = mut_rate
-        
+
         self.pop_size = pop_size
         self.max_iter = max_iter
         self.max_time = max_time
@@ -185,7 +185,7 @@ class GeneticSelector(_AgnosticSelector):
 
             self.n_gen_ += 1
             if self.verbose:
-                logmsg('GENERATION {}'.format(self.n_gen_))
+                logmsg(f'GENERATION {self.n_gen_}')
 
             try:
                 # Select the next generation individuals

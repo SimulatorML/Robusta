@@ -18,10 +18,10 @@ def _print_last(fs):
         n = fs.max_iter if hasattr(fs, 'max_iter') else None
         k = subset.idx + 1
 
-        iters = '{}/{}'.format(k, n) if n else '{}'.format(k)
+        iters = f'ITER: {k}/{n}' if n else f'{k}'
 
         # Number of features
-        n_selected = '{}/{}'.format(len(subset), fs.n_features_)
+        sub = f'SUBSET: {len(subset)}/{fs.n_features_}'
 
         # Score
         scores = [trial.score     for trial in fs.trials_]
@@ -33,7 +33,7 @@ def _print_last(fs):
         score = colored(score, 'yellow') if subset.idx == np.argmax(scores) else score
         std   = colored(std,   'cyan')   if subset.idx == np.argmin(stds)   else std
 
-        score = '{} ± {}'.format(score, std)
+        score = f'SCORE: {score} ± {std}'
 
         # Estimated time of arrival (ETA)
         if hasattr(fs, 'max_time') and fs.max_time:
@@ -50,13 +50,11 @@ def _print_last(fs):
 
         if eta < np.inf:
             eta = secfmt(eta)
-            eta = '      ETA: {}'.format(eta)
+            eta = 'ETA: {}'.format(eta)
         else:
             eta = ''
 
-        msg = 'ITER: {}      SUBSET: {}      SCORE: {}{}'
-        msg = msg.format(iters, n_selected, score, eta)
-
+        msg = f'{iters}{" "*6}{sub}{" "*6}{score}{" "*6}{eta}'
         logmsg(msg)
 
 
@@ -66,10 +64,10 @@ def _print_last(fs):
             new, old = set(subset), set(subset.parents[0])
 
             diff = new - old
-            if diff: logmsg('    + {}'.format(diff))
+            if diff: logmsg(f'    + {diff}')
 
             diff = old - new
-            if diff: logmsg('    – {}'.format(diff))
+            if diff: logmsg(f'    – {diff}')
 
 
     if fs.verbose >= 10:

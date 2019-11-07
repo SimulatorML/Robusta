@@ -167,7 +167,7 @@ class RandomSelector(_AgnosticSelector):
 
         self._set_features(X)
 
-        weights_values = ['uniform', 'binomal']
+        weights_vals = ['uniform', 'binomal']
 
         if self.weights is 'binomal':
             self.weights_ = binomal_weights(self.min_features_,
@@ -177,7 +177,7 @@ class RandomSelector(_AgnosticSelector):
             self.weights_ = uniform_weights(self.min_features_,
                                             self.max_features_)
         else:
-            raise ValueError('<weights> must be from {}'.format(weights_values))
+            raise ValueError(f'<weights> must be from {weights_vals}')
 
         return self
 
@@ -188,7 +188,7 @@ class RandomSelector(_AgnosticSelector):
             return self.best_subset_
         else:
             model_name = self.__class__.__name__
-            raise NotFittedError('{} is not fitted'.format(model_name))
+            raise NotFittedError(f'{model_name} is not fitted')
 
 
 class GroupRandomSelector(_GroupSelector, RandomSelector):

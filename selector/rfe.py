@@ -181,7 +181,7 @@ class RFE(_AgnosticSelector):
 
         else:
             model_name = self.__class__.__name__
-            raise NotFittedError('{} is not fitted'.format(model_name))
+            raise NotFittedError(f'{model_name} is not fitted')
 
 
 
@@ -308,7 +308,6 @@ def _check_step(step, n_features, k_features):
             raise ValueError('Float <step> must be from interval (0, 1)')
 
     else:
-        raise ValueError('Parameter <step> must be int or float, \
-                         got {}'.format(step))
+        raise ValueError(f'Parameter <step> must be int or float, got {step}')
 
     return min(step, int(n_features-k_features))

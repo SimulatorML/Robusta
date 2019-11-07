@@ -256,7 +256,7 @@ class GreedSelector(_AgnosticSelector):
 
         else:
             model_name = self.__class__.__name__
-            raise NotFittedError('{} is not fitted'.format(model_name))
+            raise NotFittedError(f'{model_name} is not fitted')
 
 
 

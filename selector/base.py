@@ -336,19 +336,17 @@ def _check_k_features(k_features, n_features, param='k_features'):
         if k_features > 0:
             k_features = k_features
         else:
-            raise ValueError('Integer <{}> must be greater than 0'
-                             ''.format(param))
+            raise ValueError(f'Integer <{param}> must be greater than 0')
 
     elif isinstance(k_features, float):
         if 0 < k_features < 1:
             k_features = max(k_features * n_features, 1)
             k_features = int(k_features)
         else:
-            raise ValueError('Float <{}> must be from interval (0, 1)'
-                             ''.format(param))
+            raise ValueError(f'Float <{param}> must be from interval (0, 1)')
 
     else:
-        raise ValueError('Parameter <{}> must be int or float, '
-                         'got {}'.format(param, k_features))
+        raise ValueError(f'Parameter <{param}> must be int or float,' 
+                         f'got {k_features}')
 
     return k_features
