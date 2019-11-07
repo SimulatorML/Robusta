@@ -136,6 +136,58 @@ class ColumnSelector(BaseEstimator, TransformerMixin):
 
 
 
+class ColumnFilter(BaseEstimator, TransformerMixin):
+    '''Select specified columns.
+
+    Useful for freezing Feature Selection after subset search is ended.
+
+    Parameters
+    ----------
+    columns : list of strings
+        Columns to select.
+
+    '''
+    def __init__(self, func):
+        self.func = func
+
+
+    def fit(self, X, y=None):
+        '''Does nothing.
+
+        Parameters
+        ----------
+        X : DataFrame, shape [n_samples, n_features]
+            The data to transform.
+
+        Returns
+        -------
+        self: ColumnSelector
+            This estimator.
+
+        '''
+        self.features = [X.columns.map(self.func)]
+        return self
+
+
+    def transform(self, X):
+        """Select specified columns from X.
+
+        Parameters
+        ----------
+        X : DataFrame, shape [n_samples, n_features]
+            The data to transform.
+
+        Returns
+        -------
+        Xt : DataFrame, shape [n_samples, n_features]
+            Transformed input.
+
+        """
+        return X[self.features]
+
+
+
+
 class TypeSelector(BaseEstimator, TransformerMixin):
     '''Select columns of specified type.
 
