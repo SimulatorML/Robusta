@@ -148,7 +148,7 @@ class RFE(_AgnosticSelector):
 
     def _fit(self, X, y, groups):
 
-        self._eval_subset(self.subset_, X, y, groups)
+        self.check_subset(self.subset_, X, y, groups)
 
         for k in self.k_range_:
             try:
@@ -159,7 +159,7 @@ class RFE(_AgnosticSelector):
                 self.subset_ = self.subset_.copy().set_subset(subset)
                 self.subset_.parents = [parent]
 
-                self._eval_subset(self.subset_, X, y, groups)
+                self.check_subset(self.subset_, X, y, groups)
 
                 if self.k_features_ <= self.min_features_:
                     break

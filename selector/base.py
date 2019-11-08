@@ -275,10 +275,10 @@ class _AgnosticSelector(_Selector):
         # Evaluate
         tic = time()
         self._eval_subset(subset, X, y, groups=None)
-        time = time() - tic
+        eval_time = time() - tic
 
         # Update stats
-        self.total_time_ = getattr(self, 'total_time_', .0) + time
+        self.total_time_ = getattr(self, 'total_time_', .0) + eval_time
 
         if not hasattr(self, 'best_score_') or self.best_score_ < subset.score:
             self.best_subset_ = subset
