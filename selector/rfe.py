@@ -156,8 +156,7 @@ class RFE(_AgnosticSelector):
                 subset = _select_k_best(scores, k)
                 parent = self.subset_
 
-                self.subset_ = self.subset_.copy()
-                self.subset_.set_subset(subset)
+                self.subset_ = self.subset_.copy().set_subset(subset)
                 self.subset_.parents = [parent]
 
                 self._eval_subset(self.subset_, X, y, groups)
@@ -210,83 +209,51 @@ class PermutationRFE(RFE):
         self.n_digits = n_digits
 
 
-    def _eval_subset(self, subset, X, y, groups, prev_subset=None):
+    def _eval_subset(self, subset, X, y, groups=None):
 
-        trial = self._find_trial(subset)
+        progress_bar = (self.verbose >= 5)
+        subset = list(subset)
 
-        if not trial:
-            tic = time()
+        perm = PermutationImportance(self.estimator, self.cv, self.scoring,
+                                     self.n_repeats, n_jobs=self.n_jobs,
+                                     random_state=self.random_state,
+                                     progress_bar=progress_bar)
+        perm.fit(X[subset], y, groups)
 
-            progress_bar = (self.verbose >= 5)
-            subset = list(subset)
+        subset.score     = np.mean(perm.scores_)
+        subset.score_std =  np.std(perm.scores_)
 
-            perm = PermutationImportance(self.estimator, self.cv, self.scoring,
-                                         self.n_repeats, n_jobs=self.n_jobs,
-                                         random_state=self.random_state,
-                                         progress_bar=progress_bar)
-            perm.fit(X[subset], y, groups)
+        subset.importance     = perm.feature_importances_
+        subset.importance_std = perm.feature_importances_std_
 
-            trial = {
-                'subset': set(subset),
-                'score': np.mean(perm.scores_),
-                'score_std': np.std(perm.scores_),
-                'importance': perm.feature_importances_,
-                'importance_std': perm.feature_importances_std_,
-                'time': time() - tic,
-            }
-
-            if prev_subset is not None:
-                prev_trial = self._find_trial(prev_subset)
-                trial['prev_subset'] = prev_trial['subset'] if prev_trial else set()
-                trial['prev_score'] = prev_trial['score'] if prev_trial else None
-
-        self._append_trial(trial)
-
-        return trial
+        return subset
 
 
 
 class GroupPermutationRFE(_GroupSelector, PermutationRFE):
 
+    def _eval_subset(self, subset, X, y, groups=None):
 
-    def _eval_subset(self, subset, X, y, groups, prev_subset=None):
+        progress_bar = (self.verbose >= 5)
 
-        trial = self._find_trial(subset)
+        perm = GroupPermutationImportance(self.estimator, self.cv, self.scoring,
+                                          self.n_repeats, n_jobs=self.n_jobs,
+                                          random_state=self.random_state,
+                                          progress_bar=progress_bar)
+        perm.fit(X[subset], y, groups)
 
-        if not trial:
-            tic = time()
+        subset.score     = np.mean(perm.scores_)
+        subset.score_std =  np.std(perm.scores_)
 
-            progress_bar = (self.verbose >= 5)
-            subset = list(subset)
+        subset.importance     = perm.feature_importances_
+        subset.importance_std = perm.feature_importances_std_
 
-            perm = GroupPermutationImportance(self.estimator, self.cv, self.scoring,
-                                              self.n_repeats, n_jobs=self.n_jobs,
-                                              random_state=self.random_state,
-                                              progress_bar=progress_bar)
-            perm.fit(X[subset], y, groups)
-
-            trial = {
-                'subset': set(subset),
-                'score': np.mean(perm.scores_),
-                'score_std': np.std(perm.scores_),
-                'importance': perm.feature_importances_,
-                'importance_std': perm.feature_importances_std_,
-                'time': time() - tic,
-            }
-
-            if prev_subset is not None:
-                prev_trial = self._find_trial(prev_subset)
-                trial['prev_subset'] = prev_trial['subset'] if prev_trial else set()
-                trial['prev_score'] = prev_trial['score'] if prev_trial else None
-
-        self._append_trial(trial)
-
-        return trial
+        return subset
 
 
 
 
-def _select_k_best(scores, k_best):
+def _select_k_best(subset, k_best):
     return scores.index[np.argsort(-scores.values)][:k_best]
 
 

@@ -142,7 +142,7 @@ class GreedSelector(_AgnosticSelector):
         else:
             is_final = lambda subset: len(subset) <= self.k_features_
 
-            self._eval_subset(self.subset_, X, y, groups)
+            self.check_subset(self.subset_, X, y, groups)
             self.score_ = self.subset_.score
 
 
@@ -173,7 +173,7 @@ class GreedSelector(_AgnosticSelector):
 
                 # Evaluate Candidate
                 try:
-                    self._eval_subset(candidate, X, y, groups)
+                    self.check_subset(candidate, X, y, groups)
 
                     if candidate.score > score:
                         score  = candidate.score
@@ -223,7 +223,7 @@ class GreedSelector(_AgnosticSelector):
 
                 # Evaluate Candidate
                 try:
-                    self._eval_subset(candidate, X, y, groups)
+                    self.check_subset(candidate, X, y, groups)
 
                     if candidate.score > score:
                         score  = candidate.score

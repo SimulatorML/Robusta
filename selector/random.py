@@ -124,16 +124,7 @@ class RandomSelector(_AgnosticSelector):
     def fit(self, X, y, groups=None):
 
         self._fit_start(X)
-
-        while True:
-            try:
-                k = weighted_choice(self.weights_, self.rstate_)
-                subset = self.features_.sample(size=k, random_state=self.rstate_)
-
-                score = self._eval_subset(subset, X, y, groups)
-
-            except KeyboardInterrupt:
-                break
+        self._fit(X, y, groups)
 
         return self
 
@@ -142,13 +133,19 @@ class RandomSelector(_AgnosticSelector):
     def partial_fit(self, X, y, groups=None):
 
         self._fit_start(X, partial=True)
+        self._fit(X, y, groups)
+
+        return self
+
+
+    def _fit(self, X, y, groups=None):
 
         while True:
             try:
                 k = weighted_choice(self.weights_, self.rstate_)
-                subset = self.rstate_.choice(list(self.features_), k, replace=False)
-
-                self._eval_subset(subset, X, y, groups)
+                subset = self.features_.sample(size=k, random_state=self.rstate_)
+                
+                self.check_subset(subset, X, y, groups)
 
             except KeyboardInterrupt:
                 break

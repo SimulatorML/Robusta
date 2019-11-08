@@ -26,8 +26,10 @@ class FeatureSubset:
 
         if group:
             self.features = features.get_level_values(0).unique()
+            self.group = True
         else:
             self.features = np.array(features)
+            self.group = False
 
         # subset OR mask
         if subset is not None and mask is not None:
@@ -248,36 +250,43 @@ class _AgnosticSelector(_Selector):
 
     def _eval_subset(self, subset, X, y, groups=None):
 
-        tic = time()
+        result = crossval(self.estimator, self.cv, X[subset], y, groups,
+                          scoring=self.scoring, n_jobs=self.n_jobs,
+                          return_pred=False, verbose=0)
+
+        subset.score     = np.mean(result['score'])
+        subset.score_std = np.std(result['score'])
+
+        if not subset.group and 'importance' in result:
+            imp = result['importance']
+            subset.importance     = pd.Series(np.mean(imp, axis=0), index=subset)
+            subset.importance_std = pd.Series(np.std(imp,  axis=0), index=subset)
+
+        return subset
+
+
+
+    def check_subset(self, subset, X, y, groups=None):
 
         # Convert to FeatureSubset
         if type(subset) != type(self.features_):
             subset = self.features_.copy().set_subset(subset)
 
-        # Evaluate subset
-        result = crossval(self.estimator, self.cv, X[subset], y, groups,
-                          scoring=self.scoring, n_jobs=self.n_jobs,
-                          return_pred=False, verbose=0)
-
-        subset.time  = time() - tic
-        subset.score     = np.mean(result['score'])
-        subset.score_std = np.std(result['score'])
-
-        # Extract importances
-        if 'importance' in result and len(subset) == len(result['features']):
-            imp = result['importance']
-            subset.importance = pd.Series(np.mean(imp, axis=0), index=subset)
-
-        # Update history
-        subset.idx = self.n_iters_
-        self.trials_.append(subset)
+        # Evaluate
+        tic = time()
+        self._eval_subset(subset, X, y, groups=None)
+        time = time() - tic
 
         # Update stats
-        self.total_time_ = getattr(self, 'total_time_', .0) + subset.time
+        self.total_time_ = getattr(self, 'total_time_', .0) + time
 
         if not hasattr(self, 'best_score_') or self.best_score_ < subset.score:
             self.best_subset_ = subset
             self.best_score_  = subset.score
+
+        # Update history
+        subset.idx = self.n_iters_
+        self.trials_.append(subset)
 
         # Verbose
         _print_last(self)
@@ -346,7 +355,7 @@ def _check_k_features(k_features, n_features, param='k_features'):
             raise ValueError(f'Float <{param}> must be from interval (0, 1)')
 
     else:
-        raise ValueError(f'Parameter <{param}> must be int or float,' 
+        raise ValueError(f'Parameter <{param}> must be int or float,'
                          f'got {k_features}')
 
     return k_features

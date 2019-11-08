@@ -184,7 +184,7 @@ class GeneticSelector(_AgnosticSelector):
     def _fit(self, X, y):
 
         # Define mutation & selection
-        self.toolbox.register("eval", self._eval_subset, X=X, y=y)
+        self.toolbox.register("eval", self.check_subset, X=X, y=y)
         self.toolbox.register("mate", cxSubset, random_state=self.rstate)
         self.toolbox.register("mutate", mutSubset, random_state=self.rstate,
                               indpb=self.mut_prob)
