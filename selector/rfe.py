@@ -212,7 +212,6 @@ class PermutationRFE(RFE):
     def _eval_subset(self, subset, X, y, groups=None):
 
         progress_bar = (self.verbose >= 5)
-        subset = list(subset)
 
         perm = PermutationImportance(self.estimator, self.cv, self.scoring,
                                      self.n_repeats, n_jobs=self.n_jobs,
