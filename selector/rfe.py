@@ -253,7 +253,7 @@ class GroupPermutationRFE(_GroupSelector, PermutationRFE):
 
 
 
-def _select_k_best(subset, k_best):
+def _select_k_best(scores, k_best):
     return scores.index[np.argsort(-scores.values)][:k_best]
 
 
