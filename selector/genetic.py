@@ -13,7 +13,7 @@ __all__ = ['GeneticSelector', 'GroupGeneticSelector']
 
 
 
-def cxSubset(ind1, ind2, indpb=0.5, random_state=None):
+def cxSubset(ind1, ind2, indpb=0.5, random_state=None, drop_attrs=['score']):
 
     rstate = check_random_state(random_state)
     mask1, mask2 = [], []
@@ -32,12 +32,17 @@ def cxSubset(ind1, ind2, indpb=0.5, random_state=None):
     child1.parents = (ind1, ind2)
     child2.parents = (ind1, ind2)
 
+    for attr in drop_attrs:
+        for child in [child1, child2]:
+            if hasattr(child, attr):
+                delattr(child, attr)
+
     return child1, child2
 
 
 
 
-def mutSubset(ind, indpb, random_state=None):
+def mutSubset(ind, indpb, random_state=None, drop_attrs=['score']):
 
     rstate = check_random_state(random_state)
     mask = []
@@ -46,7 +51,13 @@ def mutSubset(ind, indpb, random_state=None):
         y = (rstate.rand() < indpb)
         mask.append(x ^ y)
 
-    return ind.set_mask(mask)
+    mutant = ind.set_mask(mask)
+
+    for attr in drop_attrs:
+        if hasattr(mutant, attr):
+            delattr(mutant, attr)
+
+    return mutant
 
 
 
@@ -117,8 +128,8 @@ class GeneticSelector(_AgnosticSelector):
         self.cv = cv
 
         self.crossover = crossover
-        self.mut_freq = mut_prob
-        self.mut_prob = mut_rate
+        self.mut_freq = mut_freq
+        self.mut_prob = mut_prob
 
         self.pop_size = pop_size
         self.max_iter = max_iter
@@ -194,22 +205,14 @@ class GeneticSelector(_AgnosticSelector):
                 # Apply crossover
                 for i in range(1, len(offspring), 2):
                     if self.rstate.rand() < self.crossover:
-                        parent1, parent2 = offspring[i-1], offspring[i]
+                        parent1, parent2 = offspring[i-1:i+1]
                         child1, child2 = self.toolbox.mate(parent1, parent2)
-                        # FIXME:
-                        if hasattr(child1, 'score'):
-                            del child1.score, child1.score_std
-                        if hasattr(child2, 'score'):
-                            del child2.score, child2.score_std
-                        offspring[i-1], offspring[i] = child1, child2
+                        offspring[i-1:i+1] = child1, child2
 
                 # Apply mutation
                 for mutant in offspring:
                     if self.rstate.rand() < self.mut_freq:
                         self.toolbox.mutate(mutant)
-                        # FIXME:
-                        if hasattr(mutant, 'score'):
-                            del mutant.score, mutant.score_std
 
                 # Evaluate
                 for ind in offspring:
