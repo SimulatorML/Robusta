@@ -7,7 +7,7 @@ from sklearn.preprocessing import StandardScaler
 # https://gist.github.com/agramfort/2351057
 
 
-__all__ = ['NonNegativeGarrote']
+__all__ = ['NNGRegressor']
 
 
 def non_negative_garotte(X, y, alpha, tol=1e-6, max_iter=1000):
@@ -18,7 +18,7 @@ def non_negative_garotte(X, y, alpha, tol=1e-6, max_iter=1000):
 
     # Shrunken betas
     shrink_coef = Lasso(alpha=alpha, fit_intercept=False, normalize=False,
-        positive=True, tol=tol, max_iter=max_iter).fit(X, y).coef_
+                        positive=True, tol=tol, max_iter=max_iter).fit(X, y).coef_
     coef = coef_ols * shrink_coef
 
     # Residual Sum of Squares
@@ -27,8 +27,8 @@ def non_negative_garotte(X, y, alpha, tol=1e-6, max_iter=1000):
 
 
 
-class NonNegativeGarrote(LinearModel):
-    """Non-Negative Garrote
+class NNGRegressor(LinearModel):
+    """Non-Negative Garrote Regressor
 
     Code source : https://gist.github.com/agramfort/2351057
 
@@ -95,7 +95,6 @@ class NonNegativeGarrote(LinearModel):
     def fit(self, X, y):
         '''
         X : array-like, shape = (n_samples, n_features)
-
         y : array-like, shape = (n_samples, )
 
         '''
