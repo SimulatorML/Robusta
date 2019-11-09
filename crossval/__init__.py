@@ -1,6 +1,7 @@
 from .base import *
 from .schemes import *
 from .saveload import *
+from .results import *
 
 
 __all__ = [
@@ -19,4 +20,10 @@ __all__ = [
     'load_result',
     'find_result',
     'list_results',
+
+    # Results
+    'load_results',
+    'split_cv_groups',
+    'check_folds',
+    'rating_table',
 ]
