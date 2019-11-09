@@ -127,11 +127,18 @@ TAGS_ = {'tree', 'ensemble'}
 MODELS.append(['XGB', XGBRegressor, TAGS_])
 MODELS.append(['XGB', XGBClassifier, TAGS_])
 MODELS.append(['XGB', XGBRanker, TAGS_])
+
 MODELS.append(['LGB', LGBMClassifier, TAGS_])
 MODELS.append(['LGB', LGBMRegressor, TAGS_])
 MODELS.append(['LGB', LGBMRanker, TAGS_])
-MODELS.append(['CatBoost', CatBoostClassifier, TAGS_])
-MODELS.append(['CatBoost', CatBoostRegressor, TAGS_])
+
+# TODO: Wrapper for CatBoost
+# 1. no verbose by default
+# 2. no cached files
+# 3. _estimator_type
+# 4. __repr__ (via BaseEstimator)
+#MODELS.append(['CatBoost', CatBoostClassifier, TAGS_])
+#MODELS.append(['CatBoost', CatBoostRegressor, TAGS_])
 
 
 '''BART (Bayesian Additive Regressions Trees)
