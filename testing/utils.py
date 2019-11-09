@@ -79,7 +79,7 @@ def get_model(name, task='regressor', **params):
 
 def extract_model(estimator):
 
-    name = get_model_name(estimator)
+    name = estimator.__class__.__name__
 
     if name is 'Pipeline':
 
@@ -133,4 +133,4 @@ def extract_model_name(estimator, short=False):
 
     """
     model = extract_model(estimator)
-    return get_model_name(model, short=short)
+    return model.__class__.__name__
