@@ -4,7 +4,7 @@ import numpy as np
 import datetime, time
 import termcolor
 
-from robusta.model import extract_model_name, extract_model
+from robusta.testing import extract_model_name, extract_model
 from robusta import utils
 
 
