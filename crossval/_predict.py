@@ -22,7 +22,7 @@ __all__ = [
 
 def _fit_predict(estimator, method, scorer, X, y, X_new=None, new_index=None,
                  trn=None, oof=None, return_estimator=False, return_pred=False,
-                 fold_idx=None, logger=None):
+                 fold=None, logger=None):
     """Fit estimator and evaluate metric(s), compute OOF predictions & etc.
 
     Parameters
@@ -60,7 +60,7 @@ def _fit_predict(estimator, method, scorer, X, y, X_new=None, new_index=None,
     return_estimator : bool (default=False)
         Return fitted estimator
 
-    idx : int
+    fold : int
         Fold index. -1 for full dataset.
 
     logger : object
@@ -151,7 +151,7 @@ def _fit_predict(estimator, method, scorer, X, y, X_new=None, new_index=None,
 
     # Logs
     if logger:
-        logger.log(fold_idx, result)
+        logger.log(fold, result)
 
     return result
 

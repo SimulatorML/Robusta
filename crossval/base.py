@@ -13,7 +13,7 @@ from robusta.utils import logmsg, ld2dl
 from sklearn.utils import indexable
 
 from ._predict import _fit_predict, _check_avg, _avg_preds
-from ._output import CVLogger
+from ._verbose import CVLogger
 
 
 __all__ = [
@@ -28,7 +28,7 @@ __all__ = [
 def crossval(estimator, cv, X, y, groups=None, X_new=None, new_index=None,
              scoring=None, test_avg=True, avg_type='auto', method='predict',
              return_pred=True, return_estimator=False, verbose=2, n_digits=4,
-             n_jobs=-1, random_state=0):
+             n_jobs=-1, random_state=0, compact=False):
     """Evaluate metric(s) by cross-validation and also record fit/score time,
     feature importances and compute out-of-fold and test predictions.
 
@@ -150,6 +150,9 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, new_index=None,
     random_state : int (default=0)
         Cross-Validation seed
 
+    compact : bool (default=False)
+        Print verbose in one line. Useful for evaluating series of estimators.
+
 
     Returns
     -------
@@ -215,8 +218,8 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, new_index=None,
     scorer = check_scoring(estimator, scoring)
 
     # Fit & predict
-    logger = CVLogger(cv, verbose, prec=n_digits)
-    logger.log_start(estimator, scorer)
+    logger = CVLogger(estimator, cv, verbose, n_digits, compact)
+    logger.start()
 
     parallel = Parallel(max_nbytes='256M', pre_dispatch='2*n_jobs',
                         n_jobs=n_jobs, require='sharedmem')
@@ -227,8 +230,8 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, new_index=None,
         result = parallel(
             delayed(_fit_predict)(
                 clone(estimator), method, scorer, X, y, X_new, new_index,
-                trn, oof, return_estimator, return_pred, i, logger)
-            for i, (trn, oof) in enumerate(cv.split(X, y, groups)))
+                trn, oof, return_estimator, return_pred, fold, logger)
+            for fold, (trn, oof) in enumerate(cv.split(X, y, groups)))
 
         result = ld2dl(result)
 
@@ -238,8 +241,8 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, new_index=None,
         result = parallel(
             (delayed(_fit_predict)(
                 clone(estimator), method, scorer, X, y, None, None, trn, oof,
-                return_estimator, return_pred, i, logger)
-            for i, (trn, oof) in enumerate(cv.split(X, y, groups))))
+                return_estimator, return_pred, fold, logger)
+            for fold, (trn, oof) in enumerate(cv.split(X, y, groups))))
 
         if verbose >= 2:
             print()
@@ -247,7 +250,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, new_index=None,
 
         result_new = _fit_predict(clone(estimator), method, None, X, y, X_new,
                                   new_index, None, None, return_estimator,
-                                  return_pred, fold_idx=-1)
+                                  return_pred, fold=-1)
 
         result = ld2dl(result)
         for key, val in result_new.items():
@@ -285,7 +288,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, new_index=None,
     result['cv'] = cv
 
     # Final score
-    logger.log_final(result)
+    logger.end(result)
 
     return result
 
@@ -293,7 +296,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, new_index=None,
 
 
 def crossval_score(estimator, cv, X, y, groups=None, scoring=None, n_jobs=-1,
-                   verbose=2, n_digits=4, random_state=0):
+                   verbose=2, n_digits=4, random_state=0, compact=False):
     """Evaluate metric(s) by cross-validation and also record fit/score time,
     feature importances and compute out-of-fold and test predictions.
 
@@ -343,6 +346,9 @@ def crossval_score(estimator, cv, X, y, groups=None, scoring=None, n_jobs=-1,
     random_state : int (default=0)
         Cross-Validation seed
 
+    compact : bool (default=False)
+        Print verbose in one line. Useful for evaluating series of estimators.
+
 
     Returns
     -------
@@ -353,7 +359,8 @@ def crossval_score(estimator, cv, X, y, groups=None, scoring=None, n_jobs=-1,
     """
     result = crossval(estimator, cv, X, y, groups, n_digits=n_digits,
                       scoring=scoring, n_jobs=n_jobs, verbose=verbose,
-                      return_pred=False, random_state=random_state)
+                      return_pred=False, random_state=random_state,
+                      compact=compact)
 
     scores = result['score']
     return scores
@@ -363,7 +370,8 @@ def crossval_score(estimator, cv, X, y, groups=None, scoring=None, n_jobs=-1,
 
 def crossval_predict(estimator, cv, X, y, groups=None, X_new=None, new_index=None,
                      test_avg=True, avg_type='auto', method='predict', scoring=None,
-                     n_jobs=-1, verbose=0, n_digits=4, random_state=0):
+                     n_jobs=-1, verbose=0, n_digits=4, random_state=0,
+                     compact=False):
     """Get Out-of-Fold and Test predictions.
 
     Parameters
@@ -473,6 +481,9 @@ def crossval_predict(estimator, cv, X, y, groups=None, X_new=None, new_index=Non
     random_state : int (default=0)
         Cross-Validation seed
 
+    short_verbose : bool (default=False)
+        Print verbose in one line. Useful for evaluating series of estimators.
+
 
     Returns
     -------
@@ -487,7 +498,7 @@ def crossval_predict(estimator, cv, X, y, groups=None, X_new=None, new_index=Non
     result = crossval(estimator, cv, X, y, groups, X_new=X_new, scoring=scoring,
                       avg_type=avg_type, method=method, test_avg=test_avg,
                       n_jobs=n_jobs, verbose=verbose, n_digits=n_digits,
-                      random_state=random_state)
+                      random_state=random_state, compact=compact)
 
     oof_pred = result['oof_pred'] if 'oof_pred' in result else None
     new_pred = result['new_pred'] if 'new_pred' in result else None
