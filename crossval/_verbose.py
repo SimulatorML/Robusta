@@ -48,8 +48,8 @@ class CVLogger:
             fold, msg = self.queue.get()
 
             if self.next == fold:
-                self.next += 1
                 self._log(msg)
+                self.next += 1
 
             else:
                 self.queue.put((fold, msg))
@@ -90,3 +90,4 @@ class CVLogger:
             print(msg, end=end)
         else:
             utils.logmsg(msg)
+        time.sleep(0.01)
