@@ -223,6 +223,41 @@ class GaussRankTransformer(BaseEstimator, TransformerMixin):
 
 
 
+class Winsorizer(BaseEstimator, TransformerMixin):
+    """Winsorization
+
+    Replace extreme values with defined quantiles (0.05 and 0.95 by default).
+
+    Parameters
+    ----------
+    q_min : float [0..1], default=0.05
+        Lower quantile
+
+    q_max : float [0..1], default=0.95
+        Upper quantile
+
+    """
+    def __init__(self, q_min=0.05, q_max=0.95):
+        self.q_min = q_min
+        self.q_max = q_max
+
+    def fit(self, X, y=None):
+
+        assert isinstance(self.q_min, float), '<q_min> must be float'
+        assert isinstance(self.q_max, float), '<q_max> must be float'
+        assert self.q_min < self.q_max, '<q_min> must be smaller than <q_max>'
+        assert 0 <= self.q_min <= 1, '<q_min> must be in [0..1]'
+        assert 0 <= self.q_max <= 1, '<q_max> must be in [0..1]'
+
+        self.min_ = X.quantile(self.q_min)
+        self.max_ = X.quantile(self.q_max)
+        return self
+
+    def transform(self, X):
+        return X.clip(self.min_, self.max_, axis=1)
+
+
+
 
 class RankTransformer(BaseEstimator, TransformerMixin):
     '''Compute numerical data ranks (1 through n) along axis. Equal values are

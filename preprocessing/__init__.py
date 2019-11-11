@@ -22,6 +22,7 @@ __all__ = [
     'GaussRankTransformer',
     'RankTransformer',
     'MaxAbsScaler',
+    'Winsorizer',
     'SyntheticFeatures',
 
     # Datetime
@@ -45,15 +46,17 @@ __all__ = [
     'PolynomialEncoder',
     'BaseNEncoder',
     'SVDEncoder',
-    # supervised (binary/regression)
+
+    # Categorical (supervised)
+    # binary & regression
     'EncoderCV',
     'FastEncoder',
     'TargetEncoder',
     'CatBoostEncoder',
     'LeaveOneOutEncoder',
     'NaiveBayesEncoder',
-    # supervised (binary)
+    # binary
     'JamesSteinEncoder',
     'MEstimateEncoder',
-    'WOEEncoder', # ln(%good/%bad)
+    'WOEEncoder',
 ]
