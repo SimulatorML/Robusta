@@ -84,7 +84,7 @@ PARAM_SPACE = {
         # By default equal to l2. On some data, l2/100 works well
     },
 
-    'KNN': {
+    'KNeighbors': {
     # https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier.html
         'n_neighbors': (1, 30, 1),
         'weights': {'uniform', 'distance'},
@@ -93,7 +93,7 @@ PARAM_SPACE = {
         'p': {1, 2},
     },
 
-    'RadiusNN': {
+    'RadiusNeighbors': {
     # https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.RadiusNeighborsClassifier.html
         'radius': (1e-3, 1e2, 'log'),
         'weights': {'uniform', 'distance'},
@@ -102,7 +102,7 @@ PARAM_SPACE = {
         'p': {1, 2},
     },
 
-    'Centoid': {
+    'NearestCentroid': {
     # https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.NearestCentroid.html
         'metric': {'euclidean', 'manhattan'},
     },
@@ -128,7 +128,7 @@ PARAM_SPACE = {
         'C': (1e-3, 1e2, 'log'),
         'gamma': (1e-3, 1e2, 'log'),
 
-        'kernel': 'rbf',
+        #'kernel': 'rbf',
         #'degree': {2, 3},
 
         #'shrinking': {True, False},
@@ -143,7 +143,7 @@ PARAM_SPACE = {
         'gamma': (1e-3, 1e2, 'log'),
 
         #'kernel': {'linear', 'rbf', 'sigmoid'},
-        'kernel': 'rbf',
+        #'kernel': 'rbf',
         #'kernel': {'linear', 'poly', 'rbf', 'sigmoid'},
         #'degree': {2, 3},
 
@@ -166,7 +166,7 @@ PARAM_SPACE = {
         'coef1': (1e-6, 1, 'log'),
     },
 
-    'GBM': {
+    'GradientBoosting': {
     # https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.GradientBoostingClassifier.html
         'n_estimators': (100, 2000, 100),
         'learning_rate': (1e-6, 1, 'log'),
@@ -187,7 +187,7 @@ PARAM_SPACE = {
         'algorithm': {'SAMME.R', 'SAMME'},
     },
 
-    'RF': {
+    'RandomForest': {
     # https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestClassifier.html
         'n_estimators': (100, 5000, 100),
 
@@ -198,7 +198,7 @@ PARAM_SPACE = {
         'oob_score': True,
     },
 
-    'ET': {
+    'ExtraTrees': {
     # https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.ExtraTreesClassifier.html
         'n_estimators': (100, 5000, 100),
 
@@ -209,12 +209,12 @@ PARAM_SPACE = {
         'oob_score': True,
     },
 
-    'LinReg': {
+    'LinearRegression': {
     # https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LinearRegression.html
         'fit_intercept': {True, False},
     },
 
-    'LogReg': {
+    'LogisticRegression': {
     # https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html
         'penalty': {'l1', 'l2'},
         'C': (1e-6, 1e6, 'log'),
@@ -242,7 +242,7 @@ PARAM_SPACE = {
         'max_iter': (1000, 10000, 1000),
     },
 
-    'PA': {
+    'PassiveAggressive': {
     # https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.PassiveAggressiveClassifier.html
         'C': (1e-6, 1e6, 'log'),
         'max_iter': (1000, 10000, 1000),
@@ -311,9 +311,4 @@ PARAM_SPACE = {
         'store_in_sample_predictions': False,
     },
 
-    'PLS': {
-    # https://scikit-learn.org/stable/modules/generated/sklearn.cross_decomposition.PLSRegression.html
-        #'n_components': lambda X: (1, np.shape(X)[1], 1),
-        'scale': {True, False},
-    }
 }

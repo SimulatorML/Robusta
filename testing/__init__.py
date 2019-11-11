@@ -1,19 +1,21 @@
-from .models import *
+from .estimators import *
 from .params import *
 from .utils import *
 
 
 __all__ = [
     # base
-    'MODELS',
+    'ESTIMATORS',
     'PARAM_SPACE',
     # utils
+    'get_estimator',
+    'get_estimator_name',
     'extract_model',
     'extract_model_name',
-    'get_model',
     # testing
-    'all_models',
+    'all_estimators',
     'all_regressors',
     'all_classifiers',
     'all_clusterers',
+    'all_transformers',
 ]

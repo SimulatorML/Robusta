@@ -5,13 +5,13 @@ import warnings
 warnings.filterwarnings('ignore', category=DeprecationWarning)
 warnings.filterwarnings('ignore', category=UserWarning)
 
-__all__ = ['MODELS']
+__all__ = ['ESTIMATORS']
 
 
 
 
-COLUMNS = ['name', 'model', 'tags']
-MODELS = []
+COLUMNS = ['name', 'class', 'tags']
+ESTIMATORS = []
 
 def _import_models(lib, tags=set()):
     for name in lib.__all__:
@@ -26,7 +26,7 @@ https://scikit-learn.org/stable/modules/linear_model
 from sklearn import linear_model
 
 models = _import_models(linear_model, {'linear'})
-MODELS.extend(models)
+ESTIMATORS.extend(models)
 
 
 '''Blend, NNG & etc
@@ -34,7 +34,7 @@ MODELS.extend(models)
 from robusta import linear_model
 
 models = _import_models(linear_model, {'linear'})
-MODELS.extend(models)
+ESTIMATORS.extend(models)
 
 
 '''MARS (Multivariate Adaptive Regression Splines)
@@ -42,7 +42,7 @@ https://contrib.scikit-learn.org/py-earth/
 '''
 from pyearth import Earth
 
-MODELS.append(['MARS', Earth, {'linear'}])
+ESTIMATORS.append(['MARS', Earth, {'linear'}])
 
 
 '''RVM (Relevance Vector Machine)
@@ -50,8 +50,8 @@ https://github.com/JamesRitchie/scikit-rvm
 '''
 from skrvm import RVR, RVC
 
-MODELS.append(['RVM', RVR, {'svm', 'proba'}])
-MODELS.append(['RVM', RVC, {'svm', 'proba'}])
+ESTIMATORS.append(['RVM', RVR, {'svm', 'proba'}])
+ESTIMATORS.append(['RVM', RVC, {'svm', 'proba'}])
 
 
 '''Scikit-Learn SVM
@@ -59,13 +59,13 @@ https://scikit-learn.org/stable/modules/naive_bayes.html
 '''
 from sklearn.svm import *
 
-MODELS.append(['SVM', SVR, {'svm'}])
-MODELS.append(['SVM', SVC, {'svm'}])
-MODELS.append(['NuSVM', SVR, {'svm'}])
-MODELS.append(['NuSVM', SVC, {'svm'}])
-MODELS.append(['LinearSVM', SVR, {'linear', 'svm'}])
-MODELS.append(['LinearSVM', SVC, {'linear', 'svm'}])
-MODELS.append(['OneClassSVM', OneClassSVM, {'svm'}])
+ESTIMATORS.append(['SVM', SVR, {'svm'}])
+ESTIMATORS.append(['SVM', SVC, {'svm'}])
+ESTIMATORS.append(['NuSVM', SVR, {'svm'}])
+ESTIMATORS.append(['NuSVM', SVC, {'svm'}])
+ESTIMATORS.append(['LinearSVM', SVR, {'linear', 'svm'}])
+ESTIMATORS.append(['LinearSVM', SVC, {'linear', 'svm'}])
+ESTIMATORS.append(['OneClassSVM', OneClassSVM, {'svm'}])
 
 
 '''Scikit-Learn Disctiminant Analysis
@@ -73,8 +73,8 @@ https://scikit-learn.org/stable/modules/discriminant_analysis
 '''
 from sklearn.discriminant_analysis import *
 
-MODELS.append(['LDA', LinearDiscriminantAnalysis, {'linear'}])
-MODELS.append(['QDA', QuadraticDiscriminantAnalysis, {'linear'}])
+ESTIMATORS.append(['LDA', LinearDiscriminantAnalysis, {'linear'}])
+ESTIMATORS.append(['QDA', QuadraticDiscriminantAnalysis, {'linear'}])
 
 
 '''Scikit-Learn Nearest Neighbors
@@ -83,7 +83,7 @@ https://scikit-learn.org/stable/modules/linear_model
 from sklearn import neighbors
 
 models = _import_models(neighbors, {'neighbors', 'dense'})
-MODELS.extend(models)
+ESTIMATORS.extend(models)
 
 
 '''Scikit-Learn Gaussian Processes
@@ -92,7 +92,7 @@ https://scikit-learn.org/stable/modules/gaussian_process
 from sklearn import gaussian_process
 
 models = _import_models(gaussian_process, {'proba', 'dense'})
-MODELS.extend(models)
+ESTIMATORS.extend(models)
 
 
 '''Scikit-Learn TreeBoost
@@ -101,7 +101,7 @@ https://scikit-learn.org/stable/modules/ensemble
 from sklearn import ensemble
 
 models = _import_models(ensemble, {'tree', 'ensemble'})
-MODELS.extend(models)
+ESTIMATORS.extend(models)
 
 
 '''Scikit-Learn Decision Tree
@@ -110,7 +110,7 @@ https://scikit-learn.org/stable/modules/tree
 from sklearn import tree
 
 models = _import_models(tree, {'tree'})
-MODELS.extend(models)
+ESTIMATORS.extend(models)
 
 
 '''CatBoost, LightGBM, XGBoost
@@ -124,21 +124,21 @@ from catboost import *
 
 TAGS_ = {'tree', 'ensemble'}
 
-MODELS.append(['XGB', XGBRegressor, TAGS_])
-MODELS.append(['XGB', XGBClassifier, TAGS_])
-MODELS.append(['XGB', XGBRanker, TAGS_])
+ESTIMATORS.append(['XGB', XGBRegressor, TAGS_])
+ESTIMATORS.append(['XGB', XGBClassifier, TAGS_])
+ESTIMATORS.append(['XGB', XGBRanker, TAGS_])
 
-MODELS.append(['LGB', LGBMClassifier, TAGS_])
-MODELS.append(['LGB', LGBMRegressor, TAGS_])
-MODELS.append(['LGB', LGBMRanker, TAGS_])
+ESTIMATORS.append(['LGB', LGBMClassifier, TAGS_])
+ESTIMATORS.append(['LGB', LGBMRegressor, TAGS_])
+ESTIMATORS.append(['LGB', LGBMRanker, TAGS_])
 
 # TODO: Wrapper for CatBoost
 # 1. no verbose by default
 # 2. no cached files
 # 3. _estimator_type
 # 4. __repr__ (via BaseEstimator)
-#MODELS.append(['CatBoost', CatBoostClassifier, TAGS_])
-#MODELS.append(['CatBoost', CatBoostRegressor, TAGS_])
+#ESTIMATORS.append(['CatBoost', CatBoostClassifier, TAGS_])
+#ESTIMATORS.append(['CatBoost', CatBoostRegressor, TAGS_])
 
 
 '''BART (Bayesian Additive Regressions Trees)
@@ -148,7 +148,7 @@ from bartpy.sklearnmodel import SklearnModel as BART
 
 TAGS_ = {'tree', 'ensemble'}
 
-MODELS.append(['BART', BART, TAGS_])
+ESTIMATORS.append(['BART', BART, TAGS_])
 
 
 #'''RGF (Regularized Greedy Forest)
@@ -158,10 +158,10 @@ MODELS.append(['BART', BART, TAGS_])
 
 #TAGS_ = {'tree', 'ensemble'}
 
-#MODELS.append(['RGF', RGFClassifier, TAGS_])
-#MODELS.append(['RGF', RGFRegressor, TAGS_])
-#MODELS.append(['FastRGF', FastRGFClassifier, TAGS_])
-#MODELS.append(['FastRGF', FastRGFRegressor, TAGS_])
+#ESTIMATORS.append(['RGF', RGFClassifier, TAGS_])
+#ESTIMATORS.append(['RGF', RGFRegressor, TAGS_])
+#ESTIMATORS.append(['FastRGF', FastRGFClassifier, TAGS_])
+#ESTIMATORS.append(['FastRGF', FastRGFRegressor, TAGS_])
 
 
 '''Hierarchical Density Based Clustering
@@ -169,7 +169,7 @@ https://hdbscan.readthedocs.io/
 '''
 from hdbscan import HDBSCAN
 
-MODELS.append(['HDBSCAN', HDBSCAN, {'dense'}])
+ESTIMATORS.append(['HDBSCAN', HDBSCAN, {'dense'}])
 
 
 '''Scikit-Learn Cluster
@@ -178,7 +178,7 @@ https://scikit-learn.org/stable/modules/mixture
 from sklearn import mixture
 
 models = _import_models(mixture, {'dense'})
-MODELS.extend(models)
+ESTIMATORS.extend(models)
 
 
 '''Scikit-Learn Cluster
@@ -187,7 +187,7 @@ https://scikit-learn.org/stable/modules/cluster
 from sklearn import cluster
 
 models = _import_models(cluster, {'dense'})
-MODELS.extend(models)
+ESTIMATORS.extend(models)
 
 
 '''Imbalanced Learn Resampling
@@ -215,7 +215,7 @@ for lib in [imblearn.over_sampling,
             imblearn.under_sampling,
             imblearn.combine]:
     samplers = _import_samplers(lib)
-    MODELS.extend(samplers)
+    ESTIMATORS.extend(samplers)
 
 
 '''
@@ -223,10 +223,10 @@ POST-PROCESSING
 '''
 
 # create DataFrame
-MODELS = pd.DataFrame(MODELS, columns=COLUMNS)
+ESTIMATORS = pd.DataFrame(ESTIMATORS, columns=COLUMNS)
 
 # extract estimator's type
-ETYPES = [
+ESTIMATOR_TYPES = [
     'classifier',
     'regressor',
     'clusterer',
@@ -236,17 +236,19 @@ ETYPES = [
     'DensityEstimator',
 ]
 
-def _extract_type(c):
-    if hasattr(c, '_estimator_type'):
-        return getattr(c, '_estimator_type')
+def _estimator_type(estimator):
+    if hasattr(estimator, '_estimator_type'):
+        return getattr(estimator, '_estimator_type')
+    elif hasattr(estimator, 'transform'):
+        return 'transformer'
     else:
-        name = c.__name__
-        for etype in ETYPES:
-            if etype in name.lower():
-                return etype
+        name = estimator.__name__
+        for estimator_type in ESTIMATOR_TYPES:
+            if estimator_type in name.lower():
+                return estimator_type
         return None
 
-MODELS['type'] = MODELS['model'].map(_extract_type)
+ESTIMATORS['type'] = ESTIMATORS['class'].map(_estimator_type)
 
 
 # drop type from name
@@ -257,8 +259,11 @@ def _drop_type(name):
         name = name.replace(s, '')
     return name
 
-MODELS['name'] = MODELS['name'].map(_drop_type)
+ESTIMATORS['name'] = ESTIMATORS['name'].map(_drop_type)
+
+# full name
+ESTIMATORS['class_name'] = ESTIMATORS['class'].map(lambda x: x.__name__)
 
 
 # reorder columns
-MODELS = MODELS[['name', 'type', 'model', 'tags']]
+ESTIMATORS = ESTIMATORS[['class', 'class_name', 'name', 'type', 'tags']]

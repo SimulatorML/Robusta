@@ -6,39 +6,46 @@ warnings.filterwarnings('ignore', category=DeprecationWarning)
 warnings.simplefilter("ignore", category=UserWarning)
 
 from sklearn.base import clone
-from .models import MODELS
+from .estimators import ESTIMATORS
+from .params import PARAM_SPACE
 
 
 __all__ = [
     # utils
+    'get_estimator',
+    'get_estimator_name',
+    'extract_param_space',
     'extract_model',
     'extract_model_name',
-    'get_model',
     # testing
-    'all_models',
+    'all_estimators',
     'all_regressors',
     'all_classifiers',
     'all_clusterers',
+    'all_transformers',
 ]
 
 
-def all_models(etype=['regressor', 'classifier']):
-    for _, row in MODELS.iterrows():
-        if not etypes or (row.type == etype) \
-        or (row.type and row.type in etype):
+def all_estimators(type_filter=['regressor', 'classifier']):
+    for _, row in ESTIMATORS.iterrows():
+        if not type_filter or (row.type == type_filter) \
+        or (row.type and row.type in type_filter):
             yield row.to_dict()
 
 def all_regressors():
-    return all_models('regressor')
+    return all_estimators('regressor')
 
 def all_classifiers():
-    return all_models('classifier')
+    return all_estimators('classifier')
 
 def all_clusterers():
-    return all_models('clusterer')
+    return all_estimators('clusterer')
+
+def all_transformers():
+    return all_estimators('transformer')
 
 
-def get_model(model, etype='regressor', **params):
+def get_estimator(name, estimator_type='regressor', **params):
     """Get model instance by name (if model is string, otherwise return model).
 
     Parameters
@@ -56,32 +63,79 @@ def get_model(model, etype='regressor', **params):
 
     """
 
-    if isinstance(model, str):
+    if isinstance(name, str):
 
-        name_mask = (MODELS['name'] == model)
-        type_mask = (MODELS['type'] == etype)
+        name_mask = (ESTIMATORS['name'] == name)
+        type_mask = (ESTIMATORS['type'] == estimator_type)
 
-        # check model name
+        # check name
         if not name_mask.any():
-            raise ValueError(f"Unknown <model> (model name): '{model}'")
+            raise ValueError(f"Unknown <name>: '{name}'")
 
         # check estimator type
         if not type_mask.any():
-            raise ValueError(f"Unknown <etype> (estimator type): '{etype}'")
+            raise ValueError(f"Unknown <estimator_type>: '{estimator_type}'")
 
-        # check if in MODELS
+        # check if in ESTIMATORS
         try:
-            estimator = MODELS[name_mask & type_mask]['model'].iloc[0]()
+            estimator = ESTIMATORS[name_mask & type_mask]['class'].iloc[0]()
         except:
-            raise ValueError(f"Coluld not find ('{model}', '{etype}') pair")
+            raise ValueError(f"Coluld not find ('{name}', '{estimator_type}') pair")
 
-        estimator = clone(estimator).set_params(**params)
+        estimator = clone(estimator)
+
+    elif hassatr(name, 'fit'):
+        estimator = clone(name)
 
     else:
-        # check if passed estimator
-        estimator = clone(model)
+        raise ValueError("Unknown <name> type passed")
 
-    return estimator
+    return estimator.set_params(**params)
+
+
+def get_estimator_name(estimator, short=True):
+    name = estimator.__class__.__name__
+    name_mask = (ESTIMATORS['class_name'] == name)
+    if short and name_mask.any():
+        return ESTIMATORS[name_mask]['name'].iloc[0]
+    else:
+        return name
+
+
+def extract_param_space(estimator, verbose=True):
+
+    params = estimator.get_params()
+    model_params = {}
+    param_space = {}
+
+    # Find Estimators
+    for key, val in params.items():
+
+        if not hasattr(val, 'fit'):
+            continue
+
+        name = get_estimator_name(val)
+        if name not in PARAM_SPACE:
+            continue
+
+        model_params[key] = val
+        for param, space in PARAM_SPACE[name].items():
+            param_space[f"{key}__{param}"] = space
+
+    # Verbose
+    if verbose:
+        print('Found models:')
+        for param, model in model_params.items():
+            name = get_estimator_name(model, False)
+            print(f"'{param}': {name}()")
+        print()
+
+        print('Found parameters:')
+        for param, space in param_space.items():
+            print(f"'{param}': {space}")
+        print()
+
+    return param_space
 
 
 
