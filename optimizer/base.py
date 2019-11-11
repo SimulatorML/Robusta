@@ -146,7 +146,7 @@ class BaseOptimizer(BaseEstimator):
         Total optimization time
 
     '''
-    def __init__(self, estimator, cv=5, scoring=None, param_space=None,
+    def __init__(self, estimator, cv=5, scoring=None, param_space='auto',
                  warm_start=False, max_time=None, max_iter=None, n_jobs=None,
                  verbose=1, n_digits=4):
 
@@ -260,10 +260,15 @@ class BaseOptimizer(BaseEstimator):
 
     def fit(self, X, y, groups=None):
 
+        # Check if params set to auto
+        param_space = self.param_space
+        if param_space == 'auto':
+            param_space = extract_param_space(self.estimator)
+
         # Define new space
         if not self.warm_start or not hasattr(self, 'btypes'):
-            self.btypes = get_bound_types(self.param_space)
-            self.space = self._get_space(self.param_space)
+            self.btypes = get_bound_types(param_space)
+            self.space = self._get_space(param_space)
 
         # Reset trials
         if not self.warm_start or not hasattr(self, 'trials_'):

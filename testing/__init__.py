@@ -10,6 +10,7 @@ __all__ = [
     # utils
     'get_estimator',
     'get_estimator_name',
+    'extract_param_space',
     'extract_model',
     'extract_model_name',
     # testing
