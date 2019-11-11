@@ -15,7 +15,6 @@ class OptunaCV(BaseOptimizer):
 
 
     def _get_space(self, base_space):
-
         return base_space
 
 
@@ -62,16 +61,14 @@ class OptunaCV(BaseOptimizer):
             score = self.eval_params(params, X, y, groups)
             return score
 
-        try:
-            if not hasattr(self, 'study'):
-                # TODO: set seed & other params
-                sampler = optuna.samplers.TPESampler(seed=0)
-                self.study = optuna.create_study(direction='maximize', sampler=sampler)
+        if not hasattr(self, 'study'):
+            # TODO: set seed & other params
+            sampler = optuna.samplers.TPESampler(seed=0)
+            self.study = optuna.create_study(direction='maximize', sampler=sampler)
 
-            self.study.optimize(objective)
+        self.study.optimize(objective)
 
-        except KeyboardInterrupt:
-            pass
+        return self
 
 
 
@@ -88,13 +85,11 @@ class RandomSearchCV(OptunaCV):
             score = self.eval_params(params, X, y, groups)
             return score
 
-        try:
-            if not hasattr(self, 'study'):
-                # TODO: set seed & other params
-                sampler = optuna.samplers.RandomSampler(seed=0)
-                self.study = optuna.create_study(direction='maximize', sampler=sampler)
+        if not hasattr(self, 'study'):
+            # TODO: set seed & other params
+            sampler = optuna.samplers.RandomSampler(seed=0)
+            self.study = optuna.create_study(direction='maximize', sampler=sampler)
 
-            self.study.optimize(objective)
+        self.study.optimize(objective)
 
-        except KeyboardInterrupt:
-            pass
+        return self

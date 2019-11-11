@@ -38,11 +38,7 @@ class GridSearchCV(BaseOptimizer):
 
         self.grid = ParameterGrid(self.space)
 
-        try:
-            for params in self.grid:
-                self.eval_params(params, X, y, groups)
-
-        except KeyboardInterrupt:
-            pass
+        for params in self.grid:
+            self.eval_params(params, X, y, groups)
 
         return self

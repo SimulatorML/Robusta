@@ -1,17 +1,17 @@
 PARAM_SPACE = {
     'XGB': {
     # https://xgboost.readthedocs.io/en/latest/parameter.html
-        'learning_rate': 0.3,
+        'learning_rate': {0.3},
         # Once your learning rate is fixed, do not change it.
 
         'n_estimators': (100, 2000, 100),
 
-        'max_depth': (3, 12, 1),
+        'max_depth': (3, 10, 1),
         'max_leaves': {15, 31, 63, 127, 255, 511, 1023, 2047, 4095},
 
-        'subsample': (0.1, 0.9, 0.05),
-        'colsample_bytree': (0.1, 0.9, 0.05),
-        'colsample_bylevel': (0.1, 0.9, 0.05),
+        'subsample': (0.1, 0.9, 0.1),
+        'colsample_bytree': (0.1, 0.9, 0.1),
+        'colsample_bylevel': (0.1, 0.9, 0.1),
 
         #'gamma': (1e-6, 1e6, 'log'),
         #'alpha': (1e-6, 1e6, 'log'),
@@ -20,16 +20,16 @@ PARAM_SPACE = {
 
     'LGB': {
     # https://lightgbm.readthedocs.io/en/latest/Parameters.html
-        'learning_rate': 0.1,
+        'learning_rate': {0.3},
         # Once your learning rate is fixed, do not change it.
 
         'n_estimators': (100, 2000, 100),
 
-        'max_depth': (3, 12, 1),
+        'max_depth': (3, 10, 1),
         'num_leaves': {15, 31, 63, 127, 255, 511, 1023, 2047, 4095},
 
-        'bagging_fraction': (0.1, 0.9, 0.05),
-        'feature_fraction': (0.1, 0.9, 0.05),
+        'bagging_fraction': (0.1, 0.9, 0.1),
+        'feature_fraction': (0.1, 0.9, 0.1),
 
         #'lambda_l1': (1e-6, 1e6, 'log'),
         #'lambda_l2': (1e-6, 1e6, 'log'),
@@ -119,7 +119,7 @@ PARAM_SPACE = {
 
         #'max_iter': (10000, 50000, 5000),
 
-        'probability': True,
+        'probability': {True},
     },
 
     'SVM': {
@@ -154,7 +154,7 @@ PARAM_SPACE = {
 
     'RVM': {
     # https://github.com/JamesRitchie/scikit-rvm
-        'kernel': 'rbf',
+        'kernel': {'rbf'},
         #'kernel': {'linear', 'poly', 'rbf'},
         #'degree': {2, 3},
         #'degree': 2,
@@ -195,7 +195,7 @@ PARAM_SPACE = {
         'max_features': {'auto', 'sqrt', 'log2', None},
 
         'bootstrap': {True, False},
-        'oob_score': True,
+        'oob_score': {True},
     },
 
     'ExtraTrees': {
@@ -206,7 +206,7 @@ PARAM_SPACE = {
         'max_features': {'auto', 'sqrt', 'log2', None},
 
         'bootstrap': {True, False},
-        'oob_score': True,
+        'oob_score': {True},
     },
 
     'LinearRegression': {
@@ -223,7 +223,7 @@ PARAM_SPACE = {
         'fit_intercept': {True, False},
 
         'solver': {'newton-cg', 'lbfgs', 'liblinear', 'sag', 'saga'},
-        'max_iter': 1000,
+        'max_iter': {1000},
     },
 
     'SGD': {
@@ -258,7 +258,7 @@ PARAM_SPACE = {
         'fit_intercept': {True, False},
         'normalize': {True, False},
 
-        'solver': {'auto', 'svd', 'cholesky', 'lsqr', 'sparse_cg', 'sag', 'saga'},
+        #'solver': {'auto', 'svd', 'cholesky', 'lsqr', 'sparse_cg', 'sag', 'saga'},
     },
 
     'Lasso': {
@@ -308,7 +308,7 @@ PARAM_SPACE = {
         'alpha': (0, 1),
         'beta': (0, 1e5, 'log'),
 
-        'store_in_sample_predictions': False,
+        'store_in_sample_predictions': {False},
     },
 
 }

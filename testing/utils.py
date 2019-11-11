@@ -93,7 +93,7 @@ def get_estimator(name, estimator_type='regressor', **params):
     return estimator.set_params(**params)
 
 
-def get_estimator_name(estimator, short=True):
+def get_estimator_name(estimator, short=False):
     name = estimator.__class__.__name__
     name_mask = (ESTIMATORS['class_name'] == name)
     if short and name_mask.any():
@@ -105,7 +105,7 @@ def get_estimator_name(estimator, short=True):
 def extract_param_space(estimator, verbose=True):
 
     params = estimator.get_params()
-    model_params = {}
+    param_names = {}
     param_space = {}
 
     # Find Estimators
@@ -114,25 +114,25 @@ def extract_param_space(estimator, verbose=True):
         if not hasattr(val, 'fit'):
             continue
 
-        name = get_estimator_name(val)
+        name = get_estimator_name(val, short=True)
         if name not in PARAM_SPACE:
             continue
 
-        model_params[key] = val
         for param, space in PARAM_SPACE[name].items():
             param_space[f"{key}__{param}"] = space
 
+        param_names[key] = val
+
     # Verbose
     if verbose:
-        print('Found models:')
-        for param, model in model_params.items():
-            name = get_estimator_name(model, False)
-            print(f"'{param}': {name}()")
+        print('FOUND MODELS:')
+        #display(pd.Series(param_names))
+        display(param_names)
         print()
 
-        print('Found parameters:')
-        for param, space in param_space.items():
-            print(f"'{param}': {space}")
+        print('FOUND PARAMETERS:')
+        #display(pd.Series(param_space))
+        display(param_space)
         print()
 
     return param_space

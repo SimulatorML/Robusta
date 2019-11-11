@@ -149,9 +149,9 @@ class BaseOptimizer(BaseEstimator):
         Total optimization time
 
     '''
-    def __init__(self, estimator, cv=5, scoring=None, param_space='auto',
+    def __init__(self, estimator, cv=5, scoring=None, param_space=None,
                  warm_start=False, max_time=None, max_iter=None, n_jobs=None,
-                 verbose=1, n_digits=4):
+                 verbose=1, n_digits=4, debug=False):
 
         self.estimator = estimator
         self.param_space = param_space
@@ -166,6 +166,7 @@ class BaseOptimizer(BaseEstimator):
         self.verbose = verbose
         self.n_digits = n_digits
         self.n_jobs = n_jobs
+        self.debug = debug
 
 
 
@@ -176,10 +177,10 @@ class BaseOptimizer(BaseEstimator):
 
         tic = time()
 
-        params = fix_params(params, self.param_space)
-        estimator = clone(self.estimator).set_params(**params)
-
         try:
+            params = fix_params(params, self.param_space_)
+            estimator = clone(self.estimator).set_params(**params)
+
             scores = crossval_score(estimator, self.cv, X, y, groups,
                                     self.scoring, n_jobs=self.n_jobs,
                                     verbose=0)
@@ -212,6 +213,10 @@ class BaseOptimizer(BaseEstimator):
 
             return np.nan
 
+        except:
+            if self.debug:
+                raise
+
 
 
     def _append_trial(self, trial):
@@ -243,6 +248,10 @@ class BaseOptimizer(BaseEstimator):
     def total_time_(self):
         return self.trials_['time'].sum() if hasattr(self, 'trials_') else .0
 
+    @property
+    def predict(self):
+        return self.trials_['time'].sum() if hasattr(self, 'trials_') else .0
+
 
 
     def _check_max_iter(self):
@@ -264,14 +273,14 @@ class BaseOptimizer(BaseEstimator):
     def fit(self, X, y, groups=None):
 
         # Check if params set to auto
-        param_space = self.param_space
-        if not param_space == 'auto':
-            param_space = extract_param_space(self.estimator, verbose=self.verbose)
+        self.param_space_ = self.param_space
+        if not self.param_space_:
+            self.param_space_ = extract_param_space(self.estimator, verbose=self.verbose)
 
         # Define new space
         if not self.warm_start or not hasattr(self, 'btypes'):
-            self.btypes = get_bound_types(param_space)
-            self.space = self._get_space(param_space)
+            self.btypes = get_bound_types(self.param_space_)
+            self.space = self._get_space(self.param_space_)
 
         # Reset trials
         if not self.warm_start or not hasattr(self, 'trials_'):
@@ -334,7 +343,7 @@ def get_bound_types(space):
                     if bounds[2] == 'log':
                         btype = 'loguniform'
 
-                    elif bounds[2] == 1 and isinstance(bounds[0], int):
+                    elif isinstance(bounds[2], int):
                         btype = 'quniform_int'
 
                     elif isinstance(bounds[2], Number):
