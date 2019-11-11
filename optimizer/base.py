@@ -15,6 +15,7 @@ import numpy as np
 from ._verbose import _print_last
 from ._plot import _plot_progress
 
+from robusta.testing import extract_param_space
 from robusta.crossval import crossval_score
 
 
@@ -46,7 +47,7 @@ class BaseOptimizer(BaseEstimator):
         ``scorer(estimator, X, y)`` which should return only a single value.
         If None, the estimator's default scorer (if available) is used.
 
-    param_space : dict
+    param_space : dict or None (default=None)
         Parameters bounds:
 
             - 'uniform':
@@ -72,6 +73,8 @@ class BaseOptimizer(BaseEstimator):
             - 'const':
                 Constant value.
                 Pass single value (int, float, string, None, ...).
+
+        If <param_space> set to None, use automatic parameters setting.
 
     warm_start : bool (default: False)
         If True, continue optimization after last <fit> call. If False, reset
@@ -262,8 +265,8 @@ class BaseOptimizer(BaseEstimator):
 
         # Check if params set to auto
         param_space = self.param_space
-        if param_space == 'auto':
-            param_space = extract_param_space(self.estimator)
+        if not param_space == 'auto':
+            param_space = extract_param_space(self.estimator, verbose=self.verbose)
 
         # Define new space
         if not self.warm_start or not hasattr(self, 'btypes'):
