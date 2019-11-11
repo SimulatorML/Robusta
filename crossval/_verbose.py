@@ -86,6 +86,8 @@ class CVLogger:
 
 
     def _log(self, msg, end=' '*4):
+        if not self.verbose:
+            return
         if self.compact:
             print(msg, end=end)
         else:

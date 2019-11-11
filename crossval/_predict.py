@@ -157,7 +157,7 @@ def _fit_predict(estimator, method, scorer, X, y, X_new=None, new_index=None,
 
 
 
-def _predict(estimator, method, X, y, index):
+def _predict(estimator, method, X, y, index=None):
     """Call <method> of fitted <estimator> on data <X>.
 
     Parameters
@@ -359,7 +359,7 @@ def _check_avg(estimator, avg_type, method):
 
 
 
-def _avg_preds(preds, avg, X, y, index):
+def _avg_preds(preds, avg, X, y, index=None):
 
     # Concat & sort
     index = getattr(X, 'index', index)

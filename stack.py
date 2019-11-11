@@ -6,6 +6,7 @@ from joblib import Parallel, delayed
 from robusta.crossval._predict import _predict, _check_avg, _avg_preds
 from robusta.crossval.base import crossval
 
+from sklearn.utils.metaestimators import _BaseComposition
 from sklearn.model_selection import check_cv
 from sklearn.base import (
     clone,
@@ -28,7 +29,7 @@ __all__ = [
 
 
 
-class StackingTransformer(BaseEstimator, TransformerMixin):
+class StackingTransformer(_BaseComposition, TransformerMixin):
     '''Stacking Transformer with inbuilt Cross-Validation
 
     Parameters
@@ -207,6 +208,13 @@ class StackingTransformer(BaseEstimator, TransformerMixin):
         return S
 
 
+    def set_params(self, **params):
+        return self._set_params('estimators', **params)
+
+
+    def get_params(self, deep=True):
+        return self._get_params('estimators', deep=deep)
+
 
 
 class StackingRegressor(StackingTransformer, RegressorMixin):
@@ -263,6 +271,9 @@ class StackingRegressor(StackingTransformer, RegressorMixin):
         self.verbose = verbose
         self.n_digits = n_digits
         self.random_state = random_state
+
+        self.method = 'predict'
+        self.avg_type = 'mean'
 
 
     def fit(self, X, y, groups=None):
