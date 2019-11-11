@@ -22,10 +22,10 @@ __all__ = [
 ]
 
 
-def all_models(types=['regressor', 'classifier']):
+def all_models(etype=['regressor', 'classifier']):
     for _, row in MODELS.iterrows():
-        if not types or (row.type == types) \
-        or (row.type and row.type in types):
+        if not etypes or (row.type == etype) \
+        or (row.type and row.type in etype):
             yield row.to_dict()
 
 def all_regressors():
@@ -38,7 +38,7 @@ def all_clusterers():
     return all_models('clusterer')
 
 
-def get_model(name, task='regressor', **params):
+def get_model(model, etype='regressor', **params):
     """Get model instance by name (if model is string, otherwise return model).
 
     Parameters
@@ -46,8 +46,8 @@ def get_model(name, task='regressor', **params):
     model : string or estimator object
         Model's short name ('XGB', 'LGB', 'RF' & etc) or an estimator object.
 
-    task : string, {'regressor', 'classifier', 'ranker'} (default='regressor')
-        Model type. Ignored if name is not string.
+    etype : string, {'regressor', 'classifier', ...} (default='regressor')
+        Estimator type. Ignored if name is not string.
 
 
     Returns
@@ -55,22 +55,30 @@ def get_model(name, task='regressor', **params):
     model : estimator object
 
     """
-    if isinstance(name, str):
-        # Check model name
-        if name not in MODELS:
-            raise ValueError("Unknown model name: {}".format(name))
 
-        # Check task
-        tasks = set(MODELS[name].keys())
-        if task not in tasks:
-            raise ValueError("<task> should be in {}, not '{}''".format(tasks, task))
+    if isinstance(model, str):
 
-        # Get instance copy & set params
-        estimator = clone(MODELS[name][task]())
-        estimator.set_params(**params)
+        name_mask = (MODELS['name'] == model)
+        type_mask = (MODELS['type'] == etype)
+
+        # check model name
+        if not name_mask.any():
+            raise ValueError(f"Unknown <model> (model name): '{model}'")
+
+        # check estimator type
+        if not type_mask.any():
+            raise ValueError(f"Unknown <etype> (estimator type): '{etype}'")
+
+        # check if in MODELS
+        try:
+            estimator = MODELS[name_mask & type_mask]['model'].iloc[0]()
+        except:
+            raise ValueError(f"Coluld not find ('{model}', '{etype}') pair")
+
+        estimator = clone(estimator).set_params(**params)
 
     else:
-        # Check if scikit-learn estimator
+        # check if passed estimator
         estimator = clone(model)
 
     return estimator

@@ -10,7 +10,7 @@ __all__ = ['MODELS']
 
 
 
-COLUMNS = ['name', 'class', 'tags']
+COLUMNS = ['name', 'model', 'tags']
 MODELS = []
 
 def _import_models(lib, tags=set()):
@@ -246,7 +246,7 @@ def _extract_type(c):
                 return etype
         return None
 
-MODELS['type'] = MODELS['class'].map(_extract_type)
+MODELS['type'] = MODELS['model'].map(_extract_type)
 
 
 # drop type from name
@@ -261,4 +261,4 @@ MODELS['name'] = MODELS['name'].map(_drop_type)
 
 
 # reorder columns
-MODELS = MODELS[['name', 'type', 'class', 'tags']]
+MODELS = MODELS[['name', 'type', 'model', 'tags']]
