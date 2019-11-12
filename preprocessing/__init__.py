@@ -36,6 +36,7 @@ __all__ = [
     'DatetimeConverter',
 
     # Categorical
+    'OrdinalEncoder',
     'LabelEncoder1D',
     'LabelEncoder',
     'Categorizer1D',

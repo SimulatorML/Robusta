@@ -19,7 +19,11 @@ class OneHotEncoder(dask_ml.preprocessing.OneHotEncoder):
     pass
 
 
-class DummyEncoder(dask_ml.preprocessing.OneHotEncoder):
+class DummyEncoder(dask_ml.preprocessing.DummyEncoder):
+    pass
+
+
+class OrdinalEncoder(dask_ml.preprocessing.OrdinalEncoder):
     pass
 
 
