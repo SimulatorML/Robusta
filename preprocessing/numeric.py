@@ -2,17 +2,12 @@ import pandas as pd
 import numpy as np
 import scipy
 
-from joblib import Parallel, delayed
-
-from sklearn.base import BaseEstimator, TransformerMixin
-import sklearn.preprocessing
-
-from .base import PandasTransformer
-from sklearn import preprocessing
-
 from itertools import combinations
 
-
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.preprocessing import normalize
+from sklearn.utils import check_array
+import sklearn.preprocessing
 
 
 NP_INT_DTYPES = ['int64', 'int32', 'int16', 'int8', 'uint32', 'uint16', 'uint8']
@@ -578,6 +573,26 @@ class QuantileTransformer(sklearn.preprocessing.QuantileTransformer):
         self._check_is_fitted(X)
 
         self._transform(X, inverse=False)
+
+        if return_df:
+            return pd.DataFrame(X, columns=columns, index=index)
+        else:
+            return X
+
+
+
+class Normalizer(sklearn.preprocessing.Normalizer):
+
+    def transform(self, X):
+
+        return_df = hasattr(X, 'columns')
+
+        if return_df:
+            columns = X.columns
+            index = X.index
+
+        X = check_array(X, accept_sparse='csr')
+        X = normalize(X, axis=1, copy=self.copy, norm=self.norm)
 
         if return_df:
             return pd.DataFrame(X, columns=columns, index=index)
