@@ -26,6 +26,7 @@ __all__ = [
     'MinMaxScaler',
     'MaxAbsScaler',
     'MaxAbsScaler',
+    'Normalizer',
     'Winsorizer',
     'SyntheticFeatures',
 
