@@ -41,6 +41,7 @@ __all__ = [
     'Categorizer1D',
     'Categorizer',
     'OneHotEncoder',
+    'DummyEncoder',
     'FrequencyEncoder',
     'FeatureCombiner',
     'BackwardDifferenceEncoder',

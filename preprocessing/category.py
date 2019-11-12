@@ -8,125 +8,19 @@ from tqdm import tqdm
 
 from sklearn.base import clone, BaseEstimator, TransformerMixin
 import sklearn.preprocessing
+import dask_ml.preprocessing
 
 from robusta.utils import all_subsets
 
 
 
 
-class OneHotEncoder(BaseEstimator, TransformerMixin):
-    """Encode categorical features as a one-hot numeric array.
-    https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.OneHotEncoder.html
-
-    The input to this transformer should be an DataFrame of integers or
-    strings, denoting the values taken on by categorical (discrete) features.
-    The features are encoded using a one-hot (aka 'one-of-K' or 'dummy')
-    encoding scheme. This creates a binary column for each category and
-    returns a sparse matrix or dense array.
-
-    By default, the encoder derives the categories based on the unique values
-    in each feature. Alternatively, you can also specify the `categories`
-    manually.
-
-    Parameters
-    ----------
-    sep : string, default='_'
-        Separator for column's name and its category.
-
-    categories : 'auto' or a list of lists/arrays of values, default='auto'.
-        Categories (unique values) per feature:
-
-        - 'auto' : Determine categories automatically from the training data.
-        - list : ``categories[i]`` holds the categories expected in the ith
-          column. The passed categories should not mix strings and numeric
-          values within a single feature, and should be sorted in case of
-          numeric values.
-
-        The used categories can be found in the ``categories_`` attribute.
-
-    sparse : boolean, default=True
-        Will return sparse matrix if set True else will return an array.
-
-    dtype : number type, default=np.uint8
-        Desired dtype of output.
-
-    handle_unknown : 'error' or 'ignore', default='ignore'.
-        Whether to raise an error or ignore if an unknown categorical feature
-        is present during transform (default is to raise). When this parameter
-        is set to 'ignore' and an unknown category is encountered during
-        transform, the resulting one-hot encoded columns for this feature
-        will be all zeros. In the inverse transform, an unknown category
-        will be denoted as None.
-
-    Attributes
-    ----------
-    categories_ : list of arrays
-        The categories of each feature determined during fitting
-        (in order of the features in X and corresponding with the output
-        of ``transform``).
-
-    """
-    def __init__(self, sep='_', **params):
-        self.sep = sep
-        self.params = params
+class OneHotEncoder(dask_ml.preprocessing.OneHotEncoder):
+    pass
 
 
-    def fit(self, X, y=None):
-        """Fit OneHotEncoder to X.
-
-        Parameters
-        ----------
-        X : DataFrame, shape [n_samples, n_features]
-            The data to determine the categories of each feature.
-
-        Returns
-        -------
-        self
-
-        """
-        self.ohe = sklearn.preprocessing.OneHotEncoder(**self.params)
-        self.ohe.fit(X, y)
-
-        ohe_columns = self.ohe.get_feature_names()
-        self.categories_ = self.ohe.categories_
-
-        x_columns = X.columns
-        self.columns = []
-        for ohe_column in ohe_columns:
-            col, cat = ohe_column.split('_', 1)
-            col = x_columns[int(col[1:])]
-            column = '{}{}{}'.format(col, self.sep, cat)
-            self.columns.append(column)
-
-        return self
-
-
-    def transform(self, X):
-        """Transform X using one-hot encoding.
-
-        Parameters
-        ----------
-        X : DataFrame, shape [n_samples, n_features]
-            The data to encode.
-
-        Returns
-        -------
-        X_ohe : sparse DataFrame if sparse=True else simple DataFrame
-            Transformed input.
-
-        """
-
-        X_ohe = self.ohe.transform(X)
-
-        if self.ohe.sparse:
-            X_ohe = pd.DataFrame.sparse.from_spmatrix(X_ohe)
-        else:
-            X_ohe = pd.DataFrame(X_ohe)
-
-        X_ohe.columns = self.columns
-        X_ohe.index = X.index
-
-        return X_ohe
+class DummyEncoder(dask_ml.preprocessing.OneHotEncoder):
+    pass
 
 
 
