@@ -16,6 +16,7 @@ __all__ = [
     'ColumnGrouper',
     'SimpleImputer',
     'Identity',
+    'FunctionTransformer',
 
     # Numeric
     'DowncastTransformer',

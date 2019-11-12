@@ -584,3 +584,20 @@ class ColumnGrouper(BaseEstimator, TransformerMixin):
         X = X.copy() if self.copy else X
         X.columns = self.features_
         return X
+        
+
+
+class FunctionTransformer(BaseEstimator, TransformerMixin):
+
+    def __init__(self, func=None, inverse_func=None):
+        self.inverse_func = inverse_func
+        self.func = func
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        return X.applymap(self.func)
+
+    def inverse_transform(self, X):
+        return X.applymap(self.inverse_func)
