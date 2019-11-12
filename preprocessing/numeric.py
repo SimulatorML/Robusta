@@ -5,7 +5,7 @@ import scipy
 from joblib import Parallel, delayed
 
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.preprocessing import QuantileTransformer
+import sklearn.preprocessing
 
 from .base import PandasTransformer
 from sklearn import preprocessing
@@ -170,6 +170,9 @@ class GaussRankTransformer(BaseEstimator, TransformerMixin):
 
     Parameters
     ----------
+    ranker : object
+        Fitted transformer
+
     eps : float, default=1e-9
         Inversed Error Function (ErfInv) is undefined for x=-1 or x=+1, so
         its argument is clipped to range [-1 + eps, +1 - eps]
@@ -178,48 +181,29 @@ class GaussRankTransformer(BaseEstimator, TransformerMixin):
         Set to False to perform inplace row normalization and avoid a copy.
 
     """
-    def __init__(self, eps=1e-9, copy=True):
-        self.eps = eps
+    def __init__(self, ranker=QuantileTransformer(), copy=True, eps=1e-9):
+        self.ranker = ranker
         self.copy = copy
+        self.eps = eps
 
 
     def fit(self, X, y=None):
-        '''Does nothing.
-
-        Parameters
-        ----------
-        X : DataFrame, shape [n_samples, n_features]
-            The data to transform.
-
-        Returns
-        -------
-        self
-
-        '''
         return self
 
 
     def transform(self, X):
-        """Transform X using Gauss Rank normalization.
 
-        Parameters
-        ----------
-        X : DataFrame, shape [n_samples, n_features]
-            The data to transform.
+        if self.copy:
+            X, self.ranker_ = X.copy(), clone(self.ranker)
+        else:
+            X, self.ranker_ = X, self.ranker
 
-        Returns
-        -------
-        Xt : DataFrame, shape [n_samples, n_features]
-            Normalized input.
+        X = self.ranker_.fit_transform(X)
+        X -= 0.5
+        X *= 2.0 - self.eps
+        X = scipy.special.erfinv(X)
 
-        """
-        Xt = X.copy() if self.copy else X
-
-        Xt = RankTransformer().fit_transform(X) - 0.5
-        Xt = MaxAbsScaler().fit_transform(Xt) * (1 - self.eps)
-        Xt = scipy.special.erfinv(Xt)
-
-        return Xt
+        return X
 
 
 
@@ -382,5 +366,220 @@ class SyntheticFeatures(BaseEstimator, TransformerMixin):
 
 
 
+class RobustScaler(BaseEstimator, TransformerMixin):
+    """Scale features using statistics that are robust to outliers.
 
-MaxAbsScaler = lambda **params: PandasTransformer(preprocessing.MaxAbsScaler(), **params)
+    Parameters
+    ----------
+    with_median : bool, default=True
+        If True, center the data before scaling.
+
+    with_scaling : bool, default=True
+        If True, scale the data to interquartile range.
+
+    quantiles : tuple (q_min, q_max), 0.0 < q_min < q_max < 1.0
+        Default: (0.25, 0.75) = (1st quantile, 3rd quantile) = IQR
+        Quantile range used to calculate ``scale_``.
+
+    copy : boolean, optional, default is True
+        If False, try to avoid a copy and do inplace scaling instead.
+
+    Attributes
+    ----------
+    center_ : array of floats
+        The median value for each feature in the training set.
+
+    scale_ : array of floats
+        The (scaled) interquartile range for each feature in the training set.
+
+    """
+    def __init__(self, centering=True, scaling=True, quantiles=(0.25, 0.75),
+                 copy=True, eps=1e-3):
+
+        self.centering = centering
+        self.scaling = scaling
+        self.quantiles = quantiles
+        self.copy = copy
+        self.eps = eps
+
+
+    def fit(self, X, y=None):
+
+        q_min, q_max = self.quantiles
+        if not 0 <= q_min <= q_max <= 1:
+            raise ValueError(f"Invalid quantiles: {self.quantiles}")
+
+        if self.centering:
+            self.center_ = X.median()
+
+        if self.scaling:
+            self.scale_ = X.quantile(q_max) - X.quantile(q_min)
+            self.scale_[self.scale_ < self.eps] = 1
+
+        return self
+
+
+    def transform(self, X):
+
+        X = X.copy() if self.copy else X
+
+        if self.centering:
+            X -= self.center_
+
+        if self.scaling:
+            X /= self.scale_
+
+        return X
+
+
+
+class StandardScaler(BaseEstimator, TransformerMixin):
+    """Standardize features by removing the mean and scaling to unit variance.
+
+    Parameters
+    ----------
+    with_mean : boolean, default=True
+        If True, center the data before scaling.
+
+    with_std : bool, default=True
+        If True, scale the data to unit variance.
+
+    copy : boolean, optional, default is True
+        If False, try to avoid a copy and do inplace scaling instead.
+
+    Attributes
+    ----------
+    mean_ : Series of floats
+        Mean values
+
+    std_ : Series of floats
+        Std values
+
+    """
+    def __init__(self, with_mean=True, with_std=True, copy=True):
+        self.with_mean = with_mean
+        self.with_std = with_std
+        self.copy = copy
+
+
+    def fit(self, X, y=None):
+
+        self.mean_ = X.mean() if self.with_mean else None
+        self.std_ = X.std() if self.with_std else None
+
+        return self
+
+
+    def transform(self, X):
+
+        X = X.copy() if self.copy else X
+
+        if self.with_mean:
+            X -= self.mean_
+
+        if self.with_std:
+            X /= self.std_
+
+        return X
+
+
+
+class MinMaxScaler(BaseEstimator, TransformerMixin):
+    """Scale features to [0, 1]
+
+    Parameters
+    ----------
+    copy : bool, default=True
+        If False, try to avoid a copy and do inplace scaling instead.
+
+    Attributes
+    ----------
+    min_ : Series of floats
+        Minimum values
+
+    max_ : Series of floats
+        Maximum values
+
+    std_ : Series of floats
+        Difference between <max_> and <min_>
+
+    """
+    def __init__(self, copy=True):
+        self.copy = copy
+
+
+    def fit(self, X, y=None):
+
+        self.min_ = X.min()
+        self.max_ = X.max()
+        self.std_ = self.max_ - self.min_
+
+        return self
+
+
+    def transform(self, X):
+
+        X = X.copy() if self.copy else X
+
+        X -= self.min_
+        X /= self.std_
+
+        return X
+
+
+
+class MaxAbsScaler(BaseEstimator, TransformerMixin):
+    """Scale each feature by its maximum absolute value.
+
+    Parameters
+    ----------
+    copy : bool, default=True
+        If False, try to avoid a copy and do inplace scaling instead.
+
+    Attributes
+    ----------
+    scale_ : Series of floats
+        Mudule of maxabs values
+
+    """
+    def __init__(self, copy=True):
+        self.copy = copy
+
+
+    def fit(self, X, y=None):
+
+        a = X.min()
+        b = X.max()
+        self.scale_ = pd.concat([a, b], axis=1).abs().max(axis=1)
+
+        return self
+
+
+    def transform(self, X):
+
+        X = X.copy() if self.copy else X
+        X /= self.scale_
+
+        return X
+
+
+
+class QuantileTransformer(sklearn.preprocessing.QuantileTransformer):
+
+    def transform(self, X):
+
+        return_df = hasattr(X, 'columns')
+
+        if return_df:
+            columns = X.columns
+            index = X.index
+
+        X = self._check_inputs(X)
+        self._check_is_fitted(X)
+
+        self._transform(X, inverse=False)
+
+        if return_df:
+            return pd.DataFrame(X, columns=columns, index=index)
+        else:
+            return X

@@ -20,7 +20,11 @@ __all__ = [
     # Numeric
     'DowncastTransformer',
     'GaussRankTransformer',
-    'RankTransformer',
+    'QuantileTransformer',
+    'StandardScaler',
+    'RobustScaler',
+    'MinMaxScaler',
+    'MaxAbsScaler',
     'MaxAbsScaler',
     'Winsorizer',
     'SyntheticFeatures',
