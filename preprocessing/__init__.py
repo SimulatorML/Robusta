@@ -33,6 +33,7 @@ __all__ = [
     'KBinsDiscretizer1D',
     'KBinsDiscretizer',
     'PowerTransformer',
+    'Binarizer',
 
     # Datetime
     'DatetimeConverter1D',

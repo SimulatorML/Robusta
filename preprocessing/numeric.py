@@ -742,3 +742,27 @@ class PowerTransformer(sklearn.preprocessing.PowerTransformer):
             return X
 
         return X
+
+
+
+class Binarizer(BaseEstimator, TransformerMixin):
+    '''Binarize data (set feature values to 0 or 1) according to a threshold
+
+    Values greater than the threshold map to 1, while values less than
+    or equal to the threshold map to 0. With the default threshold of 0,
+    only positive values map to 1.
+
+    Parameters
+    ----------
+    threshold : float or array-like, shape (n_features, )
+        Single or array of threshold values
+
+    '''
+    def __init__(self, threshold=0.0):
+        self.threshold = threshold
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        return (X > self.threshold).astype('uint8')
