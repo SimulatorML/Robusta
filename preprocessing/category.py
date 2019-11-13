@@ -4,8 +4,6 @@ import numpy as np
 from itertools import combinations
 from numpy.linalg import svd
 
-from tqdm import tqdm
-
 from sklearn.base import clone, BaseEstimator, TransformerMixin
 import sklearn.preprocessing
 import dask_ml.preprocessing
@@ -313,25 +311,13 @@ class FrequencyEncoder(BaseEstimator, TransformerMixin):
 class FeatureCombiner(BaseEstimator, TransformerMixin):
     """Extract Feature Combinations
     """
-    def __init__(self, orders=[2, 3], sep=',', tqdm=False):
+    def __init__(self, orders=[2, 3], sep=','):
         self.orders = orders
         self.sep = sep
-        self.tqdm = tqdm
 
 
     def fit(self, X, y=None):
-        """Fit FeatureCombiner to X.
 
-        Parameters
-        ----------
-        X : DataFrame, shape [n_samples, n_features]
-            Memorize columns
-
-        Returns
-        -------
-        self
-
-        """
         subsets = all_subsets(X.columns, self.orders)
         self.subsets_ = [list(subset) for subset in subsets]
         self.n_subsets_ = len(self.subsets_)
@@ -340,28 +326,11 @@ class FeatureCombiner(BaseEstimator, TransformerMixin):
 
 
     def transform(self, X):
-        """Transform X using FeatureCombiner
 
-        Parameters
-        ----------
-        X : DataFrame, shape [n_samples, n_features]
-            The data to transform.
-
-        Returns
-        -------
-        Xt : DataFrame, shape [n_samples, n_features]
-            Transformed input.
-
-        """
         X = X.astype(str)
-        sep = self.sep.join
-
-        subsets = tqdm(self.subsets_) if self.tqdm else self.subsets_
-
-        Xt = pd.concat([X[subset].apply(sep, axis=1).rename(sep(subset))
-                        for subset in subsets], axis=1)
-
-        return Xt
+        X = pd.concat([X[subset].apply(self.sep.join, axis=1).rename(sep(subset))
+                      for subset in subsets], axis=1)
+        return X
 
 
 
