@@ -15,6 +15,29 @@ from sklearn.utils import check_array
 from scipy.special import boxcox
 
 
+__all__ = [
+    'DowncastTransformer',
+    'GaussRankTransformer',
+    'QuantileTransformer',
+    'RankTransformer',
+    'StandardScaler',
+    'RobustScaler',
+    'MinMaxScaler',
+    'MaxAbsScaler',
+    'MaxAbsScaler',
+    'Normalizer',
+    'Winsorizer',
+    'SyntheticFeatures',
+    'KBinsDiscretizer1D',
+    'KBinsDiscretizer',
+    'PowerTransformer',
+    'Binarizer',
+    'PolynomialFeatures',
+]
+
+
+
+
 NP_INT_DTYPES = ['int64', 'int32', 'int16', 'int8', 'uint32', 'uint16', 'uint8']
 PD_INT_DTYPES = ['Int64', 'Int32', 'Int16', 'Int8', 'UInt32', 'UInt16', 'UInt8']
 FLOAT_DTYPES = ['float64', 'float32', 'float16']
@@ -151,6 +174,27 @@ class DowncastTransformer(BaseEstimator, TransformerMixin):
 
         return col_type
 
+
+
+class QuantileTransformer(sklearn.preprocessing.QuantileTransformer):
+
+    def transform(self, X):
+
+        return_df = hasattr(X, 'columns')
+
+        if return_df:
+            columns = X.columns
+            index = X.index
+
+        X = self._check_inputs(X)
+        self._check_is_fitted(X)
+
+        self._transform(X, inverse=False)
+
+        if return_df:
+            return pd.DataFrame(X, columns=columns, index=index)
+        else:
+            return X
 
 
 
@@ -561,28 +605,6 @@ class MaxAbsScaler(BaseEstimator, TransformerMixin):
         X /= self.scale_
 
         return X
-
-
-
-class QuantileTransformer(sklearn.preprocessing.QuantileTransformer):
-
-    def transform(self, X):
-
-        return_df = hasattr(X, 'columns')
-
-        if return_df:
-            columns = X.columns
-            index = X.index
-
-        X = self._check_inputs(X)
-        self._check_is_fitted(X)
-
-        self._transform(X, inverse=False)
-
-        if return_df:
-            return pd.DataFrame(X, columns=columns, index=index)
-        else:
-            return X
 
 
 

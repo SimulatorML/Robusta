@@ -11,6 +11,31 @@ import dask_ml.preprocessing
 from sklearn.utils.multiclass import type_of_target
 from robusta.utils import all_subsets
 
+from category_encoders import *
+
+
+__all__ = [
+    'LabelBinarizer',
+    'OrdinalEncoder',
+    'LabelEncoder1D',
+    'LabelEncoder',
+    'Categorizer1D',
+    'Categorizer',
+    'OneHotEncoder',
+    'DummyEncoder',
+    'FrequencyEncoder',
+    'FeatureCombiner',
+    'BackwardDifferenceEncoder',
+    'BinaryEncoder',
+    'HashingEncoder',
+    'HelmertEncoder',
+    'OrdinalEncoder',
+    'SumEncoder',
+    'PolynomialEncoder',
+    'BaseNEncoder',
+    'SVDEncoder',
+]
+
 
 
 

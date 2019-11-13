@@ -10,6 +10,21 @@ from sklearn.model_selection import check_cv
 from category_encoders import *
 
 
+__all__ = [
+    # binary & regression
+    'EncoderCV',
+    'FastEncoder',
+    'TargetEncoder',
+    'CatBoostEncoder',
+    'LeaveOneOutEncoder',
+    'NaiveBayesEncoder',
+    # binary
+    'JamesSteinEncoder',
+    'MEstimateEncoder',
+    'WOEEncoder',
+]
+
+
 
 
 class TargetEncoder(TargetEncoder):

@@ -25,16 +25,16 @@ https://scikit-learn.org/stable/modules/linear_model
 '''
 from sklearn import linear_model
 
-models = _import_models(linear_model, {'linear'})
-ESTIMATORS.extend(models)
+estimators = _import_models(linear_model, {'linear'})
+ESTIMATORS.extend(estimators)
 
 
 '''Blend, NNG & etc
 '''
 from robusta import linear_model
 
-models = _import_models(linear_model, {'linear'})
-ESTIMATORS.extend(models)
+estimators = _import_models(linear_model, {'linear'})
+ESTIMATORS.extend(estimators)
 
 
 '''MARS (Multivariate Adaptive Regression Splines)
@@ -82,8 +82,8 @@ https://scikit-learn.org/stable/modules/linear_model
 '''
 from sklearn import neighbors
 
-models = _import_models(neighbors, {'neighbors', 'dense'})
-ESTIMATORS.extend(models)
+estimators = _import_models(neighbors, {'neighbors', 'dense'})
+ESTIMATORS.extend(estimators)
 
 
 '''Scikit-Learn Gaussian Processes
@@ -91,8 +91,8 @@ https://scikit-learn.org/stable/modules/gaussian_process
 '''
 from sklearn import gaussian_process
 
-models = _import_models(gaussian_process, {'proba', 'dense'})
-ESTIMATORS.extend(models)
+estimators = _import_models(gaussian_process, {'proba', 'dense'})
+ESTIMATORS.extend(estimators)
 
 
 '''Scikit-Learn TreeBoost
@@ -100,8 +100,8 @@ https://scikit-learn.org/stable/modules/ensemble
 '''
 from sklearn import ensemble
 
-models = _import_models(ensemble, {'tree', 'ensemble'})
-ESTIMATORS.extend(models)
+estimators = _import_models(ensemble, {'tree', 'ensemble'})
+ESTIMATORS.extend(estimators)
 
 
 '''Scikit-Learn Decision Tree
@@ -109,8 +109,8 @@ https://scikit-learn.org/stable/modules/tree
 '''
 from sklearn import tree
 
-models = _import_models(tree, {'tree'})
-ESTIMATORS.extend(models)
+estimators = _import_models(tree, {'tree'})
+ESTIMATORS.extend(estimators)
 
 
 '''CatBoost, LightGBM, XGBoost
@@ -177,8 +177,8 @@ https://scikit-learn.org/stable/modules/mixture
 '''
 from sklearn import mixture
 
-models = _import_models(mixture, {'dense'})
-ESTIMATORS.extend(models)
+estimators = _import_models(mixture, {'dense'})
+ESTIMATORS.extend(estimators)
 
 
 '''Scikit-Learn Cluster
@@ -186,12 +186,29 @@ https://scikit-learn.org/stable/modules/cluster
 '''
 from sklearn import cluster
 
-models = _import_models(cluster, {'dense'})
-ESTIMATORS.extend(models)
+estimators = _import_models(cluster, {'dense'})
+ESTIMATORS.extend(estimators)
+
+
+'''Robusta Transfomrers
+'''
+from robusta.preprocessing import base, numeric, category, target
+
+estimators = _import_models(base, {})
+ESTIMATORS.extend(estimators)
+
+estimators = _import_models(numeric, {'numeric'})
+ESTIMATORS.extend(estimators)
+
+estimators = _import_models(category, {'category'})
+ESTIMATORS.extend(estimators)
+
+estimators = _import_models(target, {'category', 'target'})
+ESTIMATORS.extend(estimators)
 
 
 '''Imbalanced Learn Resampling
-
+https://imbalanced-learn.org/stable/api.html
 '''
 import imblearn
 
@@ -237,10 +254,13 @@ ESTIMATOR_TYPES = [
 ]
 
 def _estimator_type(estimator):
+
     if hasattr(estimator, '_estimator_type'):
         return getattr(estimator, '_estimator_type')
+
     elif hasattr(estimator, 'transform'):
         return 'transformer'
+
     else:
         name = estimator.__name__
         for estimator_type in ESTIMATOR_TYPES:

@@ -22,6 +22,7 @@ __all__ = [
     'DowncastTransformer',
     'GaussRankTransformer',
     'QuantileTransformer',
+    'RankTransformer',
     'StandardScaler',
     'RobustScaler',
     'MinMaxScaler',
