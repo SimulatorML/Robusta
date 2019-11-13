@@ -34,6 +34,7 @@ __all__ = [
     'KBinsDiscretizer',
     'PowerTransformer',
     'Binarizer',
+    'PolynomialFeatures',
 
     # Datetime
     'DatetimeConverter1D',

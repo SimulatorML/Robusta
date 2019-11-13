@@ -7,6 +7,7 @@ from itertools import combinations
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import normalize
 import sklearn.preprocessing
+import dask_ml.preprocessing
 
 from sklearn.utils.validation import check_is_fitted
 from sklearn.utils import check_array
@@ -766,3 +767,14 @@ class Binarizer(BaseEstimator, TransformerMixin):
 
     def transform(self, X):
         return (X > self.threshold).astype('uint8')
+
+
+
+class PolynomialFeatures(dask_ml.preprocessing.PolynomialFeatures):
+
+    def __init__(self, degree=2, interaction_only=False, include_bias=True,
+                 preserve_dataframe=True):
+        self.degree = degree
+        self.interaction_only = interaction_only
+        self.include_bias = include_bias
+        self.preserve_dataframe = preserve_dataframe
