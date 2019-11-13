@@ -8,6 +8,7 @@ from sklearn.base import clone, BaseEstimator, TransformerMixin
 import sklearn.preprocessing
 import dask_ml.preprocessing
 
+from sklearn.utils.multiclass import type_of_target
 from robusta.utils import all_subsets
 
 
@@ -35,17 +36,7 @@ class LabelEncoder1D(BaseEstimator, TransformerMixin):
 
 
     def fit(self, y):
-        """Fit LabelEncoder to y.
 
-        Parameters
-        ----------
-        y : Series
-
-        Returns
-        -------
-        self
-
-        """
         self.cats_ = y.astype('category').values.categories
         self.dtype = y.dtype
 
@@ -59,59 +50,21 @@ class LabelEncoder1D(BaseEstimator, TransformerMixin):
 
 
     def transform(self, y):
-        """Transform y.
 
-        Parameters
-        ----------
-        y : Series
-
-        Returns
-        -------
-        yt : Series
-            Transformed input.
-
-        """
         return y.map(self.mapper)
 
 
     def inverse_transform(self, y):
-        """Inverse transform y.
 
-        Parameters
-        ----------
-        y : Series
-
-        Returns
-        -------
-        yt : Series
-            Inverse transformed input.
-
-        """
         return y.map(self.inv_mapper).astype(self.dtype)
 
 
 
 
-class LabelEncoder(BaseEstimator, TransformerMixin):
-    """Encode categorical features as integers.
-    """
-    def __init__(self):
-        pass
-
+class LabelEncoder(LabelEncoder1D):
 
     def fit(self, X, y=None):
-        """Fit LabelEncoder to X.
 
-        Parameters
-        ----------
-        X : DataFrame, shape [n_samples, n_features]
-            The data to determine the categories of each feature.
-
-        Returns
-        -------
-        self
-
-        """
         self.transformers = {}
         for col in X.columns:
             self.transformers[col] = LabelEncoder1D().fit(X[col])
@@ -120,19 +73,6 @@ class LabelEncoder(BaseEstimator, TransformerMixin):
 
 
     def transform(self, X):
-        """Transform X using label encoding.
-
-        Parameters
-        ----------
-        X : DataFrame, shape [n_samples, n_features]
-            The data to transform.
-
-        Returns
-        -------
-        Xt : DataFrame, shape [n_samples, n_features]
-            Transformed input.
-
-        """
         Xt = pd.DataFrame(index=X.index)
 
         for col, transformer in self.transformers.items():
@@ -142,19 +82,7 @@ class LabelEncoder(BaseEstimator, TransformerMixin):
 
 
     def inverse_transform(self, X):
-        """Inverse transform X using label encoding.
 
-        Parameters
-        ----------
-        X : DataFrame, shape [n_samples, n_features]
-            The data to transform.
-
-        Returns
-        -------
-        Xt : DataFrame, shape [n_samples, n_features]
-            Inverse transformed input.
-
-        """
         Xt = pd.DataFrame(index=X.index)
 
         for col, transformer in self.transformers.items():
@@ -424,3 +352,64 @@ class SVDEncoder(BaseEstimator, TransformerMixin):
         """
         return pd.concat([self.embeddings_[col].loc[x].set_index(x.index)
                           for col, x in X.items()], axis=1)
+
+
+
+class LabelBinarizer(BaseEstimator, TransformerMixin):
+
+    def __init__(self):
+        pass
+
+    def fit(self, y):
+
+        if len(y) == 0:
+            raise ValueError(f"y has 0 samples: {y}")
+
+        self.y_type_ = type_of_target(y)
+        self.y_name_ = y.name
+
+        if 'multioutput' in self.y_type_:
+            raise ValueError("Multioutput target data is not supported")
+
+        self.classes_ = y.astype('category').values.categories
+
+        if len(self.classes_) == 1:
+            raise ValueError(f"y has single class: {self.classes_}")
+
+        elif len(self.classes_) == 2:
+            self.mapper_     = dict(zip(self.classes_, [0, 1]))
+            self.inv_mapper_ = dict(zip([0, 1], self.classes_))
+
+        elif len(self.classes_) >= 3:
+            y = pd.DataFrame(y)
+            self.encoder_ = DummyEncoder().fit(y)
+
+        else:
+            raise ValueError(f"{self.y_type_} target data is not supported")
+
+        return self
+
+
+    def transform(self, y):
+
+        if self.y_type_ is 'binary':
+            y = y.map(self.mapper_).astype('uint8')
+
+        elif self.y_type_ is 'multiclass':
+            y = pd.DataFrame(y)
+            y = self.encoder_.transform(y)
+            y.columns = self.classes_
+
+        return y
+
+
+    def inverse_transform(self, y):
+
+        if self.y_type_ is 'binary':
+            y = y.map(self.inv_mapper_)
+
+        elif self.y_type_ is 'multiclass':
+            y = y.apply(lambda row: row.argmax(), axis=1)
+            y.name = self.y_name_
+
+        return y
