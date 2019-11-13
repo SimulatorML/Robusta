@@ -6,8 +6,12 @@ from itertools import combinations
 
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import normalize
-from sklearn.utils import check_array
 import sklearn.preprocessing
+
+from sklearn.utils.validation import check_is_fitted
+from sklearn.utils import check_array
+
+from scipy.special import boxcox
 
 
 NP_INT_DTYPES = ['int64', 'int32', 'int16', 'int8', 'uint32', 'uint16', 'uint8']
@@ -693,3 +697,48 @@ class KBinsDiscretizer(KBinsDiscretizer1D):
             Xt[col] = transformer.transform(X[col])
 
         return Xt
+
+
+
+class PowerTransformer(sklearn.preprocessing.PowerTransformer):
+
+    def fit_transform(self, X, y=None):
+
+        return_df = hasattr(X, 'columns')
+        if return_df:
+            columns = X.columns
+            index = X.index
+
+        X = self._fit(X, y, force_transform=True)
+
+        if return_df:
+            return pd.DataFrame(X, columns=columns, index=index)
+        else:
+            return X
+
+    def transform(self, X):
+
+        return_df = hasattr(X, 'columns')
+        if return_df:
+            columns = X.columns
+            index = X.index
+
+        check_is_fitted(self, 'lambdas_')
+        X = self._check_input(X, check_positive=True, check_shape=True)
+
+        transform_function = {'box-cox': boxcox,
+                              'yeo-johnson': self._yeo_johnson_transform
+                              }[self.method]
+        for i, lmbda in enumerate(self.lambdas_):
+            with np.errstate(invalid='ignore'):  # hide NaN warnings
+                X[:, i] = transform_function(X[:, i], lmbda)
+
+        if self.standardize:
+            X = self._scaler.transform(X)
+
+        if return_df:
+            return pd.DataFrame(X, columns=columns, index=index)
+        else:
+            return X
+
+        return X

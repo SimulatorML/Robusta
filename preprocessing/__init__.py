@@ -32,6 +32,7 @@ __all__ = [
     'SyntheticFeatures',
     'KBinsDiscretizer1D',
     'KBinsDiscretizer',
+    'PowerTransformer',
 
     # Datetime
     'DatetimeConverter1D',
