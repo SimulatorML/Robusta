@@ -30,6 +30,8 @@ __all__ = [
     'Normalizer',
     'Winsorizer',
     'SyntheticFeatures',
+    'KBinsDiscretizer1D',
+    'KBinsDiscretizer',
 
     # Datetime
     'DatetimeConverter1D',

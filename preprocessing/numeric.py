@@ -598,3 +598,98 @@ class Normalizer(sklearn.preprocessing.Normalizer):
             return pd.DataFrame(X, columns=columns, index=index)
         else:
             return X
+
+
+
+class KBinsDiscretizer1D(BaseEstimator, TransformerMixin):
+    """Continuous feature binning
+
+    Parameters
+    ----------
+    bins : int or array-like
+        Number of bins, or quantiles (if strategy='quantile'), or bin edges
+        (if strategy='uniform').
+
+    strategy : {'quantile', 'uniform'}
+        If <bins> is int, determines binning type:
+            - 'quantile': split feature to the equal size bins
+            - 'uniform': split feature by the equal distance edges
+
+        If <bins> is array-like, interpreted as type of passed edges:
+            - 'quantile': quantiles (must be monotonic and in range [0..1])
+            - 'uniform': exact edges values
+
+    Attributes
+    ----------
+    bins_ : array of floats
+        Defined bins edges
+
+    """
+    def __init__(self, bins=5, strategy='quantile'):
+        self.bins = bins
+        self.strategy = strategy
+
+
+    def fit(self, y):
+
+        if self.strategy is 'quantile':
+            _, self.bins_ = pd.qcut(y, self.bins, retbins=True, duplicates='drop')
+
+        elif self.strategy is 'uniform':
+            _, self.bins_ = pd.cut(y, self.bins, retbins=True, duplicates='drop')
+
+        else:
+            raise ValueError(f"Unknown strategy value passed: {self.strategy}")
+
+        return self
+
+
+    def transform(self, y):
+        return pd.cut(y, self.bins_)
+
+
+
+class KBinsDiscretizer(KBinsDiscretizer1D):
+    """Continuous feature binning
+
+    Parameters
+    ----------
+    bins : int or array-like
+        Number of bins, or quantiles (if strategy='quantile'), or bin edges
+        (if strategy='uniform').
+
+    strategy : {'quantile', 'uniform'}
+        If <bins> is int, determines binning type:
+            - 'quantile': split feature to the equal size bins
+            - 'uniform': split feature by the equal distance edges
+
+        If <bins> is array-like, interpreted as type of passed edges:
+            - 'quantile': quantiles (must be monotonic and in range [0..1])
+            - 'uniform': exact edges values
+
+    Attributes
+    ----------
+    bins_ : dict of array of floats
+        Defined bins edges
+
+    """
+    def fit(self, X):
+
+        self.transformers = {}
+        self.bins_ = {}
+
+        for col in X:
+            transformer = KBinsDiscretizer1D().fit(X[col])
+            self.transformers[col] = transformer
+            self.bins_[col] = transformer.bins_
+
+        return self
+
+
+    def transform(self, X):
+        Xt = pd.DataFrame(index=X.index)
+
+        for col, transformer in self.transformers.items():
+            Xt[col] = transformer.transform(X[col])
+
+        return Xt
