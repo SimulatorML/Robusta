@@ -3,7 +3,7 @@ import pandas as pd
 
 from sklearn.base import clone, ClassifierMixin
 
-from sklearn.utils.metaestimators import _BaseComposition
+from sklearn.utils.metaestimators import _BaseComposition, if_delegate_has_method
 from robusta.utils import logmsg
 
 
@@ -85,6 +85,30 @@ class PseudoLabeling(_BaseComposition, ClassifierMixin):
 
             # Verbose
             if self.verbose:
-                logmsg(f"ITER {self.n_iter_}: Add {mask.sum()} items")
+                logmsg(f"ITER {self.n_iter_}: Add {mask.sum()} labels")
 
         return self.estimator_
+
+
+    @if_delegate_has_method(delegate='estimator_')
+    def score(self, X, y=None, *args, **kwargs):
+        return self.estimator_.score(X, y, *args, **kwargs)
+
+    #@if_delegate_has_method(delegate='estimator_')
+    #def predict(self, X):
+    #    return self.estimator_.predict(X)
+
+    #@if_delegate_has_method(delegate='estimator_')
+    #def predict_proba(self, X):
+    #    return self.estimator_.predict_proba(X)
+
+    #@if_delegate_has_method(delegate='estimator_')
+    #def predict_log_proba(self, X):
+    #    return self.estimator_.predict_log_proba(X)
+
+    #@if_delegate_has_method(delegate='estimator_')
+    #def decision_function(self, X):
+    #    return self.estimator_.decision_function(X)
+
+    def __getattr__(self, item):
+        return getattr(self.estimator_, item)
