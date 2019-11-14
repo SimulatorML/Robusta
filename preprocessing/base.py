@@ -6,7 +6,6 @@ from typing import Iterable
 
 
 __all__ = [
-    'PandasTransformer',
     'TypeSelector',
     'TypeConverter',
     'ColumnSelector',
@@ -17,71 +16,6 @@ __all__ = [
     'Identity',
     'FunctionTransformer',
 ]
-
-
-
-
-class PandasTransformer(BaseEstimator, TransformerMixin):
-    '''Wrapper for sklearn transformers, that takes and returns pandas DataFrames.
-
-    Parameters
-    ----------
-    transformer : estimator
-        Core transformer
-
-    **params :
-        Set the parameters of core estimator.
-
-    '''
-    def __init__(self, transformer, **params):
-        self.transformer = transformer.set_params(**params)
-
-
-    def fit(self, X, y=None):
-        """Fit core transformer using X.
-
-        Parameters
-        ----------
-        X : DataFrame of shape [n_samples, n_features]
-            The data to fit.
-
-        y : array-like, shape (n_samples, ...), optional
-            Targets for supervised learning.
-
-        Returns
-        -------
-        self : ColumnTransformer
-            This estimator
-
-        """
-        self.transformer.fit(X, y)
-        self.columns = list(X.columns)
-
-        return self
-
-
-    def transform(self, X):
-        """Transform X using specified transformer.
-
-        Parameters
-        ----------
-        X : DataFrame, shape [n_samples, n_features]
-            The data to transform.
-
-        Returns
-        -------
-        Xt : DataFrame, shape [n_samples, n_features]
-            Transformed input.
-
-        """
-        Xt = self.transformer.transform(X)
-
-        if Xt.shape[1] == len(self.columns):
-            Xt = pd.DataFrame(Xt, index=X.index, columns=self.columns)
-        else:
-            Xt = pd.DataFrame(Xt, index=X.index)
-
-        return Xt
 
 
 
@@ -238,7 +172,9 @@ class TypeSelector(BaseEstimator, TransformerMixin):
             self.dtypes = self.dtype
         else:
             self.dtypes = [self.dtype]
-        self.columns_ = list(X.select_dtypes(include=self.dtypes).columns)
+
+        self.columns_ = X.select_dtypes(include=self.dtypes).columns
+        
         return self
 
 

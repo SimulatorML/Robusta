@@ -7,7 +7,6 @@ from .datetime import *
 
 __all__ = [
     # Basic
-    'PandasTransformer',
     'TypeSelector',
     'TypeConverter',
     'ColumnSelector',
@@ -22,7 +21,6 @@ __all__ = [
     'DowncastTransformer',
     'GaussRankTransformer',
     'QuantileTransformer',
-    'RankTransformer',
     'StandardScaler',
     'RobustScaler',
     'MinMaxScaler',
