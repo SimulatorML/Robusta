@@ -4,7 +4,7 @@ import scipy
 
 from itertools import combinations
 
-from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.base import clone, BaseEstimator, TransformerMixin
 from sklearn.preprocessing import normalize
 import sklearn.preprocessing
 import dask_ml.preprocessing
@@ -19,11 +19,9 @@ __all__ = [
     'DowncastTransformer',
     'GaussRankTransformer',
     'QuantileTransformer',
-    'RankTransformer',
     'StandardScaler',
     'RobustScaler',
     'MinMaxScaler',
-    'MaxAbsScaler',
     'MaxAbsScaler',
     'Normalizer',
     'Winsorizer',
@@ -283,59 +281,6 @@ class Winsorizer(BaseEstimator, TransformerMixin):
 
     def transform(self, X):
         return X.clip(self.min_, self.max_, axis=1)
-
-
-
-
-class RankTransformer(BaseEstimator, TransformerMixin):
-    '''Compute numerical data ranks (1 through n) along axis. Equal values are
-    assigned a rank that is the average of the ranks of those values.
-
-    Parameters
-    ----------
-    copy : boolean, optional, default True
-        Set to False to perform inplace row normalization and avoid a copy.
-
-    '''
-    def __init__(self, copy=True, **params):
-        self.copy = copy
-        self.params = params
-
-
-    def fit(self, X, y=None):
-        '''Does nothing.
-
-        Parameters
-        ----------
-        X : DataFrame, shape [n_samples, n_features]
-            The data to transform.
-
-        Returns
-        -------
-        self
-
-        '''
-        self.transformer_ = QuantileTransformer(len(X), **self.params).fit(X)
-        return self
-
-
-    def transform(self, X):
-        """Transform X using rank transformer.
-
-        Parameters
-        ----------
-        X : DataFrame, shape [n_samples, n_features]
-            The data to transform.
-
-        Returns
-        -------
-        Xt : DataFrame, shape [n_samples, n_features]
-            Transformed input.
-
-        """
-        Xt = X.copy() if self.copy else X
-        Xt.loc[:,:] = self.transformer_.transform(X)
-        return Xt
 
 
 
@@ -700,7 +645,7 @@ class KBinsDiscretizer(KBinsDiscretizer1D):
         Defined bins edges
 
     """
-    def fit(self, X):
+    def fit(self, X, y=None):
 
         self.transformers = {}
         self.bins_ = {}
