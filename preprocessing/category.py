@@ -62,7 +62,7 @@ class LabelEncoder1D(BaseEstimator, TransformerMixin):
 
     def fit(self, y):
 
-        self.cats_ = y.astype('category').values.categories
+        self.cats_ = y.astype('category').cat.categories
         self.dtype = y.dtype
 
         self.mapper = dict(zip(self.cats_, range(len(self.cats_))))
@@ -98,7 +98,7 @@ class LabelEncoder(LabelEncoder1D):
 
 
     def transform(self, X):
-        Xt = pd.DataFrame(index=X.index)
+        Xt = pd.DataFrame(index=X.index, columns=X.columns)
 
         for col, transformer in self.transformers.items():
             Xt[col] = transformer.transform(X[col])
@@ -108,7 +108,7 @@ class LabelEncoder(LabelEncoder1D):
 
     def inverse_transform(self, X):
 
-        Xt = pd.DataFrame(index=X.index)
+        Xt = pd.DataFrame(index=X.index, columns=X.columns)
 
         for col, transformer in self.transformers.items():
             Xt[col] = transformer.inverse_transform(X[col])
