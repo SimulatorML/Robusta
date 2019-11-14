@@ -7,7 +7,7 @@ from sklearn.metrics import get_scorer
 
 from scipy.optimize import minimize
 
-from robusta.preprocessing import RankTransformer
+from robusta.preprocessing import QuantileTransformer
 
 
 __all__ = [
@@ -186,7 +186,7 @@ class BlendClassifier(Blend, ClassifierMixin):
 
 
 
-def RankBlendClassifier(**params):
+def RankBlendClassifier(transformer=QuantileTransformer(), **params):
     '''Pipeline for ranked Blending Classifier
 
     Parameters
@@ -228,7 +228,7 @@ def RankBlendClassifier(**params):
         Evaluation results
 
     '''
-    return make_pipeline(RankTransformer(), BlendClassifier('mean', **params))
+    return make_pipeline(transformer, BlendClassifier('mean', **params))
 
 
 
