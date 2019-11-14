@@ -651,7 +651,8 @@ class KBinsDiscretizer(KBinsDiscretizer1D):
         self.bins_ = {}
 
         for col in X:
-            transformer = KBinsDiscretizer1D().fit(X[col])
+            params = self.get_params()
+            transformer = KBinsDiscretizer1D(**params).fit(X[col])
             self.transformers[col] = transformer
             self.bins_[col] = transformer.bins_
 
