@@ -59,6 +59,8 @@ __all__ = [
     'PolynomialEncoder',
     'BaseNEncoder',
     'SVDEncoder',
+    'ThermometerEncoder1D',
+    'ThermometerEncoder',
 
     # Categorical (supervised)
     # binary & regression

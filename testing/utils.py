@@ -45,17 +45,17 @@ def all_transformers():
     return all_estimators('transformer')
 
 
-def get_estimator(name, estimator_type='regressor', **params):
+def get_estimator(estimator, estimator_type=None, **params):
     """Get model instance by name (if model is string, otherwise return model).
 
     Parameters
     ----------
-    model : string or estimator object
+    estimator : string or estimator object
         Model's short name ('XGB', 'LGB', 'RF' & etc) or an estimator object.
 
-    etype : string, {'regressor', 'classifier', ...} (default='regressor')
-        Estimator type. Ignored if name is not string.
-
+    estimator_type : {'regressor', 'classifier', ...} or None (default=None)
+        Estimator type. Ignored if <estimator> is not string or if estimator
+        has single type (like any transformer).
 
     Returns
     -------
@@ -63,34 +63,38 @@ def get_estimator(name, estimator_type='regressor', **params):
 
     """
 
-    if isinstance(name, str):
+    if isinstance(estimator, str):
 
-        name_mask = (ESTIMATORS['name'] == name)
+        name_mask = (ESTIMATORS['name'] == estimator)
         type_mask = (ESTIMATORS['type'] == estimator_type)
 
-        # check name
+        # check estimator name
         if not name_mask.any():
-            raise ValueError(f"Unknown <name>: '{name}'")
+            raise ValueError(f"Unknown estimator: '{estimator}'")
+
+        # if has single type
+        if name_mask.sum() == 1:
+            estimator = ESTIMATORS[name_mask]['class'].iloc[0]()
+            estimator = clone(estimator).set_params(**params)
+            return estimator
 
         # check estimator type
         if not type_mask.any():
-            raise ValueError(f"Unknown <estimator_type>: '{estimator_type}'")
+            raise ValueError(f"Unknown estimator type: '{estimator_type}'")
 
-        # check if in ESTIMATORS
-        try:
-            estimator = ESTIMATORS[name_mask & type_mask]['class'].iloc[0]()
-        except:
+        # check if pair is in ESTIMATORS
+        if not (name_mask & type_mask).any():
             raise ValueError(f"Coluld not find ('{name}', '{estimator_type}') pair")
-
-        estimator = clone(estimator)
+        else:
+            estimator = ESTIMATORS[name_mask & type_mask]['class'].iloc[0]()
+            estimator = clone(estimator).set_params(**params)
+            return estimator
 
     elif hassatr(name, 'fit'):
-        estimator = clone(name)
+        return estimator.set_params(**params)
 
     else:
-        raise ValueError("Unknown <name> type passed")
-
-    return estimator.set_params(**params)
+        raise TypeError("Unknown <estimator> type passed")
 
 
 def get_estimator_name(estimator, short=False):

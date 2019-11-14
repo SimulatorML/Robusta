@@ -34,6 +34,8 @@ __all__ = [
     'PolynomialEncoder',
     'BaseNEncoder',
     'SVDEncoder',
+    'ThermometerEncoder1D',
+    'ThermometerEncoder',
 ]
 
 
@@ -53,7 +55,7 @@ class OrdinalEncoder(dask_ml.preprocessing.OrdinalEncoder):
 
 
 
-class LabelEncoder1D(BaseEstimator, TransformerMixin):
+class LabelEncoder1D(p):
     """Encode categories as integers.
     """
     def __init__(self):
@@ -75,12 +77,10 @@ class LabelEncoder1D(BaseEstimator, TransformerMixin):
 
 
     def transform(self, y):
-
         return y.map(self.mapper)
 
 
     def inverse_transform(self, y):
-
         return y.map(self.inv_mapper).astype(self.dtype)
 
 
@@ -438,3 +438,64 @@ class LabelBinarizer(BaseEstimator, TransformerMixin):
             y.name = self.y_name_
 
         return y
+
+
+
+class ThermometerEncoder1D(BaseEstimator, TransformerMixin):
+
+    def __init__(self):
+        pass
+
+    def fit(self, y):
+
+        self.cats_ = y.astype('category').cat.categories
+        self.type_ = y.dtype
+        self.name_ = y.name
+
+        return self
+
+
+    def transform(self, y):
+        y = pd.concat(map(lambda cat: cat <= y, self.cats_), axis=1)
+        y.columns = self.cats_
+        y.rename(lambda cat: f"{self.name_}:{cat}", axis=1, inplace=True)
+        return y.astype('uint8')
+
+
+    def inverse_transform(self, y):
+        y = pd.Series(self.cats_[y.sum(axis=1)-1], index=y.index,
+                      name=self.name_, dtype=self.type_)
+        return y
+
+
+
+class ThermometerEncoder(ThermometerEncoder1D):
+
+    def fit(self, X, y=None):
+
+        self.transformers = {}
+        for col in X.columns:
+            self.transformers[col] = ThermometerEncoder1D().fit(X[col])
+
+        return self
+
+
+    def transform(self, X):
+
+        X_list = []
+        for col, transformer in self.transformers.items():
+            X_list.append(transformer.transform(X[col]))
+
+        return pd.concat(X_list, axis=1)
+
+
+    def inverse_transform(self, X):
+
+        X_list = []
+        for col, transformer in self.transformers.items():
+            col_filter = ColumnFilter(lambda s: s.startswith(col))
+            x = col_filter.fit_transform(X)
+            x = transformer.inverse_transform(x)
+            X_list.append(x)
+
+        return pd.concat(X_list, axis=1)
