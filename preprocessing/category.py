@@ -55,7 +55,7 @@ class OrdinalEncoder(dask_ml.preprocessing.OrdinalEncoder):
 
 
 
-class LabelEncoder1D(p):
+class LabelEncoder1D(BaseEstimator, TransformerMixin):
     """Encode categories as integers.
     """
     def __init__(self):
