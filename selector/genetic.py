@@ -174,8 +174,7 @@ class GeneticSelector(_AgnosticSelector):
             self.toolbox.register("individual", self.features_.sample)
 
             # Define population
-            self.toolbox.register("population", tools.initRepeat,
-                                  list, self.toolbox.individual)
+            self.toolbox.register("population", tools.initRepeat, list, self.toolbox.individual)
             self.population = self.toolbox.population(n=self.pop_size)
 
         return self
@@ -186,10 +185,8 @@ class GeneticSelector(_AgnosticSelector):
         # Define mutation & selection
         self.toolbox.register("eval", self.check_subset, X=X, y=y)
         self.toolbox.register("mate", cxSubset, random_state=self.rstate)
-        self.toolbox.register("mutate", mutSubset, random_state=self.rstate,
-                              indpb=self.mut_prob)
-        self.toolbox.register("select", tools.selTournament, tournsize=3,
-                              fit_attr='score')
+        self.toolbox.register("mutate", mutSubset, random_state=self.rstate, indpb=self.mut_prob)
+        self.toolbox.register("select", tools.selTournament, tournsize=3, fit_attr='score')
 
         self.n_gen_ = 0
         while not self.max_iter or self.n_iters_ < self.max_iter:
