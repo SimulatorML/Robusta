@@ -419,7 +419,7 @@ def _pass_pred(pred):
 
 def _mean_pred(pred):
     if hasattr(pred.columns, 'levels'):
-        return _multioutput_vote(pred, _mean_pred)
+        return _multioutput_pred(pred, _mean_pred)
     else:
         return pred.groupby(pred.columns, axis=1).mean()
 
@@ -427,7 +427,7 @@ def _mean_pred(pred):
 
 def _rank_pred(pred):
     if hasattr(pred.columns, 'levels'):
-        return _multioutput_vote(pred, _rank_pred)
+        return _multioutput_pred(pred, _rank_pred)
     else:
         return pred.rank(pct=True).groupby(pred.columns, axis=1).mean()
 
@@ -460,11 +460,11 @@ def _multioutput_vote(pred, vote):
 
 
 
-def _multioutput_vote(pred, vote):
+def _multioutput_pred(pred, avg):
+    cols = pred.columns.unique()
     targets = pred.columns.get_level_values(0).unique()
     preds = [pred.loc[:, target] for target in targets]
-    preds = [vote(p) for p in preds]
+    preds = [avg(p) for p in preds]
     pred = pd.concat(preds, axis=1)
-    pred.columns = targets
-    pred.columns.name = None
+    pred.columns = cols
     return pred
