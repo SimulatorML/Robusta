@@ -8,6 +8,7 @@ from sklearn.metrics import get_scorer
 from scipy.optimize import minimize
 
 from robusta.preprocessing import QuantileTransformer
+from robusta.pipeline import make_pipeline
 
 
 __all__ = [
@@ -40,13 +41,13 @@ class Blend(LinearModel):
         if self.scoring:
 
             self.scorer = get_scorer(self.scoring)
-            objective = lambda w: -self.set_weights(w).score(Xt, y)
+            objective = lambda w: -self.set_weights(w).score(X, y)
 
             if self.opt_func is None:
                 self.opt_func = minimize
                 self.opt_kws = dict(x0=self.get_weights(), method='SLSQP',
                     options={'maxiter': 1000}, bounds=[(0., 1.)] * self.n_features_,
-                    constraints=[{'type': 'eq', 'fun': lambda w: np.sum(w)-1}]),
+                    constraints=[{'type': 'eq', 'fun': lambda w: np.sum(w)-1}])
 
             self.result_ = self.opt_func(objective, **self.opt_kws)
             self.set_weights(self.result_['x'])

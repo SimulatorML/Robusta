@@ -25,7 +25,7 @@ prep_pipe = make_pipeline(
     FeatureUnion([
         ("numeric", make_pipeline(
             TypeSelector(np.number),
-            Imputer(strategy="median"),
+            SimpleImputer("median"),
             GaussRankTransformer(),
             ColumnRenamer(prefix='gr_'),
         )),
