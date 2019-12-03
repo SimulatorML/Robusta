@@ -8,6 +8,7 @@ from sklearn.base import clone, is_regressor, is_classifier
 from sklearn.utils.validation import check_is_fitted
 from sklearn.utils.fixes import parallel_helper
 from sklearn.preprocessing import LabelBinarizer
+from sklearn.metrics import check_scoring
 
 
 __all__ = [
@@ -43,9 +44,9 @@ class MultiTargetRegressor(BaseEstimator, RegressorMixin):
         to the overhead of spawning processes.
 
     """
-
-    def __init__(self, estimator, weights=None, n_jobs=None):
+    def __init__(self, estimator, scoring=None, weights=None, n_jobs=None):
         self.estimator = estimator
+        self.scoring = scoring
         self.weights = weights
         self.n_jobs = n_jobs
 
@@ -79,8 +80,12 @@ class MultiTargetRegressor(BaseEstimator, RegressorMixin):
 
         return self
 
-    def score(self, X, Y):
-        scores = [e.score(X, Y[target]) for e, target in zip(self.estimators_, self.targets_)]
+    def score(self, X, Y, *args, **kwargs):
+        scores = []
+        for estimator, target in zip(self.estimators_, self.targets_):
+            scorer = check_scoring(estimator, self.scoring)
+            score = scorer(estimator, X, Y[target], *args, **kwargs)
+            scores.append(score)
         return np.average(scores, weights=self.weights)
 
     @property
@@ -124,8 +129,9 @@ class MultiTargetClassifier(BaseEstimator, ClassifierMixin):
 
     """
 
-    def __init__(self, estimator, weights=None, n_jobs=None):
+    def __init__(self, estimator, scoring=None, weights=None, n_jobs=None):
         self.estimator = estimator
+        self.scoring = scoring
         self.weights = weights
         self.n_jobs = n_jobs
 
@@ -143,8 +149,12 @@ class MultiTargetClassifier(BaseEstimator, ClassifierMixin):
 
         return self
 
-    def score(self, X, Y):
-        scores = [e.score(X, Y[target]) for e, target in zip(self.estimators_, self.targets_)]
+    def score(self, X, Y, *args, **kwargs):
+        scores = []
+        for estimator, target in zip(self.estimators_, self.targets_):
+            scorer = check_scoring(estimator, self.scoring)
+            score = scorer(estimator, X, Y[target], *args, **kwargs)
+            scores.append(score)
         return np.average(scores, weights=self.weights)
 
     @property
