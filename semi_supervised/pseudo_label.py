@@ -73,7 +73,7 @@ class PseudoLabeling(_BaseComposition, ClassifierMixin):
             # Predict probabilities
             y_prob = self.estimator_.predict_proba(X_new)
             y_prob = pd.DataFrame(y_prob, index=X_new.index)
-            y_new = y_prob.apply(lambda row: row.argmax(), axis=1)
+            y_new = y_prob.apply(lambda row: row.idxmax(), axis=1)
 
             # Mask rows with high certainty
             mask = (y_prob >= self.proba).any(axis=1)
