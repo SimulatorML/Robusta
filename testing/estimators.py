@@ -135,10 +135,13 @@ ESTIMATORS.append(['LGB', LGBMRanker, TAGS_])
 # TODO: Wrapper for CatBoost
 # 1. no verbose by default
 # 2. no cached files
-# 3. _estimator_type
-# 4. __repr__ (via BaseEstimator)
-#ESTIMATORS.append(['CatBoost', CatBoostClassifier, TAGS_])
-#ESTIMATORS.append(['CatBoost', CatBoostRegressor, TAGS_])
+# 3.
+#class CatBoostClassifier(BaseEstimator, CatBoostClassifier):
+#    pass
+#CatBoostClassifier()
+
+ESTIMATORS.append(['CatBoost', CatBoostClassifier, TAGS_])
+ESTIMATORS.append(['CatBoost', CatBoostRegressor, TAGS_])
 
 
 '''BART (Bayesian Additive Regressions Trees)
