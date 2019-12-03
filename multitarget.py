@@ -44,8 +44,9 @@ class MultiTargetRegressor(BaseEstimator, RegressorMixin):
 
     """
 
-    def __init__(self, estimator, n_jobs=None):
+    def __init__(self, estimator, weights=None, n_jobs=None):
         self.estimator = estimator
+        self.weights = weights
         self.n_jobs = n_jobs
 
 
@@ -77,6 +78,10 @@ class MultiTargetRegressor(BaseEstimator, RegressorMixin):
             for e, target in zip(self.estimators_, self.targets_))
 
         return self
+
+    def score(self, X, Y):
+        scores = [e.score(X, Y[target]) for e, target in zip(self.estimators_, self.targets_)]
+        return np.average(scores, weights=self.weights)
 
     @property
     def feature_importances_(self):
@@ -119,8 +124,9 @@ class MultiTargetClassifier(BaseEstimator, ClassifierMixin):
 
     """
 
-    def __init__(self, estimator, n_jobs=None):
+    def __init__(self, estimator, weights=None, n_jobs=None):
         self.estimator = estimator
+        self.weights = weights
         self.n_jobs = n_jobs
 
 
@@ -136,6 +142,10 @@ class MultiTargetClassifier(BaseEstimator, ClassifierMixin):
             for e, target in zip(self.estimators_, self.targets_))
 
         return self
+
+    def score(self, X, Y):
+        scores = [e.score(X, Y[target]) for e, target in zip(self.estimators_, self.targets_)]
+        return np.average(scores, weights=self.weights)
 
     @property
     def feature_importances_(self):
