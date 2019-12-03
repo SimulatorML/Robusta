@@ -22,7 +22,7 @@ __all__ = [
 
 def _fit_predict(estimator, method, scorer, X, y, X_new=None, new_index=None,
                  trn=None, oof=None, return_estimator=False, return_pred=False,
-                 fold=None, logger=None):
+                 fold=None, logger=None, train_score=False):
     """Fit estimator and evaluate metric(s), compute OOF predictions & etc.
 
     Parameters
@@ -65,6 +65,9 @@ def _fit_predict(estimator, method, scorer, X, y, X_new=None, new_index=None,
 
     logger : object
         Logger object
+
+    train_score : bool
+        Return train score (for overfitting detection)
 
     Returns
     -------
@@ -144,10 +147,13 @@ def _fit_predict(estimator, method, scorer, X, y, X_new=None, new_index=None,
         result['pred_time'] = time() - tic
 
     # Score
+    tic = time()
     if scorer and len(oof):
-        tic = time()
-        result['score'] = scorer(estimator, X_oof, y_oof)
-        result['score_time'] = time() - tic
+        result['val_score'] = scorer(estimator, X_oof, y_oof)
+    if scorer and train_score:
+        result['trn_score'] = scorer(estimator, X_trn, y_trn)
+
+    result['score_time'] = time() - tic
 
     # Logs
     if logger:

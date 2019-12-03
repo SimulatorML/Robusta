@@ -254,8 +254,8 @@ class _AgnosticSelector(_Selector):
                           scoring=self.scoring, n_jobs=self.n_jobs,
                           return_pred=False, verbose=0)
 
-        subset.score     = np.mean(result['score'])
-        subset.score_std = np.std(result['score'])
+        subset.score     = np.mean(result['val_score'])
+        subset.score_std = np.std( result['val_score'])
 
         if not subset.group and 'importance' in result:
             imp = result['importance']

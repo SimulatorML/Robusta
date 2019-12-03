@@ -90,18 +90,18 @@ def rating_table(results, n_digits=4, fold_scores=False):
     get_value = lambda dic, key: dic[key] if key in dic else None
     pub_score = [get_value(result, 'public_score') for result in results.values()]
     pub_score = pd.Series(pub_score, index=idx_list, name='PUBLIC')
-    priv_score = [get_value(result, 'private_score') for result in results.values()]
-    priv_score = pd.Series(priv_score, index=idx_list, name='PRIVATE')
+    prv_score = [get_value(result, 'private_score') for result in results.values()]
+    prv_score = pd.Series(prv_score, index=idx_list, name='PRIVATE')
 
-    cv_scores = [result['score'] for result in results.values()]
-    df = pd.DataFrame(cv_scores, index=idx_list)
+    val_scores = [result['val_score'] for result in results.values()]
+    df = pd.DataFrame(val_scores, index=idx_list)
     folds_cols = df.columns.map(lambda x: 'FOLD_{}'.format(x))
     df.columns = folds_cols
 
     df_stats = df.agg(['mean', 'std', 'min', 'max'], axis=1)
     df_stats.columns = ['LOCAL', 'STD', 'MIN', 'MAX']
 
-    df = pd.concat([names, priv_score, pub_score, df_stats, df], axis=1)
+    df = pd.concat([names, prv_score, pub_score, df_stats, df], axis=1)
     df.columns = df.columns.map(lambda x: x.upper())
 
     if not fold_scores:

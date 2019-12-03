@@ -36,9 +36,18 @@ class CVLogger:
             return
 
         # Append current fold's message
-        msg = '{:.{n}f}'.format(result['score'], n=self.n_digits)
-        if not self.compact:
-            msg = ' FOLD{:>3}:   '.format(fold) + msg
+        msg = ''
+
+        if 'trn_score' in result:
+            msg0 = '{:.{n}f}'.format(result['trn_score'], n=self.n_digits)
+            msg0 = f' TRN {fold}:   {msg0}'
+            msg += msg0
+
+        if 'val_score' in result:
+            msg1 = '{:.{n}f}'.format(result['val_score'], n=self.n_digits)
+            msg1 = f' VAL {fold}:   {msg1}'
+            msg += ' '*3 if msg else ''
+            msg += msg1
 
         self.queue.put((fold, msg))
 
@@ -68,21 +77,28 @@ class CVLogger:
         if not self.verbose:
             return
 
-        m = '{:.{n}f}'.format(np.mean(result['score']), n=self.n_digits)
-        s = '{:.{n}f}'.format(np.std(result['score']), n=self.n_digits)
-        m = termcolor.colored(m, 'yellow')
+        if 'trn_score' in result:
+            mt = '{:.{n}f}'.format(np.mean(result['trn_score']), n=self.n_digits)
+            st = '{:.{n}f}'.format(np.std( result['trn_score']), n=self.n_digits)
+            mt = termcolor.colored(mt, 'blue')
+
+        if 'val_score' in result:
+            mv = '{:.{n}f}'.format(np.mean(result['val_score']), n=self.n_digits)
+            sv = '{:.{n}f}'.format(np.std( result['val_score']), n=self.n_digits)
+            mv = termcolor.colored(mv, 'yellow')
 
         if self.compact:
             if self.verbose >= 2:
-                self._log(f'{m} ± {s}')
+                if 'trn_score' in result: self._log(f'{mt} ± {st}')
+                if 'val_score' in result: self._log(f'{mv} ± {sv}')
                 self._log(f'[{self.name}]', end='\n')
 
         else:
-            if self.verbose > 1:
+            if self.verbose >= 2: print()
+            if self.verbose >= 1:
+                if 'trn_score' in result: self._log(f' TRAIN:   {mt} ± {st}')
+                if 'val_score' in result: self._log(f' VALID:   {mv} ± {sv}')
                 print()
-
-            self._log(f' AVERAGE:   {m} ± {s}')
-            print()
 
 
     def _log(self, msg, end=' '*4):
