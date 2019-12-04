@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 
+from sklearn.base import BaseEstimator
+
 import warnings
 warnings.filterwarnings('ignore', category=DeprecationWarning)
 warnings.filterwarnings('ignore', category=UserWarning)
@@ -42,7 +44,10 @@ https://contrib.scikit-learn.org/py-earth/
 '''
 from pyearth import Earth
 
-ESTIMATORS.append(['MARS', Earth, {'linear'}])
+class MARS(Earth):
+    pass
+
+ESTIMATORS.append(['MARS', MARS, {'linear'}])
 
 
 '''RVM (Relevance Vector Machine)
@@ -73,8 +78,14 @@ https://scikit-learn.org/stable/modules/discriminant_analysis
 '''
 from sklearn.discriminant_analysis import *
 
-ESTIMATORS.append(['LDA', LinearDiscriminantAnalysis, {'linear'}])
-ESTIMATORS.append(['QDA', QuadraticDiscriminantAnalysis, {'linear'}])
+class LDA(LinearDiscriminantAnalysis):
+    pass
+
+class QDA(QuadraticDiscriminantAnalysis):
+    pass
+
+ESTIMATORS.append(['LDA', LDA, {'linear'}])
+ESTIMATORS.append(['QDA', QDA, {'linear'}])
 
 
 '''Scikit-Learn Nearest Neighbors
@@ -135,10 +146,12 @@ ESTIMATORS.append(['LGB', LGBMRanker, TAGS_])
 # TODO: Wrapper for CatBoost
 # 1. no verbose by default
 # 2. no cached files
-# 3.
-#class CatBoostClassifier(BaseEstimator, CatBoostClassifier):
-#    pass
-#CatBoostClassifier()
+
+class CatBoostClassifier(BaseEstimator, CatBoostClassifier):
+    pass
+
+class CatBoostRegressor(BaseEstimator, CatBoostRegressor):
+    pass
 
 ESTIMATORS.append(['CatBoost', CatBoostClassifier, TAGS_])
 ESTIMATORS.append(['CatBoost', CatBoostRegressor, TAGS_])
@@ -147,7 +160,10 @@ ESTIMATORS.append(['CatBoost', CatBoostRegressor, TAGS_])
 '''BART (Bayesian Additive Regressions Trees)
 https://github.com/JakeColtman/bartpy
 '''
-from bartpy.sklearnmodel import SklearnModel as BART
+from bartpy.sklearnmodel import SklearnModel
+
+class BART(SklearnModel):
+    pass
 
 TAGS_ = {'tree', 'ensemble'}
 
