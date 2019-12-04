@@ -106,3 +106,4 @@ class NNGRegressor(LinearModel):
             alpha=self.alpha, tol=self.tol, max_iter=self.max_iter)
 
         self._set_intercept(X_mean, y_mean, X_std)
+        return self
