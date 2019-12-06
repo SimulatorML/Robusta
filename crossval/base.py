@@ -9,8 +9,8 @@ from time import time
 from sklearn.base import clone, is_classifier
 from sklearn.model_selection import check_cv
 from sklearn.metrics import check_scoring
-from robusta.utils import logmsg, ld2dl
 from sklearn.utils import indexable
+from robusta.utils import logmsg, ld2dl
 
 from ._predict import _fit_predict, _check_avg, _avg_preds
 from ._verbose import CVLogger
@@ -28,7 +28,7 @@ __all__ = [
 def crossval(estimator, cv, X, y, groups=None, X_new=None, new_index=None,
              scoring=None, test_avg=True, avg_type='auto', method='predict',
              return_pred=True, return_estimator=False, verbose=2, n_digits=4,
-             n_jobs=-1, random_state=0, compact=False, train_score=False):
+             n_jobs=None, random_state=0, compact=False, train_score=False):
     """Evaluate metric(s) by cross-validation and also record fit/score time,
     feature importances and compute out-of-fold and test predictions.
 
@@ -303,7 +303,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, new_index=None,
 
 
 
-def crossval_score(estimator, cv, X, y, groups=None, scoring=None, n_jobs=-1,
+def crossval_score(estimator, cv, X, y, groups=None, scoring=None, n_jobs=None,
                    verbose=2, n_digits=4, random_state=0, compact=False,
                    train_score=False):
     """Evaluate metric(s) by cross-validation and also record fit/score time,

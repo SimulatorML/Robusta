@@ -7,8 +7,8 @@ import numpy as np
 
 from sklearn.utils.metaestimators import if_delegate_has_method
 from sklearn.utils.random import check_random_state
-from sklearn.metrics.scorer import check_scoring
 from sklearn.model_selection import check_cv
+from sklearn.metrics import check_scoring
 from sklearn.base import (
     BaseEstimator,
     MetaEstimatorMixin,

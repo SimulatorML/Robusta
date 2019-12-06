@@ -5,9 +5,9 @@ import scipy
 from itertools import combinations
 
 from sklearn.base import clone, BaseEstimator, TransformerMixin
-from sklearn.preprocessing import normalize
-import sklearn.preprocessing
-import dask_ml.preprocessing
+from sklearn.preprocessing import PowerTransformer, QuantileTransformer
+from sklearn.preprocessing import Normalizer, normalize
+from dask_ml.preprocessing import PolynomialFeatures
 
 from sklearn.utils.validation import check_is_fitted
 from sklearn.utils import check_array
@@ -174,7 +174,7 @@ class DowncastTransformer(BaseEstimator, TransformerMixin):
 
 
 
-class QuantileTransformer(sklearn.preprocessing.QuantileTransformer):
+class QuantileTransformer(QuantileTransformer):
 
     def transform(self, X):
 
@@ -553,7 +553,7 @@ class MaxAbsScaler(BaseEstimator, TransformerMixin):
 
 
 
-class Normalizer(sklearn.preprocessing.Normalizer):
+class Normalizer(Normalizer):
 
     def transform(self, X):
 
@@ -669,7 +669,7 @@ class KBinsDiscretizer(KBinsDiscretizer1D):
 
 
 
-class PowerTransformer(sklearn.preprocessing.PowerTransformer):
+class PowerTransformer(PowerTransformer):
 
     def fit_transform(self, X, y=None):
 
@@ -738,7 +738,7 @@ class Binarizer(BaseEstimator, TransformerMixin):
 
 
 
-class PolynomialFeatures(dask_ml.preprocessing.PolynomialFeatures):
+class PolynomialFeatures(PolynomialFeatures):
 
     def __init__(self, degree=2, interaction_only=False, include_bias=True,
                  preserve_dataframe=True):

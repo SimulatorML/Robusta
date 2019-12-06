@@ -1,6 +1,6 @@
 import numpy as np
 
-from sklearn.linear_model.base import LinearModel
+from sklearn.linear_model._base import LinearModel
 from sklearn.linear_model import LinearRegression, Lasso
 from sklearn.preprocessing import StandardScaler
 

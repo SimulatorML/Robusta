@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 from sklearn.base import ClassifierMixin, RegressorMixin, TransformerMixin, BaseEstimator
-from sklearn.linear_model.base import LinearModel
+from sklearn.linear_model._base import LinearModel
 from sklearn.metrics import get_scorer
 
 from scipy.optimize import minimize

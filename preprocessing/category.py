@@ -4,9 +4,8 @@ import numpy as np
 from itertools import combinations
 from numpy.linalg import svd
 
+from dask_ml.preprocessing import OneHotEncoder, DummyEncoder, OrdinalEncoder
 from sklearn.base import clone, BaseEstimator, TransformerMixin
-import sklearn.preprocessing
-import dask_ml.preprocessing
 
 from sklearn.utils.multiclass import type_of_target
 from robusta.utils import all_subsets
@@ -37,20 +36,6 @@ __all__ = [
     'ThermometerEncoder1D',
     'ThermometerEncoder',
 ]
-
-
-
-
-class OneHotEncoder(dask_ml.preprocessing.OneHotEncoder):
-    pass
-
-
-class DummyEncoder(dask_ml.preprocessing.DummyEncoder):
-    pass
-
-
-class OrdinalEncoder(dask_ml.preprocessing.OrdinalEncoder):
-    pass
 
 
 
