@@ -113,20 +113,25 @@ def extract_param_space(estimator, verbose=True):
     param_names = {}
     param_space = {}
 
-    # Find Estimators
+    # Check if Estimator itself
+    if hasattr(estimator, 'fit'):
+        name = get_estimator_name(estimator, short=True)
+
+        if name in PARAM_SPACE:
+            param_names[name] = estimator
+            param_space.update(PARAM_SPACE[name])
+
+    # Find Estimators in Params
     for key, val in params.items():
 
-        if not hasattr(val, 'fit'):
-            continue
+        if hasattr(val, 'fit'):
+            name = get_estimator_name(val, short=True)
 
-        name = get_estimator_name(val, short=True)
-        if name not in PARAM_SPACE:
-            continue
+            if name in PARAM_SPACE:
+                for param, space in PARAM_SPACE[name].items():
+                    param_space[f"{key}__{param}"] = space
 
-        for param, space in PARAM_SPACE[name].items():
-            param_space[f"{key}__{param}"] = space
-
-        param_names[key] = val
+                param_names[key] = val
 
     # Verbose
     if verbose:
