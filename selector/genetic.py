@@ -167,6 +167,7 @@ class GeneticSelector(_AgnosticSelector):
         if not partial or not hasattr(self, 'trials_'):
 
             self._reset_trials()
+            self.n_gen_ = 0
 
             # Init toolbox
             self.toolbox = base.Toolbox()
@@ -190,10 +191,10 @@ class GeneticSelector(_AgnosticSelector):
         self.toolbox.register("mutate", mutSubset, random_state=self.rstate, indpb=self.mut_prob)
         self.toolbox.register("select", tools.selTournament, tournsize=3, fit_attr='score')
 
-        self.n_gen_ = 0 if
         while not self.max_iter or self.n_iters_ < self.max_iter:
 
             self.n_gen_ += 1
+
             if self.verbose:
                 logmsg(f'GENERATION {self.n_gen_}')
 
