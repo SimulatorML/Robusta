@@ -7,6 +7,8 @@ from deap import creator, base, tools, algorithms
 from robusta.utils import logmsg
 from .base import _GroupSelector, _AgnosticSelector
 
+from ._plot import _plot_progress
+
 
 __all__ = ['GeneticSelector', 'GroupGeneticSelector']
 
@@ -188,7 +190,7 @@ class GeneticSelector(_AgnosticSelector):
         self.toolbox.register("mutate", mutSubset, random_state=self.rstate, indpb=self.mut_prob)
         self.toolbox.register("select", tools.selTournament, tournsize=3, fit_attr='score')
 
-        self.n_gen_ = 0
+        self.n_gen_ = 0 if
         while not self.max_iter or self.n_iters_ < self.max_iter:
 
             self.n_gen_ += 1
@@ -227,6 +229,11 @@ class GeneticSelector(_AgnosticSelector):
 
     def get_subset(self):
         return self.best_subset_
+
+    def plot(self, **kwargs):
+        kwargs_ = dict(marker='.', linestyle='--', alpha=0.3, c='g')
+        kwargs_.update(kwargs)
+        return _plot_progress(self, **kwargs_)
 
 
 
