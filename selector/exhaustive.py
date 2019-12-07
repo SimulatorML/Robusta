@@ -138,7 +138,7 @@ class ExhaustiveSelector(_AgnosticSelector):
             subset = self.subsets_[self.k_iter]
 
             try:
-                self.check_subset(subset, X, y, groups)
+                self.eval_subset(subset, X, y, groups)
             except KeyboardInterrupt:
                 break
 

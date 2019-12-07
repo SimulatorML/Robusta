@@ -266,7 +266,7 @@ class _AgnosticSelector(_Selector):
 
 
 
-    def check_subset(self, subset, X, y, groups=None):
+    def eval_subset(self, subset, X, y, groups=None):
 
         # Convert to FeatureSubset
         if type(subset) != type(self.features_):
@@ -294,6 +294,8 @@ class _AgnosticSelector(_Selector):
         # Check limits
         self._check_max_iter()
         self._check_max_time()
+
+        return subset.score
 
 
     def _check_max_iter(self):

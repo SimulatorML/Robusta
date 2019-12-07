@@ -148,7 +148,7 @@ class RFE(_AgnosticSelector):
 
     def _fit(self, X, y, groups):
 
-        self.check_subset(self.subset_, X, y, groups)
+        self.eval_subset(self.subset_, X, y, groups)
 
         for k in self.k_range_:
             try:

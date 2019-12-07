@@ -144,8 +144,8 @@ class RandomSelector(_AgnosticSelector):
             try:
                 k = weighted_choice(self.weights_, self.rstate_)
                 subset = self.features_.sample(size=k, random_state=self.rstate_)
-                
-                self.check_subset(subset, X, y, groups)
+
+                self.eval_subset(subset, X, y, groups)
 
             except KeyboardInterrupt:
                 break

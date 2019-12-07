@@ -144,18 +144,18 @@ class GeneticSelector(_AgnosticSelector):
         self.n_digits = n_digits
 
 
-    def fit(self, X, y):
+    def fit(self, X, y, groups=None):
 
         self._fit_start(X)
-        self._fit(X, y)
+        self._fit(X, y, groups)
 
         return self
 
 
-    def partial_fit(self, X, y):
+    def partial_fit(self, X, y, groups=None):
 
         self._fit_start(X, partial=True)
-        self._fit(X, y)
+        self._fit(X, y, groups)
 
         return self
 
@@ -183,11 +183,11 @@ class GeneticSelector(_AgnosticSelector):
         return self
 
 
-    def _fit(self, X, y):
+    def _fit(self, X, y, groups):
 
         # Define mutation & selection
-        self.toolbox.register("eval", self.check_subset, X=X, y=y)
         self.toolbox.register("mate", cxSubset, random_state=self.rstate)
+        self.toolbox.register("eval", self.eval_subset, X=X, y=y, groups=groups)
         self.toolbox.register("mutate", mutSubset, random_state=self.rstate, indpb=self.mut_prob)
         self.toolbox.register("select", tools.selTournament, tournsize=3, fit_attr='score')
 
