@@ -266,7 +266,7 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
 
     """
     def __init__(self, estimator, cv='prefit', scoring=None, n_repeats=5,
-                 random_state=None, progress_bar=False, n_jobs=-1):
+                 random_state=None, progress_bar=False, n_jobs=None):
 
         self.estimator = estimator
         self.scoring = scoring
