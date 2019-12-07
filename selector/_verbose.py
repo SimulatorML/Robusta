@@ -18,7 +18,8 @@ def _print_last(fs):
         n = fs.max_iter if hasattr(fs, 'max_iter') else None
         k = subset.idx + 1
 
-        iters = f'ITER: {k}/{n}' if n else f'{k}'
+        iters = f'{k}/{n}' if n else f'{k}'
+        iters = 'ITER: ' + iters
 
         # Number of features
         sub = f'SUBSET: {len(subset)}/{fs.n_features_}'
