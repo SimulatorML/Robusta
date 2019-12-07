@@ -248,7 +248,7 @@ class _AgnosticSelector(_Selector):
 
 
 
-    def _eval_subset(self, subset, X, y, groups=None):
+    def _eval_subset(self, subset, X, y, groups):
 
         result = crossval(self.estimator, self.cv, X[subset], y, groups,
                           scoring=self.scoring, n_jobs=self.n_jobs,
@@ -274,7 +274,7 @@ class _AgnosticSelector(_Selector):
 
         # Evaluate
         tic = time()
-        self._eval_subset(subset, X, y, groups=None)
+        self._eval_subset(subset, X, y, groups)
         eval_time = time() - tic
 
         # Update stats
