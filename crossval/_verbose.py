@@ -40,12 +40,12 @@ class CVLogger:
 
         if 'trn_score' in result:
             msg0 = '{:.{n}f}'.format(result['trn_score'], n=self.n_digits)
-            msg0 = f' TRN {fold}:   {msg0}'
+            msg0 = f' TRN {fold+1}:   {msg0}'
             msg += msg0
 
         if 'val_score' in result:
             msg1 = '{:.{n}f}'.format(result['val_score'], n=self.n_digits)
-            msg1 = f' VAL {fold}:   {msg1}'
+            msg1 = f' VAL {fold+1}:   {msg1}'
             msg += ' '*3 if msg else ''
             msg += msg1
 
