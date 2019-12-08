@@ -5,10 +5,13 @@ from sklearn.base import clone, BaseEstimator, ClassifierMixin
 from sklearn.model_selection import GroupKFold
 from sklearn.exceptions import NotFittedError
 
+from collections import Counter, defaultdict
 from itertools import chain
 
 __all__ = [
+    'StratifiedGroupKFold',
     'RepeatedGroupKFold',
+    'RepeatedStratifiedGroupKFold',
     'AdversarialValidation',
     'make_adversarial_validation',
 ]
@@ -48,6 +51,144 @@ class RepeatedGroupKFold():
 
     def get_n_splits(self):
         return self.n_repeats * self.n_splits
+
+
+
+class StratifiedGroupKFold():
+
+    def __init__(self, n_splits=5, shuffle=False, random_state=None, batches=2**10):
+        self.n_splits = n_splits
+        self.shuffle = shuffle
+        self.random_state = random_state
+        self.batches = batches
+
+    def get_n_splits(self, X=None, y=None, groups=None):
+        return self.n_splits
+
+    def split(self, X, y, groups):
+
+        # Global stats
+        groups_unique = set(groups.unique())
+        labels = np.sort(y.unique())
+
+        counts = [groups[y == label].value_counts(sort=False) for label in labels]
+        counts = pd.concat(counts, axis=1).fillna(0).astype(int)
+        counts.columns = labels
+
+        labels_total = counts.sum()
+
+        if self.shuffle:
+            counts = counts.sample(frac=1, random_state=self.random_state)
+
+        # Mini-Batches
+        n = len(groups_unique)
+        batch_size = n // self.batches
+
+        batches = [counts.iloc[k:k+batch_size] for k in range(0, n, batch_size)]
+        batches.sort(key=lambda batch: -batch.sum().std())
+
+        # Local stats (per fold)
+        fold_labels = pd.DataFrame(0, columns=labels, index=range(self.n_splits))
+        fold_groups = defaultdict(set)
+
+        for batch in batches:
+            batch_groups = batch.index
+            batch_labels = batch.sum()
+
+            best_idx = None
+            best_std = None
+
+            for i in range(self.n_splits):
+
+                fold_labels.loc[i] += batch_labels
+                fold_std = fold_labels.std().mean()
+
+                if best_std is None or fold_std < best_std:
+                    best_std = fold_std
+                    best_idx = i
+
+                fold_labels.loc[i] -= batch_labels
+
+            fold_labels.loc[best_idx] += batch_labels
+            fold_groups[best_idx].update(batch_groups)
+
+        # Yield indices
+        for oof_groups in fold_groups.values():
+            trn_groups = groups_unique - oof_groups
+
+            trn = groups[groups.isin(trn_groups)].index
+            oof = groups[groups.isin(oof_groups)].index
+
+            yield trn, oof
+
+
+class RepeatedStratifiedGroupKFold():
+
+    def __init__(self, n_splits=5, n_repeats=3, random_state=None, batches=2**10):
+        self.n_splits = n_splits
+        self.n_repeats = n_repeats
+        self.random_state = random_state
+        self.batches = batches
+
+    def get_n_splits(self, X=None, y=None, groups=None):
+        return self.n_splits * self.n_repeats
+
+    def split(self, X, y, groups):
+
+        # Global stats
+        groups_unique = set(groups.unique())
+        labels = np.sort(y.unique())
+
+        counts = [groups[y == label].value_counts(sort=False) for label in labels]
+        counts = pd.concat(counts, axis=1).fillna(0).astype(int)
+        counts.columns = labels
+
+        labels_total = counts.sum()
+
+        for _ in range(self.n_repeats):
+            counts = counts.sample(frac=1, random_state=self.random_state)
+
+            # Mini-Batches
+            n = len(groups_unique)
+            batch_size = n // self.batches
+
+            batches = [counts.iloc[k:k+batch_size] for k in range(0, n, batch_size)]
+            batches.sort(key=lambda batch: -batch.sum().std())
+
+            # Local stats (per fold)
+            fold_labels = pd.DataFrame(0, columns=labels, index=range(self.n_splits))
+            fold_groups = defaultdict(set)
+
+            for batch in batches:
+                batch_groups = batch.index
+                batch_labels = batch.sum()
+
+                best_idx = None
+                best_std = None
+
+                for i in range(self.n_splits):
+
+                    fold_labels.loc[i] += batch_labels
+                    fold_std = fold_labels.std().mean()
+
+                    if best_std is None or fold_std < best_std:
+                        best_std = fold_std
+                        best_idx = i
+
+                    fold_labels.loc[i] -= batch_labels
+
+                fold_labels.loc[best_idx] += batch_labels
+                fold_groups[best_idx].update(batch_groups)
+
+            # Yield indices
+            for oof_groups in fold_groups.values():
+                trn_groups = groups_unique - oof_groups
+
+                trn = groups[groups.isin(trn_groups)].index
+                oof = groups[groups.isin(oof_groups)].index
+
+                yield trn, oof
+
 
 
 class AdversarialValidation():
