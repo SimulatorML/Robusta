@@ -28,7 +28,24 @@ def shuffle_labels(labels, random_state=None):
 
 
 class RepeatedGroupKFold():
+    """Repeated Group KFold
 
+    Same as RepeatedKFold but each group presents only in one fold on each repeat.
+
+    Parameters
+    ----------
+    n_splits : int, default=5
+        Number of splits. Must be at least 2.
+
+    n_repeats : int, optional
+        Number of times cross-validator needs to be repeated.
+
+    random_state : int, RandomState instance or None, optional, default=None
+        If None, the random number generator is the RandomState instance used by np.random.
+        If int, random_state is the seed used by the random number generator;
+        If RandomState instance, random_state is the random number generator;
+
+    """
     def __init__(self, n_splits=5, n_repeats=3, random_state=0):
 
         self.n_splits = n_splits
@@ -55,7 +72,28 @@ class RepeatedGroupKFold():
 
 
 class StratifiedGroupKFold():
+    """Stratified Group KFold
 
+    Same as StratifiedKFold but each group presents only in one fold.
+
+    Parameters
+    ----------
+    n_splits : int, default=5
+        Number of splits. Must be at least 2.
+
+    n_batches : int, default=1024
+        Split groups to min(n_batches, n_groups) parts.
+        Must be greater than n_splits.
+
+    shuffle : boolean, optional
+        Whether to shuffle each class’s samples before splitting into batches.
+
+    random_state : int, RandomState instance or None, optional, default=0
+        If None, the random number generator is the RandomState instance used by np.random.
+        If int, random_state is the seed used by the random number generator;
+        If RandomState instance, random_state is the random number generator;
+
+    """
     def __init__(self, n_splits=5, n_batches=1024, shuffle=False, random_state=0):
         self.n_splits = n_splits
         self.n_batches = n_batches
@@ -82,7 +120,7 @@ class StratifiedGroupKFold():
 
         # Mini-Batches
         n = len(groups_unique)
-        batch_size = n // self.n_batches
+        batch_size = max(n // self.n_batches, 1)
 
         batches = [counts.iloc[k:k+batch_size] for k in range(0, n, batch_size)]
         batches.sort(key=lambda batch: -batch.sum().std())
@@ -123,7 +161,28 @@ class StratifiedGroupKFold():
 
 
 class RepeatedStratifiedGroupKFold():
+    """Repeated Stratified Group KFold
 
+    Same as RepeatedStratifiedKFold but each group presents only in one fold on each repeat.
+
+    Parameters
+    ----------
+    n_splits : int, default=5
+        Number of splits. Must be at least 2.
+
+    n_repeats : int, optional
+        Number of times cross-validator needs to be repeated.
+
+    n_batches : int, default=1024
+        Split groups to min(n_batches, n_groups) parts.
+        Must be greater than n_splits.
+
+    random_state : int, RandomState instance or None, optional, default=0
+        If None, the random number generator is the RandomState instance used by np.random.
+        If int, random_state is the seed used by the random number generator;
+        If RandomState instance, random_state is the random number generator;
+
+    """
     def __init__(self, n_splits=5, n_repeats=3, n_batches=1024, random_state=None):
         self.n_splits = n_splits
         self.n_repeats = n_repeats
@@ -150,7 +209,7 @@ class RepeatedStratifiedGroupKFold():
 
             # Mini-Batches
             n = len(groups_unique)
-            batch_size = n // self.n_batches
+            batch_size = max(n // self.n_batches, 1)
 
             batches = [counts.iloc[k:k+batch_size] for k in range(0, n, batch_size)]
             batches.sort(key=lambda batch: -batch.sum().std())
