@@ -6,7 +6,6 @@ from collections.abc import Iterable
 from sklearn.base import BaseEstimator, RegressorMixin, ClassifierMixin
 from sklearn.base import clone, is_regressor, is_classifier
 from sklearn.utils.validation import check_is_fitted
-from sklearn.utils.fixes import parallel_helper
 from sklearn.preprocessing import LabelBinarizer
 from sklearn.metrics import check_scoring
 
@@ -192,8 +191,7 @@ def _call_estimator(estimator, X, method):
 
     check_is_fitted(estimator, 'estimators_')
 
-    Y = Parallel(n_jobs=estimator.n_jobs)(
-        delayed(parallel_helper)(e, method, X)
+    Y = Parallel(n_jobs=estimator.n_jobs)(getattr(e, method)(X)
         for e in estimator.estimators_)
 
     return Y
