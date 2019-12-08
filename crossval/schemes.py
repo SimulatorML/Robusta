@@ -56,11 +56,11 @@ class RepeatedGroupKFold():
 
 class StratifiedGroupKFold():
 
-    def __init__(self, n_splits=5, shuffle=False, random_state=None, batches=2**10):
+    def __init__(self, n_splits=5, n_batches=1024, shuffle=False, random_state=0):
         self.n_splits = n_splits
+        self.n_batches = n_batches
         self.shuffle = shuffle
         self.random_state = random_state
-        self.batches = batches
 
     def get_n_splits(self, X=None, y=None, groups=None):
         return self.n_splits
@@ -82,7 +82,7 @@ class StratifiedGroupKFold():
 
         # Mini-Batches
         n = len(groups_unique)
-        batch_size = n // self.batches
+        batch_size = n // self.n_batches
 
         batches = [counts.iloc[k:k+batch_size] for k in range(0, n, batch_size)]
         batches.sort(key=lambda batch: -batch.sum().std())
@@ -124,11 +124,11 @@ class StratifiedGroupKFold():
 
 class RepeatedStratifiedGroupKFold():
 
-    def __init__(self, n_splits=5, n_repeats=3, random_state=None, batches=2**10):
+    def __init__(self, n_splits=5, n_repeats=3, n_batches=1024, random_state=None):
         self.n_splits = n_splits
         self.n_repeats = n_repeats
+        self.n_batches = n_batches
         self.random_state = random_state
-        self.batches = batches
 
     def get_n_splits(self, X=None, y=None, groups=None):
         return self.n_splits * self.n_repeats
@@ -150,7 +150,7 @@ class RepeatedStratifiedGroupKFold():
 
             # Mini-Batches
             n = len(groups_unique)
-            batch_size = n // self.batches
+            batch_size = n // self.n_batches
 
             batches = [counts.iloc[k:k+batch_size] for k in range(0, n, batch_size)]
             batches.sort(key=lambda batch: -batch.sum().std())
