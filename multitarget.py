@@ -191,7 +191,9 @@ def _call_estimator(estimator, X, method):
 
     check_is_fitted(estimator, 'estimators_')
 
-    Y = Parallel(n_jobs=estimator.n_jobs)(getattr(e, method)(X)
+    call_estimator = lambda e: getattr(e, method)(X)
+
+    Y = Parallel(n_jobs=estimator.n_jobs)(delayed(call_estimator)(e)
         for e in estimator.estimators_)
 
     return Y
