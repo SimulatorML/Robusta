@@ -174,7 +174,7 @@ class TypeSelector(BaseEstimator, TransformerMixin):
             self.dtypes = [self.dtype]
 
         self.columns_ = X.select_dtypes(include=self.dtypes).columns
-        
+
         return self
 
 
@@ -359,6 +359,14 @@ class ColumnRenamer(BaseEstimator, TransformerMixin):
 
             elif callable(self.column):
                 features = [self.column(x) for x in X]
+
+            elif isinstance(self.column, dict):
+                features = []
+                for feature in X:
+                    if feature in self.column:
+                        features.append(self.column[feature])
+                    else:
+                        features.append(feature)
 
             else:
                 raise ValueError('Unknown <column> type passed: {}'.format(self.column))
