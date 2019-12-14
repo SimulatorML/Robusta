@@ -159,7 +159,7 @@ class RFE(_AgnosticSelector):
                 self.subset_ = self.subset_.copy().set_subset(subset)
                 self.subset_.parents = [parent]
 
-                self.check_subset(self.subset_, X, y, groups)
+                self.eval_subset(self.subset_, X, y, groups)
 
                 if self.k_features_ <= self.min_features_:
                     break
