@@ -61,6 +61,7 @@ __all__ = [
     'SVDEncoder',
     'ThermometerEncoder1D',
     'ThermometerEncoder',
+    'GroupByEncoder',
 
     # Categorical (supervised)
     # binary & regression

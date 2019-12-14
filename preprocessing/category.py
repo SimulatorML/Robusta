@@ -35,6 +35,7 @@ __all__ = [
     'SVDEncoder',
     'ThermometerEncoder1D',
     'ThermometerEncoder',
+    'GroupByEncoder',
 ]
 
 
@@ -484,3 +485,26 @@ class ThermometerEncoder(ThermometerEncoder1D):
             X_list.append(x)
 
         return pd.concat(X_list, axis=1)
+
+
+
+class GroupByEncoder(BaseEstimator, TransformerMixin):
+
+    def __init__(self, func='mean', diff=False):
+        self.func = func
+        self.diff = diff
+
+    def fit(self, X, y=None):
+        self.cats_ = list(X.select_dtypes(['category', 'object']))
+        self.nums_ = list(X.select_dtypes(np.number))
+        return self
+
+    def transform(self, X):
+        Xt = pd.DataFrame(index=X.index)
+        for cat in self.cats_:
+            for num in self.nums_:
+                col = num+'__'+cat
+                Xt[col] = X[num].groupby(X[cat]).transform(self.func)
+                if self.diff: Xt[col] = X[num] - Xt[col]
+
+        return Xt
