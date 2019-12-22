@@ -13,6 +13,14 @@ def all_subsets(cols, k_range):
 
 
 
+def get_ranks(arr, normalize=False):
+    arr = np.array(arr)
+    ind = np.argsort(arr)
+    arr[ind] = np.arange(len(arr))
+    return arr / sum(arr) if normalize else arr
+
+
+
 def bytefmt(n, rnd=True):
     '''Convert number of bytes to string.
     See <rnd> parameter documentation.
