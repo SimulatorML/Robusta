@@ -6,12 +6,12 @@ from sklearn.exceptions import NotFittedError
 
 from robusta.utils import logmsg
 
-from .base import _AgnosticSelector, _GroupSelector, _check_k_features
+from .base import _WrappedSelector, _GroupSelector, _check_k_features
 
 
 
 
-class GreedSelector(_AgnosticSelector):
+class GreedSelector(_WrappedSelector):
     '''Greed Forward/Backward Feature Selector
 
     Parameters

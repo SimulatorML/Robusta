@@ -4,11 +4,11 @@ import numpy as np
 from sklearn.exceptions import NotFittedError
 
 from robusta.utils import all_subsets
-from .base import _AgnosticSelector, _GroupSelector
+from .base import _WrappedSelector, _GroupSelector
 
 
 
-class ExhaustiveSelector(_AgnosticSelector):
+class ExhaustiveSelector(_WrappedSelector):
     '''Exhaustive feature selector for sampling and evaluating all possible
     feature subsets of specified size.
 

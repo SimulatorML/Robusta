@@ -5,7 +5,7 @@ from sklearn.utils.random import check_random_state
 from deap import creator, base, tools, algorithms
 
 from robusta.utils import logmsg
-from .base import _GroupSelector, _AgnosticSelector
+from .base import _GroupSelector, _WrappedSelector
 
 from ._plot import _plot_progress
 
@@ -147,7 +147,7 @@ def mutSubset(ind, indpb, random_state=None, drop_attrs=['score']):
 
 
 
-class GeneticSelector(_AgnosticSelector):
+class GeneticSelector(_WrappedSelector):
     '''Feature Selector based on Differential Evolution algorithm
 
     Parameters

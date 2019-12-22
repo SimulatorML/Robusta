@@ -207,7 +207,7 @@ class _GroupSelector:
 
 
 
-class _AgnosticSelector(_Selector):
+class _WrappedSelector(_Selector):
 
     @abc.abstractmethod
     def __init__(self, estimator, cv=5, scoring=None, max_iter=20, max_time=None,
