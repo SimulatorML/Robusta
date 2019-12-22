@@ -15,7 +15,7 @@ __all__ = ['GeneticSelector', 'GroupGeneticSelector']
 
 
 
-def cxSubset(ind1, ind2, indpb=0.5, random_state=None, drop_attrs=['score']):
+def cxUniform(ind1, ind2, indpb=0.5, random_state=None, drop_attrs=['score']):
 
     rstate = check_random_state(random_state)
     mask1, mask2 = [], []
@@ -40,6 +40,89 @@ def cxSubset(ind1, ind2, indpb=0.5, random_state=None, drop_attrs=['score']):
                 delattr(child, attr)
 
     return child1, child2
+
+
+def cxOnePoint(ind1, ind2, indpb=0.5, random_state=None, drop_attrs=['score']):
+
+    rstate = check_random_state(random_state)
+
+    n = ind1.n_features
+    argsort = rstate.permutation(n)
+
+    a = rstate.randint(n)
+
+    mask1 = np.zeros((n,), dtype=bool)
+    mask2 = np.zeros((n,), dtype=bool)
+
+    for i in range(n):
+        j = argsort[i]
+        x = ind1.mask[i]
+        y = ind2.mask[j]
+        if a <= i:
+            mask1[j] = x
+            mask2[j] = y
+        else:
+            mask1[j] = y
+            mask2[j] = x
+
+    child1 = ind1.copy().set_mask(mask1)
+    child2 = ind2.copy().set_mask(mask2)
+
+    child1.parents = (ind1, ind2)
+    child2.parents = (ind1, ind2)
+
+    for attr in drop_attrs:
+        for child in [child1, child2]:
+            if hasattr(child, attr):
+                delattr(child, attr)
+
+    return child1, child2
+
+
+def cxTwoPoint(ind1, ind2, indpb=0.5, random_state=None, drop_attrs=['score']):
+
+    rstate = check_random_state(random_state)
+
+    n = ind1.n_features
+    argsort = rstate.permutation(n)
+
+    a = rstate.randint(n)
+    b = rstate.randint(n)
+    a, b = min(a, b), max(a, b)
+
+    mask1 = np.zeros((n,), dtype=bool)
+    mask2 = np.zeros((n,), dtype=bool)
+
+    for i in range(n):
+        j = argsort[i]
+        x = ind1.mask[i]
+        y = ind2.mask[j]
+        if a <= i <= b:
+            mask1[j] = x
+            mask2[j] = y
+        else:
+            mask1[j] = y
+            mask2[j] = x
+
+    child1 = ind1.copy().set_mask(mask1)
+    child2 = ind2.copy().set_mask(mask2)
+
+    child1.parents = (ind1, ind2)
+    child2.parents = (ind1, ind2)
+
+    for attr in drop_attrs:
+        for child in [child1, child2]:
+            if hasattr(child, attr):
+                delattr(child, attr)
+
+    return child1, child2
+
+
+CROSSOVER = {
+    'one': cxOnePoint,
+    'two': cxTwoPoint,
+    'uni': cxUniform,
+}
 
 
 
@@ -120,22 +203,27 @@ class GeneticSelector(_AgnosticSelector):
 
     '''
 
-    def __init__(self, estimator, cv=5, scoring=None, mut_freq=0.1, mut_prob=0.05,
-                 crossover=0.5, pop_size=20, max_iter=None, max_time=None,
-                 random_state=None, n_jobs=None, verbose=1, n_digits=4):
+    def __init__(self, estimator, cv=5, scoring=None, cx_type='one', cx_rate=0.5,
+                 mut_freq=0.1, mut_prob=0.05, max_iter=None, max_time=None,
+                 pop_size=20, ind_init=0.5, random_state=None, n_jobs=None,
+                 verbose=1, n_digits=4):
 
         self.estimator = estimator
         self.scoring = scoring
         #self.std = std
         self.cv = cv
 
-        self.crossover = crossover
+        self.cx_type = cx_type
+        self.cx_rate = cx_rate
+
         self.mut_freq = mut_freq
         self.mut_prob = mut_prob
 
         self.pop_size = pop_size
         self.max_iter = max_iter
         self.max_time = max_time
+
+        self.ind_init = ind_init
 
         self.random_state = random_state
         self.n_jobs = n_jobs
@@ -185,8 +273,11 @@ class GeneticSelector(_AgnosticSelector):
 
     def _fit(self, X, y, groups):
 
-        # Define mutation & selection
-        self.toolbox.register("mate", cxSubset, random_state=self.rstate)
+        # Define crossover
+        crossover = CROSSOVER[self.cx_type]
+        self.toolbox.register("mate", crossover, random_state=self.rstate)
+
+        # Define evaluation, mutation, selection
         self.toolbox.register("eval", self.eval_subset, X=X, y=y, groups=groups)
         self.toolbox.register("mutate", mutSubset, random_state=self.rstate, indpb=self.mut_prob)
         self.toolbox.register("select", tools.selTournament, tournsize=3, fit_attr='score')
@@ -204,7 +295,7 @@ class GeneticSelector(_AgnosticSelector):
 
                 # Apply crossover
                 for i in range(1, len(offspring), 2):
-                    if self.rstate.rand() < self.crossover:
+                    if self.rstate.rand() < self.cx_rate:
                         parent1, parent2 = offspring[i-1:i+1]
                         child1, child2 = self.toolbox.mate(parent1, parent2)
                         offspring[i-1:i+1] = child1, child2
@@ -224,6 +315,27 @@ class GeneticSelector(_AgnosticSelector):
 
             except KeyboardInterrupt:
                 break
+
+            if self.verbose:
+                print()
+
+                score = [ind.score for ind in offspring]
+                avg = np.mean(score)
+                std = np.std(score)
+
+                logmsg('SCORE AVG: {:.{n}f} ± {:.{n}f}'.format(avg, std, n=self.n_digits))
+                logmsg('SCORE MIN: {:.{n}f}'.format(np.min(score), n=self.n_digits))
+                logmsg('SCORE MAX: {:.{n}f}'.format(np.max(score), n=self.n_digits))
+                print()
+
+                sizes = [ind.n_selected for ind in offspring]
+                avg = int(np.mean(sizes))
+                std = np.std(sizes)
+
+                logmsg('SIZE AVG: {} ± {:.{n}f}'.format(avg, std, n=self.n_digits))
+                logmsg('SIZE MIN: {}'.format(np.min(sizes)))
+                logmsg('SIZE MAX: {}'.format(np.max(sizes)))
+                print()
 
         return self
 
