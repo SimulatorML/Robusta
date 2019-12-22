@@ -4,7 +4,7 @@ import pandas as pd
 from sklearn.utils.random import check_random_state
 from deap import creator, base, tools, algorithms
 
-from robusta.utils import logmsg
+from robusta.utils import logmsg, get_ranks
 from .base import _GroupSelector, _WrappedSelector
 
 from ._plot import _plot_progress
@@ -203,33 +203,30 @@ class GeneticSelector(_WrappedSelector):
 
     '''
 
-    def __init__(self, estimator, cv=5, scoring=None, cx_type='one', cx_rate=0.5,
-                 mut_freq=0.1, mut_prob=0.05, max_iter=None, max_time=None,
-                 pop_size=20, ind_init=0.5, random_state=None, n_jobs=None,
-                 verbose=1, n_digits=4):
+    def __init__(self, estimator, cv=5, scoring=None, n_gen=None, crossover='one',
+                 min_features=0.1, max_features=0.9, pop_size=50, mutation=0.01,
+                 max_time=None, random_state=None, n_jobs=None, verbose=1,
+                 n_digits=4):
 
         self.estimator = estimator
         self.scoring = scoring
-        #self.std = std
         self.cv = cv
 
-        self.cx_type = cx_type
-        self.cx_rate = cx_rate
+        self.min_features = min_features
+        self.max_features = max_features
 
-        self.mut_freq = mut_freq
-        self.mut_prob = mut_prob
+        self.crossover = crossover
+        self.mutation = mutation
 
-        self.pop_size = pop_size
-        self.max_iter = max_iter
         self.max_time = max_time
-
-        self.ind_init = ind_init
+        self.pop_size = pop_size
+        self.n_gen = n_gen
 
         self.random_state = random_state
-        self.n_jobs = n_jobs
-
         self.verbose = verbose
+
         self.n_digits = n_digits
+        self.n_jobs = n_jobs
 
 
     def fit(self, X, y, groups=None):
@@ -255,14 +252,22 @@ class GeneticSelector(_WrappedSelector):
         if not partial or not hasattr(self, 'trials_'):
 
             self._reset_trials()
-            self.n_gen_ = 0
+            self.k_gen_ = 0
 
             # Init toolbox
             self.toolbox = base.Toolbox()
             self.rstate = check_random_state(self.random_state)
 
             # Define individual
-            self.toolbox.register("individual", self.features_.sample)
+            k_min = self.min_features_
+            k_max = self.max_features_
+
+            def get_individual():
+                ind_size = self.rstate.choice(range(k_min, k_max+1))
+                features = self.features_.sample(ind_size)
+                return features
+
+            self.toolbox.register("individual", get_individual)
 
             # Define population
             self.toolbox.register("population", tools.initRepeat, list, self.toolbox.individual)
@@ -273,45 +278,47 @@ class GeneticSelector(_WrappedSelector):
 
     def _fit(self, X, y, groups):
 
-        # Define crossover
-        crossover = CROSSOVER[self.cx_type]
-        self.toolbox.register("mate", crossover, random_state=self.rstate)
+        # Define crossover & mutation
+        mate = CROSSOVER[self.crossover]
+        self.toolbox.register("mate", mate, random_state=self.rstate)
+        self.toolbox.register("mutate", mutSubset, random_state=self.rstate, indpb=self.mutation)
 
-        # Define evaluation, mutation, selection
+        # Define evaluation & selection
         self.toolbox.register("eval", self.eval_subset, X=X, y=y, groups=groups)
-        self.toolbox.register("mutate", mutSubset, random_state=self.rstate, indpb=self.mut_prob)
-        self.toolbox.register("select", tools.selTournament, tournsize=3, fit_attr='score')
+        self.toolbox.register("select", tools.selTournament, tournsize=5, fit_attr='score')
 
-        while not self.max_iter or self.n_iters_ < self.max_iter:
-
-            self.n_gen_ += 1
+        while not self.n_gen or self.k_gen_ < self.n_gen:
 
             if self.verbose:
-                logmsg(f'GENERATION {self.n_gen_}')
+                logmsg(f'GENERATION {self.k_gen_+1}')
 
             try:
-                # Select the next generation individuals
-                offspring = [ind.copy() for ind in self.population]
+                #offspring = [ind.copy() for ind in self.population]
+                offspring = []
 
                 # Apply crossover
-                for i in range(1, len(offspring), 2):
-                    if self.rstate.rand() < self.cx_rate:
-                        parent1, parent2 = offspring[i-1:i+1]
-                        child1, child2 = self.toolbox.mate(parent1, parent2)
-                        offspring[i-1:i+1] = child1, child2
+                if self.k_gen_ > 0:
+                    weights = [ind.score for ind in self.population]
+                    weights = get_ranks(weights, normalize=True)
+                else:
+                    weights = None
+
+                for _ in range(self.pop_size):
+                    ind1, ind2 = self.rstate.choice(self.population, 2, p=weights)
+                    child, _ = self.toolbox.mate(ind1, ind2)
+                    offspring.append(child)
 
                 # Apply mutation
-                for mutant in offspring:
-                    if self.rstate.rand() < self.mut_freq:
-                        self.toolbox.mutate(mutant)
+                for ind in offspring:
+                    self.toolbox.mutate(ind)
 
                 # Evaluate
                 for ind in offspring:
-                    if not hasattr(ind, 'score') and len(ind):
-                        self.toolbox.eval(ind)
+                    self.toolbox.eval(ind)
 
                 # Select
                 self.population = self.toolbox.select(offspring, k=self.pop_size)
+                self.k_gen_ += 1
 
             except KeyboardInterrupt:
                 break
@@ -319,13 +326,13 @@ class GeneticSelector(_WrappedSelector):
             if self.verbose:
                 print()
 
-                score = [ind.score for ind in offspring]
-                avg = np.mean(score)
-                std = np.std(score)
+                scores = [ind.score for ind in offspring]
+                avg = np.mean(scores)
+                std = np.std(scores)
 
                 logmsg('SCORE AVG: {:.{n}f} ± {:.{n}f}'.format(avg, std, n=self.n_digits))
-                logmsg('SCORE MIN: {:.{n}f}'.format(np.min(score), n=self.n_digits))
-                logmsg('SCORE MAX: {:.{n}f}'.format(np.max(score), n=self.n_digits))
+                logmsg('SCORE MIN: {:.{n}f}'.format(np.min(scores), n=self.n_digits))
+                logmsg('SCORE MAX: {:.{n}f}'.format(np.max(scores), n=self.n_digits))
                 print()
 
                 sizes = [ind.n_selected for ind in offspring]
