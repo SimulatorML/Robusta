@@ -11,7 +11,7 @@ from sklearn.utils.random import check_random_state
 from robusta.crossval import crossval
 
 from ._verbose import _print_last
-from ._plot import _plot_progress
+from ._plot import _plot_progress, _plot_subset
 
 
 
@@ -335,8 +335,19 @@ class _WrappedSelector(_Selector):
     #    return pd.Series(trial['importance_std'], index=self.features_)
 
 
-    def plot(self, **kwargs):
+    def plot_progress(self, **kwargs):
         return _plot_progress(self, **kwargs)
+
+    def plot_subset(self, **kwargs):
+        return _plot_subset(self, **kwargs)
+
+    def get_subset(self):
+
+        if hasattr(self, 'best_subset_'):
+            return self.best_subset_
+        else:
+            model_name = self.__class__.__name__
+            raise NotFittedError(f'{model_name} is not fitted')
 
 
 

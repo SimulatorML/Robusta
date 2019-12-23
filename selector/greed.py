@@ -84,7 +84,7 @@ class GreedSelector(_WrappedSelector):
         self.k_features = k_features
         self.forward = forward
         self.floating = floating
-        self.max_candidates = max_candidates # TODO
+        #self.max_candidates = max_candidates # TODO
         self.max_time = max_time
         self.use_best = use_best
 
@@ -173,7 +173,7 @@ class GreedSelector(_WrappedSelector):
 
                 # Evaluate Candidate
                 try:
-                    self.check_subset(candidate, X, y, groups)
+                    self.eval_subset(candidate, X, y, groups)
 
                     if candidate.score > score:
                         score  = candidate.score
@@ -190,7 +190,7 @@ class GreedSelector(_WrappedSelector):
             self.score_  = score
 
             # Stop Criteria
-            if not self.floating or is_final(subset):
+            if not self.floating or is_final(self.subset_):
                 continue
 
 
@@ -223,7 +223,7 @@ class GreedSelector(_WrappedSelector):
 
                 # Evaluate Candidate
                 try:
-                    self.check_subset(candidate, X, y, groups)
+                    self.eval_subset(candidate, X, y, groups)
 
                     if candidate.score > score:
                         score  = candidate.score

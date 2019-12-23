@@ -7,7 +7,7 @@ from deap import creator, base, tools, algorithms
 from robusta.utils import logmsg, get_ranks
 from .base import _GroupSelector, _WrappedSelector
 
-from ._plot import _plot_progress
+from ._plot import _plot_progress, _plot_subset
 
 
 __all__ = ['GeneticSelector', 'GroupGeneticSelector']
@@ -350,10 +350,15 @@ class GeneticSelector(_WrappedSelector):
     def get_subset(self):
         return self.best_subset_
 
-    def plot(self, **kwargs):
+    def plot_progress(self, **kwargs):
         kwargs_ = dict(marker='.', linestyle='--', alpha=0.3, c='g')
         kwargs_.update(kwargs)
         return _plot_progress(self, **kwargs_)
+
+    def plot_subset(self, **kwargs):
+        kwargs_ = dict(marker='.', linestyle='--', alpha=0.3, c='g')
+        kwargs_.update(kwargs)
+        return _plot_subset(self, **kwargs_)
 
 
 
