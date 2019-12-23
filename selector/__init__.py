@@ -1,5 +1,6 @@
 from .from_model import SelectFromModel
 from .rfe import RFE, PermutationRFE, GroupPermutationRFE
+from .sas import SAS
 
 from .exhaustive import ExhaustiveSelector, GroupExhaustiveSelector
 from .genetic import GeneticSelector, GroupGeneticSelector
@@ -14,4 +15,5 @@ __all__ = [
     'GroupRandomSelector', 'RandomSelector',
     'GroupGreedSelector', 'GreedSelector',
     'SelectFromModel',
+    'SAS',
 ]
