@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-from scipy.stats import ttest_rel, norm
+from scipy import stats
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -18,9 +18,11 @@ def compare_ttest(resultA, resultB, key='val_score', ind=True):
     assert key in resultB, f"<resultB> has no '{key}'"
     a = resultA[key]
     b = resultB[key]
+    assert len(a) == len(b), 'Both scores must be of the same size'
+    n = len(a)
 
     # t-test
-    t, p = ttest_rel(a, b)
+    t, p = stats.ttest_rel(b, a)
 
     # Plot
     _, axes = plt.subplots(2, 2)
@@ -48,17 +50,17 @@ def compare_ttest(resultA, resultB, key='val_score', ind=True):
     ax = axes[1, 1]
 
     xx = np.arange(-abs(t), abs(t), 0.001)
-    yy = norm.pdf(xx, 0, 1)
+    yy = stats.t.pdf(xx, n-1)
     ax.plot(xx, yy, color='gray')
     ax.fill_between(xx, yy, color='gray', alpha=0.2)
 
-    xx = np.arange(-5, t, 0.001)
-    yy = norm.pdf(xx, 0, 1)
+    xx = np.arange(-5, -abs(t), 0.001)
+    yy = stats.t.pdf(xx, n-1)
     ax.plot(xx, yy, color='r')
     ax.fill_between(xx, yy, color='r', alpha=0.2)
 
     xx = np.arange(abs(t), 5, 0.001)
-    yy = norm.pdf(xx, 0, 1)
+    yy = stats.t.pdf(xx, n-1)
     ax.plot(xx, yy, color='r')
     ax.fill_between(xx, yy, color='r', alpha=0.2)
 
