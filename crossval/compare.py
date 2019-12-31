@@ -1,7 +1,10 @@
 import pandas as pd
 import numpy as np
 
-from scipy.stats import ttest_rel, ttest_ind, norm
+from scipy.stats import ttest_rel, norm
+
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 __all__ = [
     'compare_ttest',
