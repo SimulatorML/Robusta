@@ -2,6 +2,7 @@ from .crossval import *
 from .saveload import *
 from .schemes import *
 from .results import *
+from .compare import *
 
 
 __all__ = [
@@ -26,4 +27,7 @@ __all__ = [
     'split_cv_groups',
     'check_folds',
     'rating_table',
+
+    # Compare
+    'compare_ttest',
 ]
