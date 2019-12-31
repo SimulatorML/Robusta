@@ -262,13 +262,27 @@ class Winsorizer(BaseEstimator, TransformerMixin):
     q_max : float [0..1], default=0.95
         Upper quantile
 
+    apply_test : bool, default=True
+        If False, apply winsorization only for <fit_transform>.
+        If True, apply to both <fit_transform> and <transform>.
+
     """
-    def __init__(self, q_min=0.05, q_max=0.95):
+    def __init__(self, q_min=0.05, q_max=0.95, apply_test=True):
+        self.apply_test = apply_test
         self.q_min = q_min
         self.q_max = q_max
 
-    def fit(self, X, y=None):
+    def fit_transform(self, X, y=None):
+        return self._fit(X).transform(X)
 
+    def fit(self, X, y=None):
+        return self._fit(X)
+
+    def transform(self, X):
+        return X.clip(self.min_, self.max_, axis=1) if self.apply_test else X
+
+    def _fit(self, X):
+        assert self.apply_test in [True, False], '<apply_test> must be boolean'
         assert isinstance(self.q_min, float), '<q_min> must be float'
         assert isinstance(self.q_max, float), '<q_max> must be float'
         assert self.q_min < self.q_max, '<q_min> must be smaller than <q_max>'
@@ -278,9 +292,6 @@ class Winsorizer(BaseEstimator, TransformerMixin):
         self.min_ = X.quantile(self.q_min)
         self.max_ = X.quantile(self.q_max)
         return self
-
-    def transform(self, X):
-        return X.clip(self.min_, self.max_, axis=1)
 
 
 
