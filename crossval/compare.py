@@ -11,7 +11,7 @@ __all__ = [
 ]
 
 
-def compare_ttest(resultA, resultB, key='val_score', ind=True):
+def compare_ttest(resultA, resultB, labels=['A', 'B'], key='val_score'):
 
     # Check input
     assert key in resultA, f"<resultA> has no '{key}'"
@@ -22,44 +22,41 @@ def compare_ttest(resultA, resultB, key='val_score', ind=True):
     n = len(a)
 
     # t-test
-    t, p = stats.ttest_rel(b, a)
+    t, p = stats.ttest_rel(a, b)
 
     # Plot
     _, axes = plt.subplots(2, 2)
 
     # Plot box
     ax = axes[0, 0]
-    sns.boxplot(['A', 'B'], [a, b], linewidth=2.0, ax=ax)
+    sns.boxplot(labels, [a, b], linewidth=2.0, ax=ax)
     ax.grid(alpha=0.2)
 
     # Plot pairs
     ax = axes[1, 0]
     for x, y in zip(a, b):
-        ax.plot(['A', 'B'], [x, y], 'o-', color='b', alpha=0.8)
-    ax.plot(['A', 'B'], [np.mean(a), np.mean(b)], 'o-', color='w')
+        ax.plot(labels, [x, y], 'o-', color='b', alpha=0.8)
+    ax.plot(labels, [np.mean(a), np.mean(b)], 'o-', color='w')
     ax.grid(alpha=0.2)
 
     # Plot dist
     ax = axes[0, 1]
-    sns.distplot(a, 10, label='A', ax=ax)
-    sns.distplot(b, 10, label='B', ax=ax)
+    sns.distplot(a, 10, label=labels[0], ax=ax)
+    sns.distplot(b, 10, label=labels[1], ax=ax)
     ax.grid(alpha=0.2)
     ax.legend()
 
     # Plot proba
     ax = axes[1, 1]
-
-    xx = np.arange(-abs(t), abs(t), 0.001)
-    yy = stats.t.pdf(xx, n-1)
-    ax.plot(xx, yy, color='gray')
-    ax.fill_between(xx, yy, color='gray', alpha=0.2)
-
-    xx = np.arange(-5, -abs(t), 0.001)
+    x_abs = max(5, abs(t))
+    x_min, x_max = -x_abs, +x_abs
+    
+    xx = np.arange(x_min, t, 0.001)
     yy = stats.t.pdf(xx, n-1)
     ax.plot(xx, yy, color='r')
     ax.fill_between(xx, yy, color='r', alpha=0.2)
 
-    xx = np.arange(abs(t), 5, 0.001)
+    xx = np.arange(t, x_max, 0.001)
     yy = stats.t.pdf(xx, n-1)
     ax.plot(xx, yy, color='r')
     ax.fill_between(xx, yy, color='r', alpha=0.2)
@@ -69,3 +66,9 @@ def compare_ttest(resultA, resultB, key='val_score', ind=True):
     ax.grid(alpha=0.2)
 
     return t, p
+
+
+def compare_roc_auc(resultA, resultB):
+
+    # Check input
+    pass
