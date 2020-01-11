@@ -169,6 +169,9 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, new_index=None,
             ``fold`` : list of pair of list
                 Two lists with trn/oof indices
 
+            ``scorer`` : scorer object
+                Func with signature scorer(estimator, X, y)
+
             ``val_score`` : array or dict of array, shape [n_splits]
                 The score array for test scores on each cv split.
                 If multimetric, return dict of array.
@@ -293,6 +296,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, new_index=None,
     if hasattr(X, 'columns'): result['features'] = list(X.columns.values)
 
     result['datetime'] = datetime.now()
+    result['scorer'] = scorer
     result['cv'] = cv
 
     # Final score
