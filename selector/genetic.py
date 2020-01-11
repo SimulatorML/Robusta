@@ -337,9 +337,9 @@ class GeneticSelector(_WrappedSelector):
 
                 sizes = [ind.n_selected for ind in offspring]
                 avg = int(np.mean(sizes))
-                std = np.std(sizes)
+                std = int(np.std(sizes))
 
-                logmsg('SIZE AVG: {} ± {:.{n}f}'.format(avg, std, n=self.n_digits))
+                logmsg('SIZE AVG: {} ± {}'.format(avg, std))
                 logmsg('SIZE MIN: {}'.format(np.min(sizes)))
                 logmsg('SIZE MAX: {}'.format(np.max(sizes)))
                 print()
