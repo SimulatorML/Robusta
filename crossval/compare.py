@@ -50,13 +50,13 @@ def compare_ttest(resultA, resultB, labels=['A', 'B'], key='val_score'):
     ax = axes[1, 1]
     x_abs = max(5, abs(t))
     x_min, x_max = -x_abs, +x_abs
-    
-    xx = np.arange(x_min, t, 0.001)
-    yy = stats.t.pdf(xx, n-1)
-    ax.plot(xx, yy, color='r')
-    ax.fill_between(xx, yy, color='r', alpha=0.2)
 
     xx = np.arange(t, x_max, 0.001)
+    yy = stats.t.pdf(xx, n-1)
+    ax.plot(xx, yy, color='gray')
+    ax.fill_between(xx, yy, color='gray', alpha=0.2)
+
+    xx = np.arange(x_min, t, 0.001)
     yy = stats.t.pdf(xx, n-1)
     ax.plot(xx, yy, color='r')
     ax.fill_between(xx, yy, color='r', alpha=0.2)

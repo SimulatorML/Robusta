@@ -30,4 +30,7 @@ __all__ = [
 
     # Compare
     'compare_ttest',
+
+    # Plot
+    'plot_curve',
 ]
