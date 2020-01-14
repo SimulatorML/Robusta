@@ -36,7 +36,7 @@ def _get_col_score(estimator, X, y, col, n_repeats, scorer, rstate):
     for i in range(n_repeats):
 
         X.loc[:, col] = rstate.permutation(x)
-        X.loc[:, col] = X[col].astype(x.dtype)
+        X.loc[:, col] = X.loc[:, col].astype(x.dtype)
 
         score = scorer(estimator, X, y) # bottleneck
         scores[i] = score
@@ -66,7 +66,7 @@ def _get_group_score(estimator, X, y, g, n_repeats, scorer, rstate):
     for i in range(n_repeats):
 
         X.loc[:, g] = rstate.permutation(x)
-        X[g] = X[g].astype(x.dtypes)
+        X.loc[:, g] = X.loc[:, g].astype(x.dtypes)
 
         score = scorer(estimator, X, y) # bottleneck
         scores[i] = score
