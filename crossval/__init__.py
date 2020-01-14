@@ -3,6 +3,7 @@ from .saveload import *
 from .schemes import *
 from .results import *
 from .compare import *
+from .plot import *
 
 
 __all__ = [

@@ -23,6 +23,12 @@ __all__ = [
 ]
 
 
+def copy(estimator):
+    if hasattr(estimator, 'copy'):
+        return estimator.copy().set_params(**estimator.get_params())
+    else:
+        return clone(estimator)
+
 
 
 def crossval(estimator, cv, X, y, groups=None, X_new=None, new_index=None,
@@ -239,7 +245,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, new_index=None,
         # Stacking Type A (test averaging = True)
         result = parallel(
             delayed(_fit_predict)(
-                clone(estimator), method, scorer, X, y, X_new, new_index,
+                copy(estimator), method, scorer, X, y, X_new, new_index,
                 trn, oof, return_estimator, return_pred, fold, logger,
                 train_score)
             for fold, (trn, oof) in enumerate(cv.split(X, y, groups)))
@@ -251,7 +257,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, new_index=None,
         # Stacking Type B (test_averaging = False)
         result = parallel(
             (delayed(_fit_predict)(
-                clone(estimator), method, scorer, X, y, None, None, trn, oof,
+                copy(estimator), method, scorer, X, y, None, None, trn, oof,
                 return_estimator, return_pred, fold, logger, train_score)
             for fold, (trn, oof) in enumerate(cv.split(X, y, groups))))
 
@@ -259,7 +265,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, new_index=None,
             print()
             logmsg('Fitting full train set...')
 
-        result_new = _fit_predict(clone(estimator), method, None, X, y, X_new,
+        result_new = _fit_predict(copy(estimator), method, None, X, y, X_new,
                                   new_index, None, None, return_estimator,
                                   return_pred, -1, logger, train_score)
 

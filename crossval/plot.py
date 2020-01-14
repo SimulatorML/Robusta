@@ -3,6 +3,8 @@ from sklearn.model_selection import check_cv
 from sklearn.metrics import check_scoring
 from tqdm import tqdm_notebook as tqdm
 
+import matplotlib.pyplot as plt
+
 import pandas as pd
 import numpy as np
 
