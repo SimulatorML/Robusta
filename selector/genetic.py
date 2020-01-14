@@ -293,7 +293,6 @@ class GeneticSelector(_WrappedSelector):
                 logmsg(f'GENERATION {self.k_gen_+1}')
 
             try:
-                #offspring = [ind.copy() for ind in self.population]
                 offspring = []
 
                 # Apply crossover
