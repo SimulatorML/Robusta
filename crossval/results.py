@@ -15,6 +15,27 @@ def argsort_idx(idx_list):
 
 
 
+def check_cvs(results, X, y, groups=None):
+
+    msg = 'Each cv must me the same'
+    cvs = [result['cv'] for result in results]
+    lens = [cv.get_n_splits(X, y, groups) for cv in cvs]
+    assert min(lens) == max(lens), msg
+
+    for i in range(1, len(cvs)):
+        if cvs[0] != cvs[i]:
+            assert cvs[0].get_n_splits(X, y, groups), msg
+            folds0 = cvs[0].split(X, y, groups)
+            folds1 = cvs[i].split(X, y, groups)
+            for (trn0, oof0), (trn1, oof1) in zip(folds0, folds1):
+                assert len(trn0) == len(trn1), msg
+                assert len(oof0) == len(oof1), msg
+                assert np.equal(trn0, trn1).all(), msg
+                assert np.equal(oof0, oof1).all(), msg
+    return cvs[0]
+
+
+
 def load_results(idx_list=None, y_train=None,
                  result_path='./results/',
                  raise_error=False):

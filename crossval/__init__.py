@@ -30,6 +30,7 @@ __all__ = [
     'rating_table',
 
     # Compare
+    'compare_roc_auc',
     'compare_ttest',
 
     # Plot
