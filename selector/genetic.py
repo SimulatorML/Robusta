@@ -4,7 +4,7 @@ import pandas as pd
 from sklearn.utils.random import check_random_state
 from deap import creator, base, tools, algorithms
 
-from robusta.utils import logmsg, get_ranks
+from robusta.utils import logmsg, get_ranks, secfmt
 from .base import _GroupSelector, _WrappedSelector
 
 from ._plot import _plot_progress, _plot_subset
@@ -341,6 +341,14 @@ class GeneticSelector(_WrappedSelector):
                 logmsg('SIZE AVG: {} ± {}'.format(avg, std))
                 logmsg('SIZE MIN: {}'.format(np.min(sizes)))
                 logmsg('SIZE MAX: {}'.format(np.max(sizes)))
+                print()
+
+                times = [ind.eval_time for ind in offspring]
+                time_avg = secfmt(np.mean(times))
+                time_sum = secfmt(np.sum(times))
+
+                logmsg('TIME AVG: {}'.format(time_avg))
+                logmsg('TIME SUM: {}'.format(time_sum))
                 print()
 
         return self
