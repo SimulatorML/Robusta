@@ -4,7 +4,7 @@ import numpy as np
 from joblib import Parallel, delayed
 
 from robusta.crossval._predict import _predict, _check_avg, _avg_preds
-from robusta.crossval.base import crossval
+from robusta.crossval.crossval import crossval
 
 from sklearn.utils.metaestimators import _BaseComposition
 from sklearn.model_selection import check_cv
