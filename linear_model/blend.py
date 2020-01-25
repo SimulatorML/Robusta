@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-from sklearn.base import ClassifierMixin, RegressorMixin, TransformerMixin, BaseEstimator
+from sklearn.base import ClassifierMixin, RegressorMixin
 from sklearn.linear_model._base import LinearModel
 from sklearn.metrics import get_scorer
 
@@ -14,13 +14,12 @@ from robusta.pipeline import make_pipeline
 __all__ = [
     'BlendRegressor',
     'BlendClassifier',
-    'RankBlendClassifier',
 ]
 
 
 
 
-class Blend(LinearModel):
+class _BaseBlend(LinearModel):
 
     def __init__(self, avg_type='mean', scoring=None, opt_func=None, **opt_kws):
         self.avg_type = avg_type
@@ -30,6 +29,19 @@ class Blend(LinearModel):
 
 
     def fit(self, X, y, weights=None):
+        """
+        Parameters
+        ----------
+        X : DataFrame, shape [n_samples, n_features]
+            Stacked predictions.
+
+        y : DataFrame or Series, shape [n_samples, ] or [n_samples, n_classes]
+            Target variable
+
+        Returns
+        -------
+        self
+        """
 
         if self._estimator_type is 'classifier':
             self.classes_ = np.unique(y)
@@ -86,7 +98,7 @@ class Blend(LinearModel):
 
 
 
-class BlendRegressor(Blend, RegressorMixin):
+class BlendRegressor(_BaseBlend, RegressorMixin):
     '''Blending Estimator for regression
 
     Parameters
@@ -134,7 +146,7 @@ class BlendRegressor(Blend, RegressorMixin):
 
 
 
-class BlendClassifier(Blend, ClassifierMixin):
+class BlendClassifier(_BaseBlend, ClassifierMixin):
     '''Blending Estimator for classification
 
     Parameters
@@ -183,53 +195,6 @@ class BlendClassifier(Blend, ClassifierMixin):
     def predict(self, X):
         y = self.predict_proba(X)
         return np.rint(y[:, 1]).astype(int)
-
-
-
-
-def RankBlendClassifier(transformer=QuantileTransformer(), **params):
-    '''Pipeline for ranked Blending Classifier
-
-    Parameters
-    ----------
-    avg_type : string or callable (default='mean')
-        Select weighted average function:
-
-            - 'mean': Arithmetic mean
-            - 'hmean': Harmonic mean
-            - 'gmean': Geometric mean
-
-        If passed callable, expected signature: f(X, weights) -> y.
-
-    scoring : string or None (default=None)
-        Objective for optimization. If None, all weights are equal. Otherwise,
-        calculate the optimal weights for blending. Differentiable scoring are
-        prefered.
-
-    opt_func : function (default=None)
-        Optimization function. First argument should take objective to minimize.
-        Expected signature: f(objective, **opt_kws). If not passed, but scoring
-        is defined, used scipy's <minimize> function with method 'SLSQP'.
-
-        Should return result as dict with key 'x' as optimal weights.
-
-    opt_kws : dict, optional
-        Parameters for <opt_func> function.
-
-
-    Attributes
-    ----------
-    coef_ : Series, shape (n_features, )
-        Estimated weights of blending model.
-
-    n_iters_ : int
-        Number of evaluations
-
-    result_ : dict
-        Evaluation results
-
-    '''
-    return make_pipeline(transformer, BlendClassifier('mean', **params))
 
 
 
