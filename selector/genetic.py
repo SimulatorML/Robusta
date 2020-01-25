@@ -347,8 +347,8 @@ class GeneticSelector(_WrappedSelector):
                 time_avg = secfmt(np.mean(times))
                 time_sum = secfmt(np.sum(times))
 
-                logmsg('TIME AVG: {}'.format(time_avg))
                 logmsg('TIME SUM: {}'.format(time_sum))
+                logmsg('TIME AVG: {}'.format(time_avg))
                 print()
 
         return self
