@@ -331,10 +331,11 @@ class ColumnRenamer(BaseEstimator, TransformerMixin):
         column name. Both equals to empty string ('') by default (do nothing).
 
     '''
-    def __init__(self, column=None, prefix='', suffix=''):
+    def __init__(self, column=None, prefix='', suffix='', copy=True):
         self.column = column
         self.prefix = prefix
         self.suffix = suffix
+        self.copy = copy
 
 
     def fit(self, X, y=None):
@@ -393,7 +394,9 @@ class ColumnRenamer(BaseEstimator, TransformerMixin):
             Same data.
 
         """
-        return X.rename(self.mapper_, axis='columns')
+        X = X.copy() if self.copy else X
+        X.columns = X.columns.map(self.mapper_)
+        return X
 
 
 
