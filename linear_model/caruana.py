@@ -9,6 +9,8 @@ from sklearn.base import ClassifierMixin, RegressorMixin
 from sklearn.linear_model._base import LinearModel
 from sklearn.metrics import get_scorer
 
+from tqdm import tqdm_notebook as tqdm
+
 
 __all__ = [
     'CaruanaRegressor',
@@ -59,6 +61,9 @@ class _BaseCaruana(LinearModel):
         The number of jobs to use for the computation.
         `None` means 1. `-1` means using all processors.
 
+    tqdm : bool (default=False)
+        Whether to show progress bar.
+
     Attributes
     ----------
     weights_ : list of int
@@ -70,15 +75,15 @@ class _BaseCaruana(LinearModel):
     '''
 
     def __init__(self, scoring, iters=100, init_iters=10, colsample=0.5,
-                 replace=True, random_state=None, verbose=1, n_jobs=-1):
+                 replace=True, random_state=None, n_jobs=-1, tqdm=False):
         self.iters = iters
         self.init_iters = init_iters
         self.scoring = scoring
         self.colsample = colsample
         self.replace = replace
         self.random_state = random_state
-        self.verbose = verbose
         self.n_jobs = n_jobs
+        self.tqdm = tqdm
 
     def fit(self, X, y):
         """
@@ -111,7 +116,7 @@ class _BaseCaruana(LinearModel):
             msg = "<iters> must be no more than X.shape[1] (if replace=True)"
             assert self.iters <= X.shape[1], msg
 
-        # Init subset
+        # Initial subset
         scores = {}
         for k in range(X.shape[1]):
             self.weights_[k] += 1
@@ -123,7 +128,11 @@ class _BaseCaruana(LinearModel):
         self.weights_[scores.index] += 1
 
         # Core Algorithm
-        for i in range(self.init_iters, self.iters):
+        i_range = range(self.init_iters, self.iters)
+        if self.tqdm:
+            i_range = tqdm(i_range, initial=self.init_iters, total=self.iters)
+
+        for i in i_range:
 
             k_range = np.arange(X.shape[1])
 
