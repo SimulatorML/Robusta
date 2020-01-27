@@ -44,21 +44,21 @@ ESTIMATORS.extend(estimators)
 '''MARS (Multivariate Adaptive Regression Splines)
 https://contrib.scikit-learn.org/py-earth/
 '''
-from pyearth import Earth
+#from pyearth import Earth
 
-class MARS(Earth):
-    pass
+#class MARS(Earth):
+#    pass
 
-ESTIMATORS.append(['MARS', MARS, {'linear'}])
+#ESTIMATORS.append(['MARS', MARS, {'linear'}])
 
 
 '''RVM (Relevance Vector Machine)
 https://github.com/JamesRitchie/scikit-rvm
 '''
-from skrvm import RVR, RVC
+#from skrvm import RVR, RVC
 
-ESTIMATORS.append(['RVM', RVR, {'svm', 'proba'}])
-ESTIMATORS.append(['RVM', RVC, {'svm', 'proba'}])
+#ESTIMATORS.append(['RVM', RVR, {'svm', 'proba'}])
+#ESTIMATORS.append(['RVM', RVC, {'svm', 'proba'}])
 
 
 '''Scikit-Learn SVM
@@ -162,14 +162,14 @@ ESTIMATORS.append(['CatBoost', CatBoostRegressor, TAGS_])
 '''BART (Bayesian Additive Regressions Trees)
 https://github.com/JakeColtman/bartpy
 '''
-from bartpy.sklearnmodel import SklearnModel
+#from bartpy.sklearnmodel import SklearnModel
 
-class BART(SklearnModel):
-    pass
+#class BART(SklearnModel):
+#    pass
 
-TAGS_ = {'tree', 'ensemble'}
+#TAGS_ = {'tree', 'ensemble'}
 
-ESTIMATORS.append(['BART', BART, TAGS_])
+#ESTIMATORS.append(['BART', BART, TAGS_])
 
 
 #'''RGF (Regularized Greedy Forest)
