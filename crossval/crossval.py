@@ -34,7 +34,8 @@ def copy(estimator):
 def crossval(estimator, cv, X, y, groups=None, X_new=None, new_index=None,
              scoring=None, test_avg=True, avg_type='auto', method='predict',
              return_pred=True, return_estimator=False, verbose=2, n_digits=4,
-             n_jobs=None, random_state=0, compact=False, train_score=False):
+             n_jobs=None, random_state=0, compact=False, train_score=False,
+             **kwargs):
     """Evaluate metric(s) by cross-validation and also record fit/score time,
     feature importances and compute out-of-fold and test predictions.
 
@@ -307,6 +308,9 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, new_index=None,
 
     # Final score
     logger.end(result)
+
+    # Additional kwargs
+    result.update(kwargs)
 
     return result
 
