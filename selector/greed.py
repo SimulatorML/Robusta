@@ -6,7 +6,7 @@ from sklearn.exceptions import NotFittedError
 
 from robusta.utils import logmsg
 
-from .base import _WrappedSelector, _GroupSelector, _check_k_features
+from .base import _WrappedSelector, _WrappedGroupSelector, _check_k_features
 
 
 
@@ -260,5 +260,5 @@ class GreedSelector(_WrappedSelector):
 
 
 
-class GroupGreedSelector(_GroupSelector, GreedSelector):
+class GroupGreedSelector(_WrappedGroupSelector, GreedSelector):
     pass

@@ -4,7 +4,7 @@ import numpy as np
 from sklearn.exceptions import NotFittedError
 
 from robusta.utils import all_subsets
-from .base import _WrappedSelector, _GroupSelector
+from .base import _WrappedSelector, _WrappedGroupSelector
 
 
 
@@ -156,5 +156,5 @@ class ExhaustiveSelector(_WrappedSelector):
 
 
 
-class GroupExhaustiveSelector(_GroupSelector, ExhaustiveSelector):
+class GroupExhaustiveSelector(_WrappedGroupSelector, ExhaustiveSelector):
     pass

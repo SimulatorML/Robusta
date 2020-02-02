@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from robusta.selector.base import _WrappedSelector, _GroupSelector, _check_k_features
+from robusta.selector.base import _WrappedSelector, _WrappedGroupSelector, _check_k_features
 from sklearn.utils.random import check_random_state
 
 
@@ -125,3 +125,7 @@ class SAS(_WrappedSelector):
                                      self.n_features_,
                                      'max_step')
         return max_step
+
+
+class GroupSAS(_WrappedGroupSelector, SAS):
+    pass

@@ -5,7 +5,7 @@ from sklearn.utils.random import check_random_state
 from deap import creator, base, tools, algorithms
 
 from robusta.utils import logmsg, get_ranks, secfmt
-from .base import _GroupSelector, _WrappedSelector
+from .base import _WrappedGroupSelector, _WrappedSelector
 
 from ._plot import _plot_progress, _plot_subset
 
@@ -369,5 +369,5 @@ class GeneticSelector(_WrappedSelector):
 
 
 
-class GroupGeneticSelector(_GroupSelector, GeneticSelector):
+class GroupGeneticSelector(_WrappedGroupSelector, GeneticSelector):
     pass

@@ -4,7 +4,7 @@ import numpy as np
 from sklearn.utils.random import check_random_state
 from sklearn.exceptions import NotFittedError
 
-from .base import _WrappedSelector, _GroupSelector
+from .base import _WrappedSelector, _WrappedGroupSelector
 
 
 
@@ -188,7 +188,7 @@ class RandomSelector(_WrappedSelector):
             raise NotFittedError(f'{model_name} is not fitted')
 
 
-class GroupRandomSelector(_GroupSelector, RandomSelector):
+class GroupRandomSelector(_WrappedGroupSelector, RandomSelector):
     pass
 
 

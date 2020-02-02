@@ -10,7 +10,7 @@ from sklearn.base import clone, is_classifier
 
 from robusta.importance import *
 
-from .base import _WrappedSelector, _GroupSelector
+from .base import _WrappedSelector, _WrappedGroupSelector
 
 
 
@@ -184,6 +184,8 @@ class RFE(_WrappedSelector):
 
 
 
+class GroupRFE(_WrappedGroupSelector, RFE):
+    pass
 
 
 
@@ -229,7 +231,7 @@ class PermutationRFE(RFE):
 
 
 
-class GroupPermutationRFE(_GroupSelector, PermutationRFE):
+class GroupPermutationRFE(_WrappedGroupSelector, PermutationRFE):
 
     def _eval_subset(self, subset, X, y, groups=None):
 
@@ -241,8 +243,8 @@ class GroupPermutationRFE(_GroupSelector, PermutationRFE):
                                           progress_bar=progress_bar)
         perm.fit(X[subset], y, groups)
 
-        subset.score     = np.mean(perm.scores_)
-        subset.score_std =  np.std(perm.scores_)
+        subset.score = np.average(perm.scores_)
+        subset.score_std = np.std(perm.scores_)
 
         subset.importance     = perm.feature_importances_
         subset.importance_std = perm.feature_importances_std_
