@@ -1,5 +1,6 @@
 from .permutation import *
 from .importance import *
+from .shuffle import *
 from .plot import *
 
 
@@ -10,4 +11,5 @@ __all__ = [
     'PermutationImportance',
     'GroupPermutationImportance',
     'plot_importance',
+    'ShuffleTargetImportance',
 ]

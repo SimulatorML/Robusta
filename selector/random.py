@@ -166,11 +166,11 @@ class RandomSelector(_WrappedSelector):
 
         weights_vals = ['uniform', 'binomal']
 
-        if self.weights is 'binomal':
+        if self.weights == 'binomal':
             self.weights_ = binomal_weights(self.min_features_,
                                             self.max_features_,
                                             self.n_features_)
-        elif self.weights is 'uniform':
+        elif self.weights == 'uniform':
             self.weights_ = uniform_weights(self.min_features_,
                                             self.max_features_)
         else:

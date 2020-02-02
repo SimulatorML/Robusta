@@ -10,6 +10,7 @@ from termcolor import colored
 
 def _print_last(fs):
 
+    prec = getattr(fs, 'n_digits', 4)
     subset = fs.trials_[-1]
 
     if fs.verbose >= 1:
@@ -28,8 +29,8 @@ def _print_last(fs):
         scores = [trial.score     for trial in fs.trials_]
         stds   = [trial.score_std for trial in fs.trials_]
 
-        score = '{:.{prec}f}'.format(subset.score,     prec=fs.n_digits)
-        std   = '{:.{prec}f}'.format(subset.score_std, prec=fs.n_digits)
+        score = '{:.{prec}f}'.format(subset.score,     prec=prec)
+        std   = '{:.{prec}f}'.format(subset.score_std, prec=prec)
 
         score = colored(score, 'yellow') if subset.idx == np.argmax(scores) else score
         std   = colored(std,   'cyan')   if subset.idx == np.argmin(stds)   else std

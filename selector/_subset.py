@@ -1,5 +1,6 @@
 from sklearn.utils.random import check_random_state
 
+from copy import copy
 import pandas as pd
 import numpy as np
 

@@ -8,10 +8,9 @@ from sklearn.model_selection import check_cv
 from sklearn.exceptions import NotFittedError
 from sklearn.base import clone, is_classifier
 
-from robusta.importance import *
-
 from .base import _WrappedSelector, _WrappedGroupSelector
 
+from ..importance import *
 
 
 
@@ -213,16 +212,14 @@ class PermutationRFE(RFE):
 
     def _eval_subset(self, subset, X, y, groups=None):
 
-        progress_bar = (self.verbose >= 5)
-
         perm = PermutationImportance(self.estimator, self.cv, self.scoring,
                                      self.n_repeats, n_jobs=self.n_jobs,
                                      random_state=self.random_state,
                                      progress_bar=progress_bar)
         perm.fit(X[subset], y, groups)
 
-        subset.score     = np.mean(perm.scores_)
-        subset.score_std =  np.std(perm.scores_)
+        subset.score = np.average(perm.scores_)
+        subset.score_std = np.std(perm.scores_)
 
         subset.importance     = perm.feature_importances_
         subset.importance_std = perm.feature_importances_std_
@@ -248,6 +245,66 @@ class GroupPermutationRFE(_WrappedGroupSelector, PermutationRFE):
 
         subset.importance     = perm.feature_importances_
         subset.importance_std = perm.feature_importances_std_
+
+        return subset
+
+
+class ShuffleRFE(RFE):
+
+    def __init__(self, estimator, cv=5, scoring=None, min_features=0.5, step=1,
+                 n_repeats=5, gain='dif', random_state=0, use_best=True,
+                 n_jobs=None, tqdm=False, verbose=0):
+
+        self.estimator = estimator
+        self.scoring = scoring
+        self.cv = cv
+
+        self.min_features = min_features
+        self.step = step
+
+        self.n_repeats = n_repeats
+        self.gain = gain
+        self.random_state = random_state
+        self.use_best = use_best
+
+        self.n_jobs = n_jobs
+        self.verbose = verbose
+        self.tqdm = tqdm
+
+
+    def _eval_subset(self, subset, X, y, groups=None):
+
+        shuff = ShuffleTargetImportance(self.estimator, self.cv, self.scoring,
+                                        n_repeats=self.n_repeats, gain=self.gain,
+                                        n_jobs=self.n_jobs, tqdm=self.tqdm,
+                                        random_state=self.random_state)
+        shuff.fit(X[subset], y, groups)
+
+        subset.score = np.average(shuff.scores_)
+        subset.score_std = np.std(shuff.scores_)
+
+        subset.importance     = shuff.feature_importances_
+        subset.importance_std = shuff.feature_importances_std_
+
+        return subset
+
+
+
+class GroupShuffleRFE(_WrappedGroupSelector, ShuffleRFE):
+
+    def _eval_subset(self, subset, X, y, groups=None):
+
+        shuff = ShuffleTargetImportance(self.estimator, self.cv, self.scoring,
+                                        n_repeats=self.n_repeats, gain=self.gain,
+                                        n_jobs=self.n_jobs, tqdm=self.tqdm,
+                                        random_state=self.random_state)
+        shuff.fit(X[subset], y, groups)
+
+        subset.score = np.average(shuff.scores_)
+        subset.score_std = np.std(shuff.scores_)
+
+        result = dict(importance=shuff.raw_importances_, features=list(X[subset]))
+        subset = self._get_importance(subset, result)
 
         return subset
 
