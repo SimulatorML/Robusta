@@ -19,15 +19,20 @@ __all__ = [
 
 
 
-def compare_ttest(resultA, resultB, labels=['A', 'B'], key='val_score'):
+def compare_ttest(resultA, resultB, score='val_score', label='label'):
 
     # Check input
-    assert key in resultA, f"<resultA> has no '{key}'"
-    assert key in resultB, f"<resultB> has no '{key}'"
-    a = resultA[key]
-    b = resultB[key]
+    assert score in resultA, f"<resultA> has no '{key}'"
+    assert score in resultB, f"<resultB> has no '{key}'"
+    a = resultA[score]
+    b = resultB[score]
     assert len(a) == len(b), 'Both scores must be of the same size'
     n = len(a)
+
+    # Check labels
+    labels = ['0', '1']
+    if label in resultA: labels[0] = resultA[label]
+    if label in resultB: labels[1] = resultB[label]
 
     # t-test
     t, p = stats.ttest_rel(a, b)
