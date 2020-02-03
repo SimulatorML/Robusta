@@ -2,14 +2,16 @@ import numpy as np
 import pandas as pd
 
 from sklearn.base import clone, BaseEstimator, ClassifierMixin
-from sklearn.model_selection import GroupKFold
+from sklearn.model_selection import GroupKFold, KFold
 from sklearn.exceptions import NotFittedError
+from sklearn.utils import check_random_state
 
 from collections import Counter, defaultdict
 from itertools import chain
 
 __all__ = [
     'StratifiedGroupKFold',
+    'RepeatedKFold',
     'RepeatedGroupKFold',
     'RepeatedStratifiedGroupKFold',
     'AdversarialValidation',
@@ -65,6 +67,46 @@ class RepeatedGroupKFold():
             splits.append(split)
 
         return chain(*splits)
+
+    def get_n_splits(self):
+        return self.n_repeats * self.n_splits
+
+
+
+class RepeatedKFold():
+    """Repeated KFold (first split DO shuffled)
+
+    Same as RepeatedKFold but each group presents only in one fold on each repeat.
+
+    Parameters
+    ----------
+    n_splits : int, default=5
+        Number of splits. Must be at least 2.
+
+    n_repeats : int, optional
+        Number of times cross-validator needs to be repeated.
+
+    random_state : int, RandomState instance or None, optional, default=None
+        If None, the random number generator is the RandomState instance used by np.random.
+        If int, random_state is the seed used by the random number generator;
+        If RandomState instance, random_state is the random number generator;
+
+    """
+    def __init__(self, n_splits=5, n_repeats=3, random_state=None):
+
+        self.n_splits = n_splits
+        self.n_repeats = n_repeats
+        self.random_state = random_state
+
+    def split(self, X, y, groups=None):
+
+        rstate = check_random_state(self.random_state)
+
+        for _ in range(self.n_repeats):
+            seed = rstate.randint(2**32-1)
+            cv = KFold(self.n_splits, shuffle=True, random_state=seed)
+            for trn, oof in cv.split(X, y):
+                yield trn, oof
 
     def get_n_splits(self):
         return self.n_repeats * self.n_splits

@@ -13,7 +13,10 @@ __all__ = [
     'crossval_predict',
 
     # Custom Schemes
+    'StratifiedGroupKFold',
+    'RepeatedKFold',
     'RepeatedGroupKFold',
+    'RepeatedStratifiedGroupKFold',
     'AdversarialValidation',
     'make_adversarial_validation',
 
