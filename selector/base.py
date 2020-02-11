@@ -61,7 +61,7 @@ class _WrappedSelector(_Selector):
 
     @abc.abstractmethod
     def __init__(self, estimator, cv=5, scoring=None, max_iter=20, max_time=None,
-                 random_state=0, n_jobs=-1, verbose=1, n_digits=4):
+                 random_state=0, n_jobs=-1, verbose=1, n_digits=4, cv_kwargs={}):
 
         self.estimator = estimator
         self.scoring = scoring
@@ -72,6 +72,7 @@ class _WrappedSelector(_Selector):
         self.n_jobs = n_jobs
         self.verbose = verbose
         self.n_digits = n_digits
+        self.cv_kwargs = cv_kwargs
 
 
     @property
@@ -111,7 +112,8 @@ class _WrappedSelector(_Selector):
 
         result = crossval(self.estimator, self.cv, X[subset], y, groups,
                           scoring=self.scoring, n_jobs=self.n_jobs,
-                          return_pred=False, verbose=0)
+                          return_pred=False, verbose=0,
+                          **self.cv_kwargs)
 
         subset.score = np.average(result['val_score'])
         subset.score_std = np.std(result['val_score'])
@@ -237,7 +239,7 @@ class _WrappedGroupSelector:
         if 'importance' in result:
             features, imp = result['features'], result['importance']
             groups = [group for group, _ in features]
-            
+
             imp = pd.DataFrame(imp, columns=groups).T
             imp = imp.groupby(groups).sum()
 

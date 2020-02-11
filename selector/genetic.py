@@ -206,11 +206,12 @@ class GeneticSelector(_WrappedSelector):
     def __init__(self, estimator, cv=5, scoring=None, n_gen=None, crossover='one',
                  min_features=0.1, max_features=0.9, pop_size=50, mutation=0.01,
                  max_time=None, random_state=None, n_jobs=None, verbose=1,
-                 n_digits=4):
+                 n_digits=4, cv_kwargs={}):
 
         self.estimator = estimator
         self.scoring = scoring
         self.cv = cv
+        self.cv_kwargs = cv_kwargs
 
         self.min_features = min_features
         self.max_features = max_features

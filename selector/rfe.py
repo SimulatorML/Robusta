@@ -81,11 +81,12 @@ class RFE(_WrappedSelector):
     """
 
     def __init__(self, estimator, cv=5, scoring=None, min_features=0.5, step=1,
-                 use_best=True, n_jobs=None, verbose=1, n_digits=4):
+                 use_best=True, n_jobs=None, verbose=1, n_digits=4, cv_kwargs={}):
 
         self.estimator = estimator
         self.scoring = scoring
         self.cv = cv
+        self.cv_kwargs = cv_kwargs
 
         self.min_features = min_features
         self.step = step

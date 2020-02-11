@@ -29,10 +29,12 @@ class SAS(_WrappedSelector):
 
     def __init__(self, estimator, cv=5, scoring=None, min_step=0.01, max_step=0.05,
                  min_features=0.1, max_features=0.9, max_iter=50, temp=1.0,
-                 random_state=None, n_jobs=None, verbose=1, n_digits=4):
+                 random_state=None, n_jobs=None, verbose=1, n_digits=4,
+                 cv_kwargs={}):
 
         self.estimator = estimator
         self.cv = cv
+        self.cv_kwargs = cv_kwargs
         self.scoring = scoring
 
         self.min_features = min_features

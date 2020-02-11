@@ -78,7 +78,7 @@ class GreedSelector(_WrappedSelector):
     '''
     def __init__(self, estimator, cv=5, scoring=None, forward=True, floating=False,
                  k_features=0.5, max_time=None, use_best=True, random_state=0,
-                 n_jobs=None, verbose=1, n_digits=4):
+                 n_jobs=None, verbose=1, n_digits=4, cv_kwargs={}):
 
         self.estimator = estimator
         self.k_features = k_features
@@ -89,6 +89,7 @@ class GreedSelector(_WrappedSelector):
         self.use_best = use_best
 
         self.cv = cv
+        self.cv_kwargs = cv_kwargs
         self.scoring = scoring
         self.random_state = random_state
         self.n_jobs = n_jobs

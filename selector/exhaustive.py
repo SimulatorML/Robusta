@@ -80,7 +80,7 @@ class ExhaustiveSelector(_WrappedSelector):
     '''
 
     def __init__(self, estimator, cv=5, scoring=None, min_features=0.5, n_jobs=-1,
-                 max_features=0.9, verbose=1, n_digits=4):
+                 max_features=0.9, verbose=1, n_digits=4, cv_kwargs={}):
 
         self.estimator = estimator
         self.min_features = min_features
@@ -92,6 +92,8 @@ class ExhaustiveSelector(_WrappedSelector):
 
         self.verbose = verbose
         self.n_digits = n_digits
+
+        self.cv_kwargs = cv_kwargs
 
 
 
