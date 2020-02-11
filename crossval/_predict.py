@@ -22,7 +22,7 @@ __all__ = [
 
 def _fit_predict(estimator, method, scorer, X, y, X_new=None, new_index=None,
                  trn=None, oof=None, return_estimator=False, return_pred=False,
-                 fold=None, logger=None, train_score=False):
+                 fold=None, logger=None, train_score=False, target_func=None):
     """Fit estimator and evaluate metric(s), compute OOF predictions & etc.
 
     Parameters
@@ -119,7 +119,10 @@ def _fit_predict(estimator, method, scorer, X, y, X_new=None, new_index=None,
 
     # Estimator
     tic = time()
-    estimator.fit(X_trn, y_trn)
+    if target_func:
+        estimator.fit(X_trn, target_func(y_trn))
+    else:
+        estimator.fit(X_trn, y_trn)
     result['fit_time'] = time() - tic
 
     if return_estimator:
@@ -401,7 +404,7 @@ def _drop_zero_class(pred, y):
     if hasattr(pred.columns, 'levels'):
         targets = pred.columns.get_level_values(0).unique()
         preds = [pred.loc[:, target] for target in targets]
-        is_binary = [list(p.columns) == [0, 1] for p in preds]
+        is_binary = [list(p.columns) in [['0','1'], [0, 1]] for p in preds]
         is_binary = np.array(is_binary).all()
 
         if is_binary:
@@ -410,8 +413,9 @@ def _drop_zero_class(pred, y):
             pred.columns = targets
             pred.columns.name = None
 
-    elif list(pred.columns) == [0, 1]:
-        pred = pred.loc[:, 1]
+    elif list(pred.columns) == ['0','1'] \
+    or list(pred.columns) == [0, 1]:
+        pred = pred.iloc[:, 1]
         pred.name = y.name
 
     return pred

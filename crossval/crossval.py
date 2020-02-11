@@ -25,7 +25,7 @@ __all__ = [
 
 def copy(estimator):
     if hasattr(estimator, 'copy'):
-        return estimator.copy().set_params(**estimator.get_params())
+        return estimator.copy()
     else:
         return clone(estimator)
 
@@ -34,7 +34,8 @@ def copy(estimator):
 def crossval(estimator, cv, X, y, groups=None, X_new=None, new_index=None,
              scoring=None, test_avg=True, avg_type='auto', method='predict',
              return_pred=True, return_estimator=False, verbose=2, n_digits=4,
-             n_jobs=None, compact=False, train_score=False, **kwargs):
+             n_jobs=None, compact=False, train_score=False, target_func=None,
+             **kwargs):
     """Evaluate metric(s) by cross-validation and also record fit/score time,
     feature importances and compute out-of-fold and test predictions.
 
@@ -241,7 +242,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, new_index=None,
             delayed(_fit_predict)(
                 copy(estimator), method, scorer, X, y, X_new, new_index,
                 trn, oof, return_estimator, return_pred, fold, logger,
-                train_score)
+                train_score, target_func)
             for fold, (trn, oof) in enumerate(cv.split(X, y, groups)))
 
         result = ld2dl(result)
@@ -252,7 +253,8 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, new_index=None,
         result = parallel(
             (delayed(_fit_predict)(
                 copy(estimator), method, scorer, X, y, None, None, trn, oof,
-                return_estimator, return_pred, fold, logger, train_score)
+                return_estimator, return_pred, fold, logger, train_score,
+                target_func)
             for fold, (trn, oof) in enumerate(cv.split(X, y, groups))))
 
         if verbose >= 2:
@@ -261,7 +263,8 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, new_index=None,
 
         result_new = _fit_predict(copy(estimator), method, None, X, y, X_new,
                                   new_index, None, None, return_estimator,
-                                  return_pred, -1, logger, train_score)
+                                  return_pred, -1, logger, train_score,
+                                  target_func)
 
         result = ld2dl(result)
         for key, val in result_new.items():
@@ -311,7 +314,8 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, new_index=None,
 
 
 def crossval_score(estimator, cv, X, y, groups=None, scoring=None, n_jobs=None,
-                   verbose=2, n_digits=4, compact=False, train_score=False):
+                   verbose=2, n_digits=4, compact=False, train_score=False,
+                   target_func=None):
     """Evaluate metric(s) by cross-validation and also record fit/score time,
     feature importances and compute out-of-fold and test predictions.
 
@@ -378,7 +382,7 @@ def crossval_score(estimator, cv, X, y, groups=None, scoring=None, n_jobs=None,
     result = crossval(estimator, cv, X, y, groups, n_digits=n_digits,
                       scoring=scoring, n_jobs=n_jobs, verbose=verbose,
                       return_pred=False, compact=compact,
-                      train_score=train_score)
+                      train_score=train_score, target_func=target_func)
 
     scores = result['val_score']
     return scores
@@ -389,7 +393,7 @@ def crossval_score(estimator, cv, X, y, groups=None, scoring=None, n_jobs=None,
 def crossval_predict(estimator, cv, X, y, groups=None, X_new=None, new_index=None,
                      test_avg=True, avg_type='auto', method='predict', scoring=None,
                      n_jobs=None, verbose=0, n_digits=4, compact=False,
-                     train_score=False):
+                     train_score=False, target_func=None):
     """Get Out-of-Fold and Test predictions.
 
     Parameters
@@ -519,7 +523,8 @@ def crossval_predict(estimator, cv, X, y, groups=None, X_new=None, new_index=Non
     result = crossval(estimator, cv, X, y, groups, X_new=X_new, scoring=scoring,
                       avg_type=avg_type, method=method, test_avg=test_avg,
                       n_jobs=n_jobs, verbose=verbose, n_digits=n_digits,
-                      compact=compact, train_score=train_score)
+                      compact=compact, train_score=train_score,
+                      target_func=target_func)
 
     oof_pred = result['oof_pred'] if 'oof_pred' in result else None
     new_pred = result['new_pred'] if 'new_pred' in result else None
