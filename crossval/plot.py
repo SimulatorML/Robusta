@@ -4,6 +4,7 @@ import numpy as np
 from sklearn.base import BaseEstimator, clone, is_classifier
 from sklearn.model_selection import check_cv
 from sklearn.metrics import check_scoring
+from joblib import Parallel, delayed
 
 import matplotlib.pyplot as plt
 

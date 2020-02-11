@@ -1,6 +1,15 @@
 from sklearn.base import BaseEstimator
 import numpy as np
 
+__all__ = [
+    '_StagedClassifier',
+    '_StagedRegressor',
+    '_cat_staged_predict',
+    '_xgb_staged_predict',
+    '_lgb_staged_predict',
+    '_get_scores',
+]
+
 
 class _StagedClassifier(BaseEstimator):
 
@@ -32,7 +41,7 @@ def _xgb_staged_predict(estimator, X, max_iter=0, step=1):
     N = leafs.shape[1]
 
     trees = np.mgrid[0:M, 0:N][1]
-    return
+    return None
 
 
 def _lgb_staged_predict(estimator, X, max_iter=0, step=1):
@@ -92,7 +101,7 @@ def _get_scores(estimator, generator, predictor, trn, val, X, y,
 
     if True:
         X_val, y_val = X.iloc[val], y.iloc[val]
-        S_val = staged_predict(estimator, X_val, max_iter, step)
+        S_val = generator(estimator, X_val, max_iter, step)
 
         for _ in stages:
             val_scores.append(scorer(predictor, next(S_val), y_val))
