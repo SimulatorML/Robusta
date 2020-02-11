@@ -75,8 +75,7 @@ def get_estimator(estimator, estimator_type=None, **params):
 
         # if has single type
         if name_mask.sum() == 1:
-            estimator = ESTIMATORS[name_mask]['class'].iloc[0]()
-            estimator = clone(estimator).set_params(**params)
+            estimator = ESTIMATORS[name_mask]['class'].iloc[0](**params)
             return estimator
 
         # check estimator type
@@ -87,8 +86,7 @@ def get_estimator(estimator, estimator_type=None, **params):
         if not (name_mask & type_mask).any():
             raise ValueError(f"Coluld not find ('{name}', '{estimator_type}') pair")
         else:
-            estimator = ESTIMATORS[name_mask & type_mask]['class'].iloc[0]()
-            estimator = clone(estimator).set_params(**params)
+            estimator = ESTIMATORS[name_mask & type_mask]['class'].iloc[0](**params)
             return estimator
 
     elif hassatr(name, 'fit'):

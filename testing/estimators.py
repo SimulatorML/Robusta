@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-from sklearn.base import BaseEstimator
+from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin
 
 import warnings
 warnings.filterwarnings('ignore', category=DeprecationWarning)
@@ -149,10 +149,10 @@ ESTIMATORS.append(['LGB', LGBMRanker, TAGS_])
 # 1. no verbose by default
 # 2. no cached files
 
-class CatBoostClassifier(BaseEstimator, CatBoostClassifier):
+class CatBoostClassifier(ClassifierMixin, BaseEstimator, CatBoostClassifier):
     pass
 
-class CatBoostRegressor(BaseEstimator, CatBoostRegressor):
+class CatBoostRegressor(RegressorMixin, BaseEstimator, CatBoostRegressor):
     pass
 
 ESTIMATORS.append(['CatBoost', CatBoostClassifier, TAGS_])
