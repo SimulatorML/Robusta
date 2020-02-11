@@ -91,4 +91,4 @@ def plot_curve(result, X, y, groups=None, max_iter=0, step=1, n_jobs=None,
     if train_score:
         return trn_scores, val_scores
     else:
-        return val_scores
+        return None, val_scores
