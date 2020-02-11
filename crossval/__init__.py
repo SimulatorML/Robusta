@@ -37,5 +37,5 @@ __all__ = [
     'compare_ttest',
 
     # Plot
-    'plot_curve',
+    'plot_learing_curve',
 ]

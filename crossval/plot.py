@@ -12,14 +12,66 @@ from ._curve import *
 
 
 __all__ = [
-    'plot_curve',
+    'plot_learing_curve',
 ]
 
 
 
 
-def plot_curve(result, X, y, groups=None, max_iter=0, step=1, n_jobs=None,
-               train_score=True):
+def plot_learing_curve(result, X, y, groups=None, max_iter=0, step=1,
+                       train_score=True, n_jobs=None):
+
+    """Plot learning curve for boosting estimators.
+
+    Currently supported:
+        - LGBMClassifier, LGBMRegressor
+        - CatBoostClassifier, CatBoostRegressor
+
+    Parameters
+    ----------
+    result : dict
+        Cross-validation results, returned by <crossval> function.
+        Must contain 'estimator', 'scorer' and 'cv' keys.
+
+    X : DataFrame, shape [n_samples, n_features]
+        The data to fit, score and calculate out-of-fold predictions.
+        Must be the same as during cross-validation fit.
+
+    y : Series, shape [n_samples]
+        The target variable to try to predict.
+        Must be the same as during cross-validation fit.
+
+    groups : None
+        Group labels for the samples used while splitting the dataset into
+        train/test set.
+        Must be the same as during cross-validation fit.
+
+    max_iter : int (default=0)
+        Maximum number of trees. 0 means all.
+
+    step : int (default=1)
+        If greater than 1, plot score only for trees with indices:
+        step-1, 2*step-1, 3*step-1 & etc (zero-based indices).
+        Larger step speeds up prediction.
+
+    train_score : bool (default=True)
+        Whether to plot learning curve for training scores.
+        If False, speeds up prediction.
+
+    n_jobs : int or None, optional (default=-1)
+        The number of jobs to run in parallel. None means 1.
+        
+
+    Returns
+    -------
+    trn_scores : ndarray, shape (n_folds, n_stages)
+        Train scores learning curve for each fold.
+        If train_score is False, return None.
+
+    val_scores : ndarray, shape (n_folds, n_stages)
+        Validation scores learning curve for each fold.
+
+    """
 
     estimators = result['estimator']
     scorer = result['scorer']
