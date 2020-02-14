@@ -34,7 +34,7 @@ def copy(estimator):
 def crossval(estimator, cv, X, y, groups=None, X_new=None, new_index=None,
              scoring=None, test_avg=True, avg_type='auto', method='predict',
              return_pred=True, return_estimator=False, verbose=2, n_digits=4,
-             n_jobs=None, compact=False, train_score=False, target_func=None,
+             n_jobs=None, compact=False, train_score=False, y_transform=None,
              **kwargs):
     """Evaluate metric(s) by cross-validation and also record fit/score time,
     feature importances and compute out-of-fold and test predictions.
@@ -160,6 +160,9 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, new_index=None,
     train_score : bool (default=False)
         If True, print and return train score for each fold.
 
+    y_transform : callable (default=None)
+        Transform target before fit
+
 
     Returns
     -------
@@ -242,7 +245,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, new_index=None,
             delayed(_fit_predict)(
                 copy(estimator), method, scorer, X, y, X_new, new_index,
                 trn, oof, return_estimator, return_pred, fold, logger,
-                train_score, target_func)
+                train_score, y_transform)
             for fold, (trn, oof) in enumerate(cv.split(X, y, groups)))
 
         result = ld2dl(result)
@@ -254,7 +257,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, new_index=None,
             (delayed(_fit_predict)(
                 copy(estimator), method, scorer, X, y, None, None, trn, oof,
                 return_estimator, return_pred, fold, logger, train_score,
-                target_func)
+                y_transform)
             for fold, (trn, oof) in enumerate(cv.split(X, y, groups))))
 
         if verbose >= 2:
@@ -264,7 +267,7 @@ def crossval(estimator, cv, X, y, groups=None, X_new=None, new_index=None,
         result_new = _fit_predict(copy(estimator), method, None, X, y, X_new,
                                   new_index, None, None, return_estimator,
                                   return_pred, -1, logger, train_score,
-                                  target_func)
+                                  y_transform)
 
         result = ld2dl(result)
         for key, val in result_new.items():

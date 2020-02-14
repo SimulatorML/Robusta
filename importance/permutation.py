@@ -87,8 +87,8 @@ def get_group_score(estimator, X, y, g, n_repeats=5, scoring=None, random_state=
 
 
 
-def permutation_importance(estimator, X, y, scoring=None, n_repeats=5, n_jobs=-1,
-                           random_state=0, progress_bar=False):
+def permutation_importance(estimator, X, y, scoring=None, n_repeats=5, n_jobs=None,
+                           random_state=0, tqdm=False):
     """Permutation importance for feature evaluation [BRE].
 
     The 'estimator' is required to be a fitted estimator. 'X' can be the
@@ -129,7 +129,7 @@ def permutation_importance(estimator, X, y, scoring=None, n_repeats=5, n_jobs=-1
         Pseudo-random number generator to control the permutations of each
         feature.
 
-    progress_bar : bool, default=False
+    tqdm : bool, default=False
         Whether to display <tqdm_notebook> progress bar while iterating
         through out dataset columns.
 
@@ -152,7 +152,7 @@ def permutation_importance(estimator, X, y, scoring=None, n_repeats=5, n_jobs=-1
 
     """
 
-    cols = tqdm_notebook(X.columns) if progress_bar else X.columns
+    cols = tqdm_notebook(X.columns) if tqdm else X.columns
 
     scorer = check_scoring(estimator, scoring=scoring)
     rstate = check_random_state(random_state)
@@ -177,10 +177,10 @@ def permutation_importance(estimator, X, y, scoring=None, n_repeats=5, n_jobs=-1
 
 
 def group_permutation_importance(estimator, X, y, scoring=None, n_repeats=10,
-                                 n_jobs=-1, random_state=0, progress_bar=False):
+                                 n_jobs=-1, random_state=0, tqdm=False):
 
     col_group = X.columns.get_level_values(0).unique()
-    col_group = tqdm_notebook(col_group) if progress_bar else col_group
+    col_group = tqdm_notebook(col_group) if tqdm else col_group
 
     scorer = check_scoring(estimator, scoring=scoring)
     rstate = check_random_state(random_state)
@@ -244,12 +244,15 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
     random_state : integer or numpy.random.RandomState, optional
         Pseudo-random number generator to control the permutations of each feature.
 
-    progress_bar : bool, default=False
+    tqdm : bool, default=False
         Weather to display <tqdm_notebook> progress bar while iterating
         through out dataset columns.
 
     n_jobs : int, default -1
         The number of jobs to run in parallel. None means 1.
+
+    y_transform : callable, default=None
+        Transform target before fit
 
     Attributes
     ----------
@@ -266,7 +269,7 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
 
     """
     def __init__(self, estimator, cv='prefit', scoring=None, n_repeats=5,
-                 random_state=None, progress_bar=False, n_jobs=None):
+                 random_state=None, tqdm=False, n_jobs=None, y_transform=None):
 
         self.estimator = estimator
         self.scoring = scoring
@@ -274,8 +277,10 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
         self.cv = cv
 
         self.random_state = random_state
-        self.progress_bar = progress_bar
+        self.tqdm = tqdm
         self.n_jobs = n_jobs
+
+        self.y_transform = y_transform
 
 
     def fit(self, X, y, groups=None, **fit_params):
@@ -319,17 +324,18 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
             X_trn, y_trn = X.iloc[trn], y.iloc[trn]
             X_oof, y_oof = X.iloc[oof], y.iloc[oof]
 
+            y_trn_ = self.y_transform(y_trn) if self.y_transform else y_trn
+
             if self.cv is 'prefit':
                 estimator = self.estimator
             else:
-                estimator = clone(self.estimator).fit(X_trn, y_trn)
+                estimator = clone(self.estimator).fit(X_trn, y_trn_)
 
             pi = permutation_importance(estimator, X_oof, y_oof,
                                         n_repeats=self.n_repeats,
                                         scoring=self.scoring,
                                         random_state=self.random_state,
-                                        progress_bar=self.progress_bar,
-                                        n_jobs=self.n_jobs)
+                                        tqdm=self.tqdm, n_jobs=self.n_jobs)
 
             imp = pd.DataFrame(pi['importances'], index=X.columns)
             self.raw_importances_.append(imp)
@@ -425,17 +431,18 @@ class GroupPermutationImportance(PermutationImportance):
             X_trn, y_trn = X.iloc[trn], y.iloc[trn]
             X_oof, y_oof = X.iloc[oof], y.iloc[oof]
 
+            y_trn_ = self.y_transform(y_trn) if self.y_transform else y_trn
+
             if self.cv is 'prefit':
                 estimator = self.estimator
             else:
-                estimator = clone(self.estimator).fit(X_trn, y_trn)
+                estimator = clone(self.estimator).fit(X_trn, y_trn_)
 
             pi = group_permutation_importance(estimator, X_oof, y_oof,
                                               n_repeats=self.n_repeats,
                                               scoring=self.scoring,
                                               random_state=self.random_state,
-                                              progress_bar=self.progress_bar,
-                                              n_jobs=self.n_jobs)
+                                              tqdm=self.tqdm, n_jobs=self.n_jobs)
 
             imp = pd.DataFrame(pi['importances'], index=col_group)
 

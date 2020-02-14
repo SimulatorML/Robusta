@@ -193,11 +193,12 @@ class PermutationRFE(RFE):
 
     def __init__(self, estimator, cv=5, scoring=None, min_features=0.5, step=1,
                  n_repeats=5, random_state=0, use_best=True, n_jobs=None,
-                 verbose=1, n_digits=4):
+                 verbose=1, n_digits=4, tqdm=None, y_transform=None):
 
         self.estimator = estimator
         self.scoring = scoring
         self.cv = cv
+        self.y_transform = y_transform
 
         self.min_features = min_features
         self.step = step
@@ -209,6 +210,7 @@ class PermutationRFE(RFE):
         self.n_jobs = n_jobs
         self.verbose = verbose
         self.n_digits = n_digits
+        self.tqdm = tqdm
 
 
     def _eval_subset(self, subset, X, y, groups=None):
@@ -216,7 +218,8 @@ class PermutationRFE(RFE):
         perm = PermutationImportance(self.estimator, self.cv, self.scoring,
                                      self.n_repeats, n_jobs=self.n_jobs,
                                      random_state=self.random_state,
-                                     progress_bar=progress_bar)
+                                     tqdm=self.tqdm,
+                                     y_transform=self.y_transform)
         perm.fit(X[subset], y, groups)
 
         subset.score = np.average(perm.scores_)
@@ -233,12 +236,10 @@ class GroupPermutationRFE(_WrappedGroupSelector, PermutationRFE):
 
     def _eval_subset(self, subset, X, y, groups=None):
 
-        progress_bar = (self.verbose >= 5)
-
         perm = GroupPermutationImportance(self.estimator, self.cv, self.scoring,
                                           self.n_repeats, n_jobs=self.n_jobs,
                                           random_state=self.random_state,
-                                          progress_bar=progress_bar)
+                                          tqdm=self.tqdm)
         perm.fit(X[subset], y, groups)
 
         subset.score = np.average(perm.scores_)
@@ -254,11 +255,12 @@ class ShuffleRFE(RFE):
 
     def __init__(self, estimator, cv=5, scoring=None, min_features=0.5, step=1,
                  n_repeats=5, gain='dif', random_state=0, use_best=True,
-                 n_jobs=None, tqdm=False, verbose=0):
+                 n_jobs=None, tqdm=False, verbose=0, cv_kwargs={}):
 
         self.estimator = estimator
         self.scoring = scoring
         self.cv = cv
+        self.cv_kwargs = cv_kwargs
 
         self.min_features = min_features
         self.step = step
@@ -278,7 +280,8 @@ class ShuffleRFE(RFE):
         shuff = ShuffleTargetImportance(self.estimator, self.cv, self.scoring,
                                         n_repeats=self.n_repeats, gain=self.gain,
                                         n_jobs=self.n_jobs, tqdm=self.tqdm,
-                                        random_state=self.random_state)
+                                        random_state=self.random_state,
+                                        cv_kwargs=self.cv_kwargs)
         shuff.fit(X[subset], y, groups)
 
         subset.score = np.average(shuff.scores_)
@@ -298,7 +301,8 @@ class GroupShuffleRFE(_WrappedGroupSelector, ShuffleRFE):
         shuff = ShuffleTargetImportance(self.estimator, self.cv, self.scoring,
                                         n_repeats=self.n_repeats, gain=self.gain,
                                         n_jobs=self.n_jobs, tqdm=self.tqdm,
-                                        random_state=self.random_state)
+                                        random_state=self.random_state,
+                                        cv_kwargs=self.cv_kwargs)
         shuff.fit(X[subset], y, groups)
 
         subset.score = np.average(shuff.scores_)

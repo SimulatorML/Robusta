@@ -82,6 +82,9 @@ class ShuffleTargetImportance(BaseEstimator, MetaEstimatorMixin):
     random_state : integer or numpy.random.RandomState, optional
         Pseudo-random number generator to control the permutations of each feature.
 
+    cv_kwargs : dict
+        Key arguments for inner crossval function
+
     Attributes
     ----------
     feature_importances_ : Series, shape (n_groups, )
@@ -98,10 +101,12 @@ class ShuffleTargetImportance(BaseEstimator, MetaEstimatorMixin):
     """
 
     def __init__(self, estimator, cv, scoring=None, n_repeats=5, gain='dif',
-                 tqdm=False, verbose=0, n_jobs=None, random_state=None):
+                 tqdm=False, verbose=0, n_jobs=None, random_state=None,
+                 cv_kwargs={}):
         self.estimator = estimator
         self.scoring = scoring
         self.cv = cv
+        self.cv_kwargs = cv_kwargs
         self.n_repeats = n_repeats
         self.gain = gain
         self.tqdm = tqdm
@@ -139,7 +144,7 @@ class ShuffleTargetImportance(BaseEstimator, MetaEstimatorMixin):
             result = crossval(self.estimator, self.cv, X_, y_, groups_,
                               scoring=self.scoring, verbose=self.verbose,
                               return_estimator=True, return_pred=False,
-                              n_jobs=self.n_jobs)
+                              n_jobs=self.n_jobs, **self.cv_kwargs)
 
             for e in result['estimator']:
                 self.bench_importances_.append(get_importance(e) + 1) # +1 to avoid 0/0
@@ -151,7 +156,7 @@ class ShuffleTargetImportance(BaseEstimator, MetaEstimatorMixin):
             result = crossval(self.estimator, self.cv, X, y_, groups,
                               scoring=self.scoring, verbose=self.verbose,
                               return_estimator=True, return_pred=False,
-                              n_jobs=self.n_jobs)
+                              n_jobs=self.n_jobs, **self.cv_kwargs)
 
             for e in result['estimator']:
                 self.shuff_importances_.append(get_importance(e) + 1) # +1 to avoid 0/0
