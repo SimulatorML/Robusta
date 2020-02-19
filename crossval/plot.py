@@ -11,15 +11,10 @@ import matplotlib.pyplot as plt
 from ._curve import *
 
 
-__all__ = [
-    'plot_learing_curve',
-]
-
-
 
 
 def plot_learing_curve(result, X, y, groups=None, max_iter=0, step=1,
-                       train_score=True, n_jobs=None):
+                       mode='mean', train_score=False, n_jobs=None):
 
     """Plot learning curve for boosting estimators.
 
@@ -54,13 +49,18 @@ def plot_learing_curve(result, X, y, groups=None, max_iter=0, step=1,
         step-1, 2*step-1, 3*step-1 & etc (zero-based indices).
         Larger step speeds up prediction.
 
-    train_score : bool (default=True)
+    mode : {'mean', 'fold', 'both'} (default='mean')
+        - 'mean' : plot average score and std (default)
+        - 'fold' : plot score of each fold
+        - 'both' : plot both
+
+    train_score : bool (default=False)
         Whether to plot learning curve for training scores.
         If False, speeds up prediction.
 
     n_jobs : int or None, optional (default=-1)
         The number of jobs to run in parallel. None means 1.
-        
+
 
     Returns
     -------
@@ -76,6 +76,9 @@ def plot_learing_curve(result, X, y, groups=None, max_iter=0, step=1,
     estimators = result['estimator']
     scorer = result['scorer']
     cv = result['cv']
+
+    modes = ('mean', 'fold', 'both')
+    assert mode in modes, f'<mode> must be from {modes}. Found {mode}'
 
     # Estimator Name
     estimator = estimators[0]
@@ -123,24 +126,33 @@ def plot_learing_curve(result, X, y, groups=None, max_iter=0, step=1,
     # Learning Curve(s)
     plt.figure()
 
-    if train_score:
-        trn_avg = trn_scores.mean(axis=0)
-        trn_std = trn_scores.std(axis=0)
+    if not train_score:
+        trn_scores = None
+    else:
+        avg = trn_scores.mean(axis=0)
+        std = trn_scores.std(axis=0)
 
-        plt.fill_between(stages, trn_avg-trn_std, trn_avg+trn_std, alpha=.1, color='b')
-        plt.plot(stages, trn_scores.mean(axis=0), label='train score', color='b')
+        if mode in ['mean', 'both']:
+            plt.fill_between(stages, avg-std, avg+std, alpha=.1, color='b')
+            plt.plot(stages, avg, label='train score', color='b')
+
+        if mode in ['fold', 'both']:
+            for scores in trn_scores:
+                plt.plot(stages, scores, '--', color='b', lw=0.5, alpha=0.5)
 
     if True:
-        val_avg = val_scores.mean(axis=0)
-        val_std = val_scores.std(axis=0)
+        avg = val_scores.mean(axis=0)
+        std = val_scores.std(axis=0)
 
-        plt.fill_between(stages, val_avg-val_std, val_avg+val_std, alpha=.1, color='y')
-        plt.plot(stages, val_scores.mean(axis=0), label='valid score', color='y')
+        if mode in ['mean', 'both']:
+            plt.fill_between(stages, avg-std, avg+std, alpha=.1, color='y')
+            plt.plot(stages, avg, label='valid score', color='y')
+
+        if mode in ['fold', 'both']:
+            for scores in val_scores:
+                plt.plot(stages, scores, '--', color='y', lw=0.5, alpha=0.5)
 
     plt.legend()
     plt.show()
 
-    if train_score:
-        return trn_scores, val_scores
-    else:
-        return None, val_scores
+    return trn_scores, val_scores
