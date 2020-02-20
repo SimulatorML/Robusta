@@ -45,7 +45,8 @@ def _get_col_score(estimator, X, y, col, n_repeats, scorer, rstate):
 
 
 
-def get_col_score(estimator, X, y, col, n_repeats=5, scoring=None, random_state=None):
+def get_col_score(estimator, X, y, col, n_repeats=5, scoring=None,
+                  random_state=None):
     """Calculate score when `col` is permuted."""
 
     scorer = check_scoring(estimator, scoring=scoring)
@@ -75,7 +76,8 @@ def _get_group_score(estimator, X, y, g, n_repeats, scorer, rstate):
 
 
 
-def get_group_score(estimator, X, y, g, n_repeats=5, scoring=None, random_state=None):
+def get_group_score(estimator, X, y, g, n_repeats=5, scoring=None,
+                    random_state=None):
     """Calculate score when columns group `g` is permuted."""
 
     scorer = check_scoring(estimator, scoring=scoring)
@@ -87,8 +89,8 @@ def get_group_score(estimator, X, y, g, n_repeats=5, scoring=None, random_state=
 
 
 
-def permutation_importance(estimator, X, y, scoring=None, n_repeats=5, n_jobs=None,
-                           random_state=0, tqdm=False):
+def permutation_importance(estimator, X, y, subset=None, scoring=None, n_repeats=5,
+                           n_jobs=None, random_state=0, tqdm=False):
     """Permutation importance for feature evaluation [BRE].
 
     The 'estimator' is required to be a fitted estimator. 'X' can be the
@@ -113,6 +115,10 @@ def permutation_importance(estimator, X, y, scoring=None, n_repeats=5, n_jobs=No
 
     y : array-like or None, shape (n_samples, ) or (n_samples, n_classes)
         Targets for supervised or `None` for unsupervised.
+
+    subset : list or None (default=None)
+        If not None, score only subset of features.
+        Other importances will be NaN.
 
     scoring : string, callable or None, default=None
         Scorer to use. It can be a single string or a callable.
@@ -152,53 +158,75 @@ def permutation_importance(estimator, X, y, scoring=None, n_repeats=5, n_jobs=No
 
     """
 
-    cols = tqdm_notebook(X.columns) if tqdm else X.columns
+    columns = list(X.columns)
+
+    msg = "<subset> must contain only features from <X>"
+    assert not subset or not set(subset) - set(columns), msg
+
+    msg = "<subset> must contain only unique features"
+    assert not subset or len(set(subset)) == len(subset), msg
+
+    subset = subset if subset else columns
+    subset = tqdm_notebook(subset) if tqdm else subset
 
     scorer = check_scoring(estimator, scoring=scoring)
     rstate = check_random_state(random_state)
 
-    baseline_score = scorer(estimator, X, y)
-    scores = np.zeros((len(cols), n_repeats))
+    base_score = scorer(estimator, X, y)
+    scores = np.zeros((len(subset), n_repeats))
 
     # FIXME: avoid <max_nbytes>
     scores = Parallel(n_jobs=n_jobs, max_nbytes='512M', backend='multiprocessing')(
-        delayed(_get_col_score)(estimator, X, y, col, n_repeats, scorer, rstate)
-        for col in cols)
+        delayed(_get_col_score)(estimator, X, y, feature, n_repeats, scorer, rstate)
+        for feature in subset)
 
-    importances = baseline_score - np.array(scores)
+    importances = np.full((len(columns), n_repeats), np.nan)
+    ind = [columns.index(feature) for feature in subset]
+    importances[ind] = base_score - np.array(scores)
 
     result = {'importances_mean': np.mean(importances, axis=1),
               'importances_std': np.std(importances, axis=1),
               'importances': importances,
-              'score': baseline_score}
+              'score': base_score}
 
     return result
 
 
 
-def group_permutation_importance(estimator, X, y, scoring=None, n_repeats=10,
-                                 n_jobs=-1, random_state=0, tqdm=False):
+def group_permutation_importance(estimator, X, y, subset=None, scoring=None,
+                                 n_repeats=5, n_jobs=None, random_state=0,
+                                 tqdm=False):
 
-    col_group = X.columns.get_level_values(0).unique()
-    col_group = tqdm_notebook(col_group) if tqdm else col_group
+    columns = list(X.columns.get_level_values(0).unique())
+
+    msg = "<subset> must contain only features from <X>"
+    assert not subset or not set(subset) - set(columns), msg
+
+    msg = "<subset> must contain only unique features"
+    assert not subset or len(set(subset)) == len(subset), msg
+
+    subset = subset if subset else columns
+    subset = tqdm_notebook(subset) if tqdm else subset
 
     scorer = check_scoring(estimator, scoring=scoring)
     rstate = check_random_state(random_state)
 
-    baseline_score = scorer(estimator, X, y)
-    scores = np.zeros((len(col_group), n_repeats))
+    base_score = scorer(estimator, X, y)
+    scores = np.zeros((len(subset), n_repeats))
 
     # FIXME: avoid <max_nbytes>
     scores = Parallel(n_jobs=n_jobs, max_nbytes='512M', backend='multiprocessing')(
-        delayed(_get_group_score)(estimator, X, y, g, n_repeats, scorer, rstate)
-        for g in col_group)
+        delayed(_get_group_score)(estimator, X, y, feature, n_repeats, scorer, rstate)
+        for feature in subset)
 
-    importances = baseline_score - np.array(scores)
+    importances = np.full((len(columns), n_repeats), np.nan)
+    ind = [columns.index(feature) for feature in subset]
+    importances[ind] = base_score - np.array(scores)
 
     result = {'importances_mean': np.mean(importances, axis=1),
               'importances_std': np.std(importances, axis=1),
               'importances': importances,
-              'score': baseline_score}
+              'score': base_score}
 
     return result
 
@@ -283,7 +311,7 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
         self.y_transform = y_transform
 
 
-    def fit(self, X, y, groups=None, **fit_params):
+    def fit(self, X, y, groups=None, subset=None, **fit_params):
         """Compute ``feature_importances_`` attribute.
 
         Parameters
@@ -298,6 +326,10 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
         groups : array-like, with shape (n_samples,), optional
             Group labels for the samples used while splitting the dataset into
             train/test set.
+
+        subset : list or None (default=None)
+            If not None, score only subset of features.
+            Other importances will be NaN.
 
         **fit_params : Other estimator specific parameters
 
@@ -329,9 +361,9 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
             if self.cv is 'prefit':
                 estimator = self.estimator
             else:
-                estimator = clone(self.estimator).fit(X_trn, y_trn_)
+                estimator = clone(self.estimator).fit(X_trn, y_trn_, **fit_params)
 
-            pi = permutation_importance(estimator, X_oof, y_oof,
+            pi = permutation_importance(estimator, X_oof, y_oof, subset=subset,
                                         n_repeats=self.n_repeats,
                                         scoring=self.scoring,
                                         random_state=self.random_state,
@@ -388,7 +420,7 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
 
 class GroupPermutationImportance(PermutationImportance):
 
-    def fit(self, X, y, groups=None, **fit_params):
+    def fit(self, X, y, groups=None, subset=None, **fit_params):
         """Compute ``feature_importances_`` attribute.
 
         Parameters
@@ -436,9 +468,9 @@ class GroupPermutationImportance(PermutationImportance):
             if self.cv is 'prefit':
                 estimator = self.estimator
             else:
-                estimator = clone(self.estimator).fit(X_trn, y_trn_)
+                estimator = clone(self.estimator).fit(X_trn, y_trn_, **fit_params)
 
-            pi = group_permutation_importance(estimator, X_oof, y_oof,
+            pi = group_permutation_importance(estimator, X_oof, y_oof, subset=subset,
                                               n_repeats=self.n_repeats,
                                               scoring=self.scoring,
                                               random_state=self.random_state,
