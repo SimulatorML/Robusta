@@ -63,11 +63,11 @@ class ShuffleTargetImportance(BaseEstimator, MetaEstimatorMixin):
         The number of random shuffle iterations. Decrease to improve speed,
         increase to get more precise estimates.
 
-    gain : {'dif', 'div'}, default='dif'
-        How to calculate gain between importances after shuffling and benchmark.
+    mode : {'dif', 'div'}, default='dif'
+        How to calculate mode between importances after shuffling and benchmark.
 
-        - 'dif': for difference between importances (absolute gain).
-        - 'div': for division between importances (relative gain).
+        - 'dif': for difference between importances (absolute mode).
+        - 'div': for division between importances (relative mode).
 
     tqdm : bool, default=False
         Whether to display <tqdm_notebook> progress bar while iterating
@@ -88,8 +88,8 @@ class ShuffleTargetImportance(BaseEstimator, MetaEstimatorMixin):
     Attributes
     ----------
     feature_importances_ : Series, shape (n_groups, )
-        Feature importances, computed as mean decrease of the score when
-        a feature is permuted (i.e. becomes noise).
+        Feature importances, computed as mean decrease of the importance when
+        a target is shuffled (i.e. becomes noise).
 
     feature_importances_std_ : Series, shape (n_groups, )
         Standard deviations of feature importances.
@@ -100,7 +100,7 @@ class ShuffleTargetImportance(BaseEstimator, MetaEstimatorMixin):
 
     """
 
-    def __init__(self, estimator, cv, scoring=None, n_repeats=5, gain='dif',
+    def __init__(self, estimator, cv, scoring=None, n_repeats=5, mode='dif',
                  tqdm=False, verbose=0, n_jobs=None, random_state=None,
                  cv_kwargs={}):
         self.estimator = estimator
@@ -108,7 +108,7 @@ class ShuffleTargetImportance(BaseEstimator, MetaEstimatorMixin):
         self.cv = cv
         self.cv_kwargs = cv_kwargs
         self.n_repeats = n_repeats
-        self.gain = gain
+        self.mode = mode
         self.tqdm = tqdm
         self.verbose = verbose
         self.n_jobs = n_jobs
@@ -122,8 +122,8 @@ class ShuffleTargetImportance(BaseEstimator, MetaEstimatorMixin):
         msg = "<n_repeats> must be positive integer"
         assert isinstance(self.n_repeats, int) and self.n_repeats > 0, msg
 
-        msg = "<gain> must be in {'dif', 'div'}"
-        assert self.gain in ['dif', 'div'], msg
+        msg = "<mode> must be in {'dif', 'div'}"
+        assert self.mode in ['dif', 'div'], msg
 
         self.bench_importances_ = []
         self.shuff_importances_ = []
@@ -163,10 +163,10 @@ class ShuffleTargetImportance(BaseEstimator, MetaEstimatorMixin):
 
             self.shuff_scores_.append(result['val_score'])
 
-        # Relative/Absolute Gain
+        # Relative/Absolute Mode
         for b, s in zip(self.bench_importances_, self.shuff_importances_):
-            if self.gain == 'dif': self.raw_importances_.append(b - s)
-            if self.gain == 'div': self.raw_importances_.append(b / s)
+            if self.mode == 'dif': self.raw_importances_.append(b - s)
+            if self.mode == 'div': self.raw_importances_.append(b / s)
 
         imps = self.raw_importances_
         self.feature_importances_ = np.average(imps, axis=0)
