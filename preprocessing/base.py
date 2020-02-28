@@ -352,14 +352,15 @@ class ColumnRenamer(BaseEstimator, TransformerMixin):
 
         '''
         if self.column is not None:
-            if hasattr(self.column, '__iter__') and len(self.column) is X.shape[1]:
+            
+            if callable(self.column):
+                features = [self.column(x) for x in X]
+
+            elif hasattr(self.column, '__iter__') and len(self.column) is X.shape[1]:
                 features = map(str, self.column)
 
             elif isinstance(self.column, str):
                 features = [self.column + str(x) for x in range(X.shape[1])]
-
-            elif callable(self.column):
-                features = [self.column(x) for x in X]
 
             elif isinstance(self.column, dict):
                 features = []
