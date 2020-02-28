@@ -219,7 +219,7 @@ def _predict(estimator, method, X, y, index=None):
 
     if method is 'predict':
         # [classifier + predict] OR [regressor]
-        P.columns = Y.columns
+        P.columns = [y.name] if hasattr(y, 'name') else Y.columns
 
     elif is_classifier(estimator):
         # [classifier + predict_proba]
