@@ -2,7 +2,6 @@ from .crossval import *
 from .saveload import *
 from .schemes import *
 from .results import *
-from .compare import *
 from .plot import *
 
 
@@ -32,10 +31,8 @@ __all__ = [
     'check_folds',
     'rating_table',
 
-    # Compare
-    'compare_roc_auc',
-    'compare_ttest',
-
     # Plot
     'plot_learing_curve',
+    'plot_roc_auc',
+    'plot_ttest',
 ]
