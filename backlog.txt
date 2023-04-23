@@ -1,0 +1,10 @@
+# Ошибка в category Categorizer
+# Ошибка в FeatureCombiner
+# Нету логики в DowncastTransformer
+# QuantileTransformer: self._check_is_fitted(X)
+# GaussRankTransformer: Ошибка из-за QuantileTransformer
+# EncoderCV: TypeError: check_cv() takes from 0 to 2 positional arguments but 3 were given
+# crossval.plot.py: plot_ttest error in key
+# crossval.plot.py: plot_learing_curve поменять название
+# crossval._curve.py: _xgb_staged_predict
+# testing.utils.py: get_estimator (name нету)
