@@ -234,8 +234,8 @@ def _check_k_features(k_features, n_features, param='k_features'):
 
 
 class _WrappedGroupSelector:
-
-    def _get_importance(self, subset, result):
+    def _get_importance(subset,
+                        result):
         if 'importance' in result:
             features, imp = result['features'], result['importance']
             groups = [group for group, _ in features]
