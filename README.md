@@ -226,4 +226,4 @@ Tests are written in pytest, and I have tried to ensure close to 100% coverage. 
 
 ## Getting in touch
 
-If you are having a problem with PyPortfolioOpt, please raise a GitHub issue.
+If you are having a problem with Robusta, please raise a GitHub issue.
