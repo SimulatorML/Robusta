@@ -1,34 +1,19 @@
-from IPython import display
-
-from matplotlib.ticker import MaxNLocator
-import matplotlib.pylab as plt
-
 import numpy as np
+import optuna
 import pandas as pd
-import time, datetime
-
-from scipy import signal, stats
-
 from termcolor import colored
 
-from robusta.utils import logmsg, secfmt
+from ..utils import logmsg, secfmt
 
-
-
-
-__all__ = ['print_progress', 'plot_progress']
-
-
-def _print_last(opt):
-    '''
+def _print_last(opt: optuna.Trial):
+    """
     Print last trial score in optimizer.
 
     Parameters
     ----------
     opt : instance
         Optimizator instance.
-
-    '''
+    """
     trial = opt.trials_.iloc[-1]
 
     if opt.verbose >= 1:
@@ -47,8 +32,8 @@ def _print_last(opt):
             # FIXME: colorlog & termcolor conflict...
             # https://github.com/borntyping/python-colorlog
 
-            score = colored(score, 'yellow') if (opt.trials_['score'].idxmax() is k-1) else score
-            std = colored(std, 'cyan') if (opt.trials_['score_std'].idxmin() is k-1) else std
+            score = colored(score, 'yellow') if (opt.trials_['score'].idxmax() is k - 1) else score
+            std = colored(std, 'cyan') if (opt.trials_['score_std'].idxmin() is k - 1) else std
 
             score = '{} ± {}'.format(score, std)
 
@@ -76,7 +61,6 @@ def _print_last(opt):
         else:
             msg = 'ITER: {} - {}!'.format(iters, trial['status'])
             logmsg(msg)
-
 
     if opt.verbose >= 2:
         print(pd.Series(trial['params'], dtype='str'))
