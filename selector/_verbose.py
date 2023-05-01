@@ -1,15 +1,24 @@
-import pandas as pd
 import numpy as np
-
-from robusta.utils import logmsg, secfmt
-
 from termcolor import colored
 
+from ..utils import logmsg, secfmt
 
 
+def _print_last(fs: object):
+    """
+    Print information about the last feature subset in a sequential feature selection process.
 
-def _print_last(fs):
+    Parameters
+    ----------
+    fs : SequentialFeatureSelector
+        The sequential feature selector object.
 
+    Returns
+    -------
+    Nothing :
+        None
+
+    """
     prec = getattr(fs, 'n_digits', 4)
     subset = fs.trials_[-1]
 
@@ -26,14 +35,14 @@ def _print_last(fs):
         sub = f'SUBSET: {len(subset)}/{fs.n_features_}'
 
         # Score
-        scores = [trial.score     for trial in fs.trials_]
-        stds   = [trial.score_std for trial in fs.trials_]
+        scores = [trial.score for trial in fs.trials_]
+        stds = [trial.score_std for trial in fs.trials_]
 
-        score = '{:.{prec}f}'.format(subset.score,     prec=prec)
-        std   = '{:.{prec}f}'.format(subset.score_std, prec=prec)
+        score = '{:.{prec}f}'.format(subset.score, prec=prec)
+        std = '{:.{prec}f}'.format(subset.score_std, prec=prec)
 
         score = colored(score, 'yellow') if subset.idx == np.argmax(scores) else score
-        std   = colored(std,   'cyan')   if subset.idx == np.argmin(stds)   else std
+        std = colored(std, 'cyan') if subset.idx == np.argmin(stds) else std
 
         score = f'SCORE: {score} ± {std}'
 
@@ -44,7 +53,7 @@ def _print_last(fs):
             eta0 = np.inf
 
         if hasattr(fs, 'max_iter') and fs.max_iter:
-            eta1 = max(fs.total_time_ * (n - k) / k,  0)
+            eta1 = max(fs.total_time_ * (n - k) / k, 0)
         else:
             eta1 = np.inf
 
@@ -56,9 +65,8 @@ def _print_last(fs):
         else:
             eta = ''
 
-        msg = f'{iters}{" "*6}{sub}{" "*6}{score}{" "*6}{eta}'
+        msg = f'{iters}{" " * 6}{sub}{" " * 6}{score}{" " * 6}{eta}'
         logmsg(msg)
-
 
     if fs.verbose >= 2:
 
@@ -70,7 +78,6 @@ def _print_last(fs):
 
             diff = old - new
             if diff: logmsg(f'    – {diff}')
-
 
     if fs.verbose >= 10:
         # Last feature subset
