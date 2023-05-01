@@ -12,15 +12,18 @@ def sigmoid(x: np.ndarray) -> np.ndarray:
     """
     Calculate the sigmoid function for a given input.
 
-    Parameters:
-    -----------
-    x (np.ndarray): The input array.
+    Parameters
+    ----------
+    x : np.ndarray
+        The input array.
 
-    Returns:
+    Returns
+    -------
+    Array : np.ndarray
+        The output array with values between 0 and 1.
+
+    Examples
     --------
-    np.ndarray: The output array with values between 0 and 1.
-
-    Examples:
         >>> x = np.array([0, 1, 2])
         >>> sigmoid(x)
         array([0.5, 0.73105858, 0.88079708])
@@ -35,7 +38,7 @@ def _xgb_staged_predict(estimator: XGBRegressor | XGBClassifier,
     """
     Generate predictions of the input data for each stage of the XGBoost model.
 
-    Parameters:
+    Parameters
     -----------
     estimator : XGBRegressor or XGBClassifier
         The XGBoost model to use for prediction.
@@ -46,7 +49,7 @@ def _xgb_staged_predict(estimator: XGBRegressor | XGBClassifier,
     step : int, default 1
         The number of iterations between consecutive predictions.
 
-    Returns:
+    Returns
     --------
     None
     """
@@ -74,7 +77,7 @@ def _lgb_staged_predict(estimator: LGBMRegressor | LGBMClassifier,
     """
     Generate predictions of the input data for each stage of the LightGBM model.
 
-    Parameters:
+    Parameters
     -----------
     estimator : LGBMRegressor or LGBMClassifier
         The LightGBM model to use for prediction.
@@ -85,10 +88,13 @@ def _lgb_staged_predict(estimator: LGBMRegressor | LGBMClassifier,
     step : int, default 1
         The number of iterations between consecutive predictions.
 
-    Yields:
-        np.ndarray: The predicted values for each stage.
+    Yields
+    ------
+    pred : np.ndarray
+        The predicted values for each stage.
 
-    Examples:
+    Examples
+    --------
         >>> from lightgbm import LGBMClassifier
         >>> from sklearn.datasets import make_classification
         >>> X_train, y_train = make_classification(n_samples=1000, n_features=10, random_state=42)
@@ -228,7 +234,7 @@ def _get_scores(estimator: BaseEstimator,
         Whether to compute training scores.
 
     Returns
-    ----------
+    -------
     trn_scores, val_scores : Tuple[List[float], List[float]]
         A tuple containing the training and validation scores.
     """
@@ -269,15 +275,10 @@ class _StagedClassifier(BaseEstimator):
     A simple classifier that returns the input array as the predicted probabilities and
     classifies instances as 1 if the probability of the positive class is greater than 0.5.
 
-    Attributes:
-        _estimator_type (str): The estimator type, which is 'classifier' for this class.
-
-    Methods:
-        predict_proba(X: np.array) -> np.array:
-            Return the input array as the predicted probabilities.
-
-        predict(X: np.ndarray) -> np.ndarray:
-            Classify instances as 1 if the probability of the positive class is greater than 0.5.
+    Attributes
+    ----------
+    _estimator_type : str
+        The estimator type, which is 'classifier' for this class.
     """
 
     _estimator_type = 'classifier'
@@ -340,9 +341,6 @@ class _StagedRegressor(BaseEstimator):
 
     Attributes:
         _estimator_type (str): The type of the estimator, which is 'regressor' for this class.
-
-    Methods:
-        predict: Return the input array.
     """
 
     _estimator_type = 'regressor'
