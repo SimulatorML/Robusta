@@ -10,7 +10,7 @@ from scipy import interp, stats
 from sklearn.metrics import roc_curve
 
 from . import _cat_staged_predict, _lgb_staged_predict, _xgb_staged_predict
-from .results import check_cvs
+from . import check_cvs
 
 
 def plot_learning_curve(result: dict,

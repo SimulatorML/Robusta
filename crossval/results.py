@@ -4,8 +4,8 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import check_cv
 
-from .saveload import list_results
-from .saveload import load_result
+from . import list_results
+from . import load_result
 
 
 def argsort_idx(idx_list: np.ndarray) -> np.ndarray:

@@ -12,7 +12,7 @@ from sklearn.model_selection import check_cv
 from sklearn.utils import indexable
 
 from . import CVLogger
-from ._predict import _check_avg, _fit_predict, _avg_preds
+from . import _check_avg, _fit_predict, _avg_preds
 from ..utils import ld2dl, logmsg
 
 
