@@ -1,0 +1,6 @@
+# CROSSVAL
+# _curve: The _estimator_type attribute in _StagedClassifier is not used on the class (284)
+# _curve: The _estimator_type attribute in _StagedRegressor is not used on the class (346)
+# _curve: _xgb_staged_predict should be overwritten (34)
+# plot: plot_ttest, key is not undefiend (185-186)
+# plot: plot_roc_auc, cv is not used  (298)
