@@ -3,20 +3,20 @@ import numpy as np
 import abc
 
 from copy import copy
+
 from time import time
 
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.utils.random import check_random_state
+
+from sklearn.utils import check_random_state
 
 from robusta.crossval import crossval
 
-from ._verbose import _print_last
-from ._subset import FeatureSubset
-from ._plot import _plot_progress, _plot_subset
+from mypackage._verbose import _print_last
 
+from mypackage._subset import FeatureSubset
 
-
-
+from mypackage._plot import _plot_progress, _plot_subset
 
 class _Selector(BaseEstimator, TransformerMixin):
 
@@ -123,8 +123,7 @@ class _WrappedSelector(_Selector):
 
 
 
-    def eval_subset(self, subset, X, y, groups=None):
-
+   def eval_subset(self, subset, X, y, groups=None):
         # Convert to FeatureSubset
         if type(subset) != type(self.features_):
             subset = self.features_.copy().set_subset(subset)
@@ -146,7 +145,8 @@ class _WrappedSelector(_Selector):
         self.trials_.append(subset)
 
         # Verbose
-        _print_last(self)
+        if self.verbose:
+            print(subset)
 
         # Check limits
         self._check_max_iter()
@@ -158,14 +158,16 @@ class _WrappedSelector(_Selector):
     def _check_max_iter(self):
         if hasattr(self, 'max_iter') and self.max_iter:
             if self.max_iter <= self.n_iters_:
-                if self.verbose: print('Iterations limit exceed!')
+                if self.verbose:
+                    print('Iterations limit exceeded!')
                 raise KeyboardInterrupt
 
 
     def _check_max_time(self):
         if hasattr(self, 'max_time') and self.max_time:
             if self.max_time <= self.total_time_:
-                if self.verbose: print('Time limit exceed!')
+                if self.verbose:
+                    print('Time limit exceeded!')
                 raise KeyboardInterrupt
 
 
@@ -178,18 +180,18 @@ class _WrappedSelector(_Selector):
         return len(self.trials_)
 
 
-    #@property
-    #def feature_importances_(self):
-    #    subset = self._select_features()
-    #    trial = _find_trial(subset)
-    #    return pd.Series(trial['importance'], index=self.features_)
+    @property
+    def feature_importances_(self):
+        subset = self._select_features()
+        trial = _find_trial(subset)
+        return pd.Series(trial['importance'], index=self.features_)
 
 
-    #@property
-    #def feature_importances_std_(self):
-    #    subset = self._select_features()
-    #    trial = _find_trial(subset)
-    #    return pd.Series(trial['importance_std'], index=self.features_)
+    @property
+    def feature_importances_std_(self):
+        subset = self._select_features()
+        trial = _find_trial(subset)
+        return pd.Series(trial['importance_std'], index=self.features_)
 
 
     def plot_progress(self, **kwargs):
@@ -199,7 +201,6 @@ class _WrappedSelector(_Selector):
         return _plot_subset(self, **kwargs)
 
     def get_subset(self):
-
         if hasattr(self, 'best_subset_'):
             return self.best_subset_
         else:
@@ -207,35 +208,27 @@ class _WrappedSelector(_Selector):
             raise NotFittedError(f'{model_name} is not fitted')
 
 
-
-
 def _check_k_features(k_features, n_features, param='k_features'):
-
     if isinstance(k_features, int):
         if k_features > 0:
             k_features = k_features
         else:
             raise ValueError(f'Integer <{param}> must be greater than 0')
-
     elif isinstance(k_features, float):
         if 0 < k_features < 1:
             k_features = max(k_features * n_features, 1)
             k_features = int(k_features)
         else:
             raise ValueError(f'Float <{param}> must be from interval (0, 1)')
-
     else:
         raise ValueError(f'Parameter <{param}> must be int or float,'
                          f'got {k_features}')
-
     return k_features
 
 
-
-
-class _WrappedGroupSelector:
-    def _get_importance(subset,
-                        result):
+class WrappedGroupSelector:
+    @staticmethod
+    def _get_importance(subset, result):
         if 'importance' in result:
             features, imp = result['features'], result['importance']
             groups = [group for group, _ in features]
@@ -243,8 +236,7 @@ class _WrappedGroupSelector:
             imp = pd.DataFrame(imp, columns=groups).T
             imp = imp.groupby(groups).sum()
 
-            subset.importance = imp.mean(axis=1)
-            subset.importance_std = imp.std(axis=1)
+            subset.importance = importance_std = imp.std(axis=1)
         return subset
 
     def _set_features(self, X):
