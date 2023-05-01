@@ -52,59 +52,6 @@ def shuffle_labels(labels: pd.Series,
     # Map the original labels to the shuffled labels and return the result as a new Series
     return labels.map(mapper)
 
-def make_adversarial_validation(classifier: ClassifierMixin,
-                                X_train: pd.DataFrame,
-                                X_test: pd.DataFrame,
-                                train_size: Optional[Union[float, int]] = None,
-                                test_size: Optional[Union[float, int]] = None) -> AdversarialValidation:
-    """
-    Returns an AdversarialValidation object that can be used to split data into train and validation sets based on a
-    pre-fitted binary classifier's prediction probabilities. The goal of this split is to ensure that the train and
-    validation sets have similar feature distributions, which can be useful in detecting and mitigating dataset shift
-    between training and validation data.
-
-    Parameters
-    ----------
-    classifier: ClassifierMixin
-        A pre-fitted binary classifier (e.g. a logistic regression or a random forest classifier).
-    X_train: pd.DataFrame
-        The training data as a pandas DataFrame.
-    X_test: pd.DataFrame
-        The validation data as a pandas DataFrame.
-    train_size: Optional[Union[float, int]]
-        The proportion of the combined dataset to be used as the training set. This can be a float (between
-        0 and 1) to indicate the proportion of the combined dataset to use as training data, or an integer to
-        indicate the exact number of samples to use for training. If both train_size and test_size are None (the
-        default), train_size is set to 80% of the combined dataset size.
-    test_size: Optional[Union[float, int]]
-        The proportion of the combined dataset to be used as the validation set. This can be a float (between
-        0 and 1) to indicate the proportion of the combined dataset to use as validation data, or an integer to
-        indicate the exact number of samples to use for validation. If both train_size and test_size are None (the
-        default), train_size is set to 80% of the combined dataset size.
-
-    Returns
-    -------
-    class : AdversarialValidation
-        An AdversarialValidation object that can be used to generate train and validation sets based on the
-        pre-fitted binary classifier's prediction probabilities.
-
-    Raises
-    ------
-    ValueError:
-        If both train_size and test_size are passed.
-    """
-    # Concatenate the training and test data into a single DataFrame
-    X = pd.concat([X_train, X_test])
-
-    # Create binary labels for the training and test data (0 for training, 1 for test)
-    y = [0] * len(X_train) + [1] * len(X_test)
-
-    # Fit the classifier on the combined dataset with binary labels
-    clf = clone(classifier).fit(X, y)
-
-    # Create and return an AdversarialValidation object with the trained classifier and specified train and test sizes
-    return AdversarialValidation(classifier=clf, train_size=train_size, test_size=test_size)
-
 
 class RepeatedGroupKFold:
     """
@@ -763,3 +710,56 @@ class AdversarialValidation:
                                      "Passed {}".format(size, test_size))
             else:
                 raise ValueError("Unknown type of test_size passed {}".format(test_size))
+
+def make_adversarial_validation(classifier: ClassifierMixin,
+                                X_train: pd.DataFrame,
+                                X_test: pd.DataFrame,
+                                train_size: Optional[Union[float, int]] = None,
+                                test_size: Optional[Union[float, int]] = None) -> AdversarialValidation:
+    """
+    Returns an AdversarialValidation object that can be used to split data into train and validation sets based on a
+    pre-fitted binary classifier's prediction probabilities. The goal of this split is to ensure that the train and
+    validation sets have similar feature distributions, which can be useful in detecting and mitigating dataset shift
+    between training and validation data.
+
+    Parameters
+    ----------
+    classifier: ClassifierMixin
+        A pre-fitted binary classifier (e.g. a logistic regression or a random forest classifier).
+    X_train: pd.DataFrame
+        The training data as a pandas DataFrame.
+    X_test: pd.DataFrame
+        The validation data as a pandas DataFrame.
+    train_size: Optional[Union[float, int]]
+        The proportion of the combined dataset to be used as the training set. This can be a float (between
+        0 and 1) to indicate the proportion of the combined dataset to use as training data, or an integer to
+        indicate the exact number of samples to use for training. If both train_size and test_size are None (the
+        default), train_size is set to 80% of the combined dataset size.
+    test_size: Optional[Union[float, int]]
+        The proportion of the combined dataset to be used as the validation set. This can be a float (between
+        0 and 1) to indicate the proportion of the combined dataset to use as validation data, or an integer to
+        indicate the exact number of samples to use for validation. If both train_size and test_size are None (the
+        default), train_size is set to 80% of the combined dataset size.
+
+    Returns
+    -------
+    class : AdversarialValidation
+        An AdversarialValidation object that can be used to generate train and validation sets based on the
+        pre-fitted binary classifier's prediction probabilities.
+
+    Raises
+    ------
+    ValueError:
+        If both train_size and test_size are passed.
+    """
+    # Concatenate the training and test data into a single DataFrame
+    X = pd.concat([X_train, X_test])
+
+    # Create binary labels for the training and test data (0 for training, 1 for test)
+    y = [0] * len(X_train) + [1] * len(X_test)
+
+    # Fit the classifier on the combined dataset with binary labels
+    clf = clone(classifier).fit(X, y)
+
+    # Create and return an AdversarialValidation object with the trained classifier and specified train and test sizes
+    return AdversarialValidation(classifier=clf, train_size=train_size, test_size=test_size)
