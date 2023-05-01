@@ -1,18 +1,13 @@
+from typing import Optional, Callable
+
 import pandas as pd
-import numpy as np
 
 from sklearn.base import BaseEstimator, RegressorMixin, clone
 
-from robusta.importance import get_importance
-
-
-__all__ = ['TransformedTargetRegressor']
-
-
-
 
 class TransformedTargetRegressor(BaseEstimator, RegressorMixin):
-    """Meta-estimator to regress on a transformed target.
+    """
+    Meta-estimator to regress on a transformed target.
     Useful for applying a non-linear transformation in regression problems. This
     transformation can be given as a Transformer such as the QuantileTransformer
     or as a function and its inverse such as ``log`` and ``exp``.
@@ -49,14 +44,21 @@ class TransformedTargetRegressor(BaseEstimator, RegressorMixin):
         Fitted regressor.
 
     """
-    def __init__(self, regressor=None, func=None, inverse_func=None):
+
+    def __init__(self,
+                 regressor: Optional[RegressorMixin] = None,
+                 func: Optional[Callable] = None,
+                 inverse_func: Optional[Callable] = None):
         self.regressor = regressor
         self.func = func
         self.inverse_func = inverse_func
 
+    def fit(self,
+            X: pd.DataFrame,
+            y: pd.Series) -> 'TransformedTargetRegressor':
+        """
+        Fit the model according to the given training data.
 
-    def fit(self, X, y, sample_weight=None):
-        """Fit the model according to the given training data.
         Parameters
         ----------
         X : DataFrame, shape (n_samples, n_features)
@@ -68,23 +70,28 @@ class TransformedTargetRegressor(BaseEstimator, RegressorMixin):
 
         Returns
         -------
-        self : object
+        self :
+            object
 
         """
 
+        # Check if the input data has index and set attributes
         if hasattr(X, 'index'):
             self.return_df = True
             self.y_name = y.name
 
+        # Apply transformation to target variable
         y = self.func(y)
 
+        # Fit the regressor to the transformed target variable
         self.regressor_ = clone(self.regressor).fit(X, y)
 
         return self
 
-
-    def predict(self, X):
-        """Predict using the base regressor, applying inverse.
+    def predict(self,
+                X: pd.DataFrame) -> pd.Series:
+        """
+        Predict using the base regressor, applying inverse.
 
         The regressor is used to predict and the ``inverse_func`` is applied
         before returning the prediction.
@@ -101,9 +108,14 @@ class TransformedTargetRegressor(BaseEstimator, RegressorMixin):
             Target values.
 
         """
+
+        # Predict using the fitted regressor
         y = self.regressor_.predict(X)
+
+        # Apply inverse transformation to the predicted values
         y = self.inverse_func(y)
 
+        # If input data has index, return a pandas Series with the same index and name as the target variable
         if self.return_df:
             y = pd.Series(y, name=self.y_name, index=X.index)
 
@@ -111,8 +123,25 @@ class TransformedTargetRegressor(BaseEstimator, RegressorMixin):
 
     @property
     def feature_importances_(self):
+        """
+        Return the feature importances of the fitted regressor.
+
+        Returns
+        -------
+        feature_importances_ : array, shape (n_features,)
+            The feature importances. The higher the value, the more important the feature.
+        """
         return self.regressor_.feature_importances_
 
     @property
     def coef_(self):
+        """
+        Return the coefficients of the fitted regressor.
+
+        Returns
+        -------
+        coef_ : array, shape (n_features,)
+            The coefficients of the fitted regressor. Each coefficient represents the
+            change in the target variable for a one-unit change in the corresponding feature.
+        """
         return self.regressor_.coef_
