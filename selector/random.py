@@ -1,15 +1,17 @@
-import pandas as pd
+from typing import Optional, Callable, Union
+
 import numpy as np
-
-from sklearn.utils.random import check_random_state
+import pandas as pd
+from sklearn.base import BaseEstimator
 from sklearn.exceptions import NotFittedError
+from sklearn.utils.random import check_random_state
 
-from .base import _WrappedSelector, _WrappedGroupSelector
-
+from . import _WrappedSelector, _WrappedGroupSelector
 
 
 class RandomSelector(_WrappedSelector):
-    '''Random feature selector for sampling and evaluating randomly choosen
+    """
+    Random feature selector for sampling and evaluating randomly choosen
     feature subsets of specified size.
 
 
@@ -98,12 +100,25 @@ class RandomSelector(_WrappedSelector):
     total_time_: float
         Total optimization time (seconds)
 
-    '''
+    """
 
-    def __init__(self, estimator, cv=5, scoring=None, max_iter=20, max_time=None,
-                 min_features=0.5, max_features=0.9, weights='uniform', n_jobs=-1,
-                 random_state=0, verbose=1, n_digits=4, cv_kwargs={}):
+    def __init__(self,
+                 estimator: BaseEstimator,
+                 cv: int = 5,
+                 scoring: Optional[Union[str, Callable]] = None,
+                 max_iter: int = 20,
+                 max_time: Optional[int] = None,
+                 min_features: float = 0.5,
+                 max_features: float = 0.9,
+                 weights: str = 'uniform',
+                 n_jobs: int = -1,
+                 random_state: int = 0,
+                 verbose: int = 1,
+                 n_digits: int = 4,
+                 cv_kwargs: Optional[dict] = None):
 
+        if cv_kwargs is None:
+            cv_kwargs = {}
         self.estimator = estimator
         self.min_features = min_features
         self.max_features = max_features
@@ -120,71 +135,177 @@ class RandomSelector(_WrappedSelector):
         self.verbose = verbose
         self.n_digits = n_digits
 
+    def fit(self,
+            X: pd.DataFrame,
+            y: pd.Series,
+            groups: Optional[pd.Series] = None) -> 'RandomSelector':
+        """
+        Fits the random selector to the data.
 
+        Parameters
+        ----------
+        X : pd.DataFrame
+            Feature matrix.
 
-    def fit(self, X, y, groups=None):
+        y : pd.Series
+            Target variable.
 
+        groups : pd.Series, default=None
+            Group labels for grouping in stratified sampling.
+
+        Returns
+        -------
+        self : RandomSelector
+            Fitted random selector.
+        """
+
+        # Prepare data and set up selector
         self._fit_start(X)
+
+        # Fit selector to data
         self._fit(X, y, groups)
 
         return self
 
+    def partial_fit(self,
+                    X: pd.DataFrame,
+                    y: pd.Series,
+                    groups: Optional[pd.Series] = None) -> 'RandomSelector':
+        """
+        Fits the RandomSelector model to the given dataset.
 
+        Parameters
+        ----------
+        X : pd.DataFrame
+            The input dataset to fit.
 
-    def partial_fit(self, X, y, groups=None):
+        y : pd.Series
+            The target variable.
 
+        groups : pd.Series, default=None
+            The groups of samples used for splitting the dataset into train/test set.
+
+        Returns
+        -------
+        self : RandomSelector
+            The fitted RandomSelector model.
+        """
+
+        # Prepare data and set up selector
         self._fit_start(X, partial=True)
+
+        # Partially fit selector to data
         self._fit(X, y, groups)
 
         return self
 
+    def _fit(self,
+             X: pd.DataFrame,
+             y: pd.Series,
+             groups: Optional[pd.Series] = None) -> 'RandomSelector':
+        """
+        Fits the RandomSelector model by randomly selecting subsets of features according to specified weights,
+        and evaluating their performance on the given data.
 
-    def _fit(self, X, y, groups=None):
+        Parameters
+        ----------
+        X : DataFrame
+            the input data with shape (n_samples, n_features)
+        y : Series
+            the target data with shape (n_samples,)
+        groups : pd.Series, optional
+            group labels of samples used for group-wise cross-validation.
+            Only used if `cv='group'`. Defaults to None.
 
+        Returns
+        -------
+        self : object
+            RandomSelector: the fitted RandomSelector model
+        """
+
+        # Loop until interrupted by user
         while True:
             try:
+                # Randomly select number of features to include
                 k = weighted_choice(self.weights_, self.rstate_)
+
+                # Randomly select a subset of features
                 subset = self.features_.sample(size=k, random_state=self.rstate_)
 
+                # Evaluate performance of selected subset
                 self.eval_subset(subset, X, y, groups)
 
             except KeyboardInterrupt:
+                # If user interrupts, stop fitting
                 break
 
         return self
 
+    def _fit_start(self,
+                   X: pd.DataFrame,
+                   partial: bool = False) -> 'RandomSelector':
+        """
+        Fits the RandomSelector model to the given dataset in a partial manner.
 
+        Parameters
+        ----------
+        X : pd.DataFrame
+            The input dataset to fit.
 
-    def _fit_start(self, X, partial=False):
+        y : pd.Series
+            The target variable.
 
+        groups : pd.Series, default=None
+            The groups of samples used for splitting the dataset into train/test set.
+
+        Returns
+        -------
+        self : RandomSelector
+            The fitted RandomSelector model.
+        """
         if not partial:
+            # If not re-using previously computed weights, reset list of trials
             self._reset_trials()
 
         if not partial and hasattr(self, 'random_state'):
             self.rstate_ = check_random_state(self.random_state)
 
+        # Set the list of available features
         self._set_features(X)
 
         weights_vals = ['uniform', 'binomal']
 
         if self.weights == 'binomal':
+            # Generate binomial weights if specified
             self.weights_ = binomal_weights(self.min_features_,
                                             self.max_features_,
                                             self.n_features_)
+
         elif self.weights == 'uniform':
+            # Generate uniform weights if specified
             self.weights_ = uniform_weights(self.min_features_,
                                             self.max_features_)
         else:
+            # Raise error if weights value is not valid
             raise ValueError(f'<weights> must be from {weights_vals}')
 
         return self
 
-
     def get_subset(self):
+        """
+        Return the subset of selected features.
+
+        Returns
+        -------
+        Union[List[int], np.ndarray]:
+            A list or NumPy array of the indices of the selected features.
+        """
 
         if hasattr(self, 'best_subset_'):
+            # If using the best subset and the attribute `best_subset_` exists, return the best subset
             return self.best_subset_
         else:
+            # If the model is not fitted or no subset is available, raise an error
             model_name = self.__class__.__name__
             raise NotFittedError(f'{model_name} is not fitted')
 
@@ -193,29 +314,103 @@ class GroupRandomSelector(_WrappedGroupSelector, RandomSelector):
     pass
 
 
+fact = lambda x: x * fact(x - 1) if x else 1
 
 
-fact = lambda x: x*fact(x-1) if x else 1
+def nCk(n: int, k: int) -> int:
+    """
+    Calculate the binomial coefficient n choose k.
+
+    Parameters
+    ----------
+    n : int
+        The total number of items.
+    k : int
+        The number of items to choose.
+
+    Returns
+    -------
+    num_ways : int
+        The number of ways to choose k items from n items.
+
+    """
+    return fact(n) // fact(k) // fact(n - k)
 
 
-def nCk(n, k):
-    return fact(n) // fact(k) // fact(n-k)
+def binomal_weights(k_min: int, k_max: int, n: int) -> pd.Series:
+    """
+    Calculate the binomial weights for all values of k between k_min and k_max.
 
+    Parameters
+    ----------
+    k_min : int
+        The minimum value of k.
+    k_max : int
+        The maximum value of k.
+    n : int
+        The total number of items.
 
-def binomal_weights(k_min, k_max, n):
-    k_range = range(k_min, k_max+1)
+    Returns
+    -------
+    binomial_weight : pd.Series
+        A series of binomial weights for all values of k between k_min and k_max.
+
+    """
+    # Generate a range of k values
+    k_range = range(k_min, k_max + 1)
+
+    # Calculate the binomial coefficient for each value of k
     C = [nCk(n, k) for k in k_range]
+
+    # Return a Pandas Series with the binomial weights as values and k values as index
     return pd.Series(C, index=k_range).sort_index()
 
 
-def uniform_weights(k_min, k_max):
-    k_range = range(k_min, k_max+1)
+def uniform_weights(k_min: int, k_max: int) -> pd.Series:
+    """
+    Calculate uniform weights for all values of k between k_min and k_max.
+
+    Parameters
+    k_min : int
+        The minimum value of k.
+    k_max : int
+        The maximum value of k.
+
+    Returns
+    -------
+    uniform_weight : pd.Series
+        A series of uniform weights for all values of k between k_min and k_max.
+
+    """
+    # Generate a range of k values
+    k_range = range(k_min, k_max + 1)
+
+    # Return a Pandas Series with the value 1 for each value of k and k values as index
     return pd.Series(1, index=k_range).sort_index()
 
 
-def weighted_choice(weights, rstate):
-    # weights ~ pd.Series
+def weighted_choice(weights: pd.Series, rstate: np.random.RandomState) -> int:
+    """
+    Choose a random value of k based on the given weights.
+
+    Parameters
+    ----------
+    weights : Series
+        A series of weights for each value of k.
+    rstate : RandomState
+        A random number generator.
+
+    Returns
+    -------
+    random_value : int
+        A random value of k based on the given weights.
+
+    """
+    # Generate a random number between 0 and the sum of the weights
     rnd = rstate.uniform() * weights.sum()
+
+    # Iterate over the weights and subtract each weight from the random number
+    # If the random number becomes less than or equal to 0, return the corresponding k value
     for i, w in weights.items():
         rnd -= w
         if rnd <= 0:
