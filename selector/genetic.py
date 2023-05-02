@@ -1,25 +1,53 @@
+from typing import Optional, Tuple, List, Callable, Union
+
 import numpy as np
 import pandas as pd
-
+from deap import base, tools
+from sklearn.base import BaseEstimator
 from sklearn.utils.random import check_random_state
-from deap import creator, base, tools, algorithms
 
-from robusta.utils import logmsg, get_ranks, secfmt
-from .base import _WrappedGroupSelector, _WrappedSelector
-
-from ._plot import _plot_progress, _plot_subset
+from . import _WrappedGroupSelector, _WrappedSelector
+from . import _plot_progress, _plot_subset
+from ..utils import logmsg, get_ranks, secfmt
 
 
-__all__ = ['GeneticSelector', 'GroupGeneticSelector']
+def cxUniform(ind1: base.Toolbox,
+              ind2: base.Toolbox,
+              indpb: float = 0.5,
+              random_state: Optional[int] = None,
+              drop_attrs: Optional[list] = None) -> Tuple[base.Toolbox, base.Toolbox]:
+    """
+    Perform a uniform crossover between two individuals.
 
+    Parameters
+    ----------
+    ind1 : base.Toolbox
+        The first individual to be crossed.
+    ind2 : base.Toolbox
+        The second individual to be crossed.
+    indpb : float, optional
+        The probability of an attribute being swapped between the two individuals. Defaults to 0.5.
+    random_state : int, optional
+        Seed for the random number generator. Defaults to None.
+    drop_attrs : list, optional
+        A list of attributes to be dropped from the children. Defaults to ['score'].
 
+    Returns
+    -------
+    tuple : Tuple[base.Toolbox, base.Toolbox]
+        A tuple containing the two child individuals.
 
+    """
+    if drop_attrs is None:
+        drop_attrs = ['score']
 
-def cxUniform(ind1, ind2, indpb=0.5, random_state=None, drop_attrs=['score']):
-
+    # Check random_state
     rstate = check_random_state(random_state)
+
+    # Create two empty masks for the two individuals
     mask1, mask2 = [], []
 
+    # Iterate over the two individuals and create masks for them by swapping their attributes
     for x, y in zip(ind1.mask, ind2.mask):
         if rstate.rand() < indpb:
             mask1.append(x)
@@ -28,32 +56,47 @@ def cxUniform(ind1, ind2, indpb=0.5, random_state=None, drop_attrs=['score']):
             mask1.append(y)
             mask2.append(x)
 
+    # Create the two child individuals using the masks
     child1 = ind1.copy().set_mask(mask1)
     child2 = ind2.copy().set_mask(mask2)
 
+    # Create the two child individuals using the masks
     child1.parents = (ind1, ind2)
     child2.parents = (ind1, ind2)
 
+    # Drop specified attributes from the children
     for attr in drop_attrs:
         for child in [child1, child2]:
             if hasattr(child, attr):
                 delattr(child, attr)
 
+    # Return the two child individuals
     return child1, child2
 
 
-def cxOnePoint(ind1, ind2, indpb=0.5, random_state=None, drop_attrs=['score']):
+def cxOnePoint(ind1,
+               ind2,
+               random_state: Optional[int] = None,
+               drop_attrs: Optional[List[int]] = None) -> Tuple:
 
+    if drop_attrs is None:
+        drop_attrs = ['score']
     rstate = check_random_state(random_state)
 
+    # Get the number of features in the individuals
     n = ind1.n_features
+
+    # Shuffle the indices of the features
     argsort = rstate.permutation(n)
 
+    # Choose a random crossover point
     a = rstate.randint(n)
 
+    # Create empty masks for the two individuals
     mask1 = np.zeros((n,), dtype=bool)
     mask2 = np.zeros((n,), dtype=bool)
 
+    # Iterate over the features and create masks for the two individuals by swapping their attributes
     for i in range(n):
         j = argsort[i]
         x = ind1.mask[i]
@@ -65,38 +108,60 @@ def cxOnePoint(ind1, ind2, indpb=0.5, random_state=None, drop_attrs=['score']):
             mask1[j] = y
             mask2[j] = x
 
+    # Create the two child individuals using the masks
     child1 = ind1.copy().set_mask(mask1)
     child2 = ind2.copy().set_mask(mask2)
 
+    # Set the parents of the two child individuals
     child1.parents = (ind1, ind2)
     child2.parents = (ind1, ind2)
 
+    # Drop specified attributes from the children
     for attr in drop_attrs:
         for child in [child1, child2]:
             if hasattr(child, attr):
                 delattr(child, attr)
 
+    # Return the two child individuals
     return child1, child2
 
 
-def cxTwoPoint(ind1, ind2, indpb=0.5, random_state=None, drop_attrs=['score']):
+def cxTwoPoint(ind1: base.Toolbox,
+               ind2: base.Toolbox,
+               random_state: Optional[int] = None,
+               drop_attrs: Optional[str] = None) -> Tuple[base.Toolbox, base.Toolbox]:
 
+    # If `drop_attrs` is not provided, set it to ['score'] by default
+    if drop_attrs is None:
+        drop_attrs = ['score']
     rstate = check_random_state(random_state)
 
+    # Get the number of features in the individual
     n = ind1.n_features
+
+    # Create a random permutation of the feature indices
     argsort = rstate.permutation(n)
 
+    # Choose two distinct points a and b in the range [0, n)
     a = rstate.randint(n)
     b = rstate.randint(n)
     a, b = min(a, b), max(a, b)
 
+    # Create two boolean masks of length n, initialized to False
     mask1 = np.zeros((n,), dtype=bool)
     mask2 = np.zeros((n,), dtype=bool)
 
+    # Iterate over the feature indices in the permutation
     for i in range(n):
+        # Get the feature index in the original order
         j = argsort[i]
+
+        # Get the values of the corresponding features in both parents
         x = ind1.mask[i]
         y = ind2.mask[j]
+
+        # If the feature index is between a and b, use the value from parent 1
+        # Otherwise, use the value from parent 2
         if a <= i <= b:
             mask1[j] = x
             mask2[j] = y
@@ -104,17 +169,21 @@ def cxTwoPoint(ind1, ind2, indpb=0.5, random_state=None, drop_attrs=['score']):
             mask1[j] = y
             mask2[j] = x
 
+    # Create two new individuals by copying the original individuals and setting their masks
     child1 = ind1.copy().set_mask(mask1)
     child2 = ind2.copy().set_mask(mask2)
 
+    # Set the parents of the new individuals to be the original parents
     child1.parents = (ind1, ind2)
     child2.parents = (ind1, ind2)
 
+    # Delete the specified attributes from the new individuals
     for attr in drop_attrs:
         for child in [child1, child2]:
             if hasattr(child, attr):
                 delattr(child, attr)
 
+    # Return the new individuals as a tuple
     return child1, child2
 
 
@@ -125,19 +194,47 @@ CROSSOVER = {
 }
 
 
+def mutSubset(ind: base.Toolbox,
+              indpb: float,
+              random_state: Optional[int] = None,
+              drop_attrs: List[str] = None) -> base.Toolbox:
+    """
+    Mutate an individual by randomly flipping the values of a subset of its features.
 
+    Parameters
+    ----------
+    individual : Individual
+        The individual to be mutated.
+    indpb : float
+        The probability of each feature to be mutated.
+    random_state : int, optional
+        Seed for the random number generator.
+    drop_attrs : list, optional
+        List of attributes to be dropped from the mutated individual.
 
-def mutSubset(ind, indpb, random_state=None, drop_attrs=['score']):
+    Returns
+    -------
+    Individual:
+        The mutated individual.
+    """
 
+    # If no attributes to drop are specified, we drop the 'score' attribute by default
+    if drop_attrs is None:
+        drop_attrs = ['score']
+
+    # Check if a random state was passed and create a random generator object accordingly
     rstate = check_random_state(random_state)
-    mask = []
 
+    # Create a mask for the mutation by flipping each feature in the individual with probability indpb
+    mask = []
     for x in ind.mask:
         y = (rstate.rand() < indpb)
         mask.append(x ^ y)
 
+    # Create a new individual with the mutated mask
     mutant = ind.set_mask(mask)
 
+    # Remove the attributes to be dropped from the mutated individual
     for attr in drop_attrs:
         if hasattr(mutant, attr):
             delattr(mutant, attr)
@@ -145,10 +242,9 @@ def mutSubset(ind, indpb, random_state=None, drop_attrs=['score']):
     return mutant
 
 
-
-
 class GeneticSelector(_WrappedSelector):
-    '''Feature Selector based on Differential Evolution algorithm
+    """
+    Feature Selector based on Differential Evolution algorithm
 
     Parameters
     ----------
@@ -201,13 +297,26 @@ class GeneticSelector(_WrappedSelector):
     n_digits : int (default=4)
         Verbose score(s) precision
 
-    '''
+    """
 
-    def __init__(self, estimator, cv=5, scoring=None, n_gen=None, crossover='one',
-                 min_features=0.1, max_features=0.9, pop_size=50, mutation=0.01,
-                 max_time=None, random_state=None, n_jobs=None, verbose=1,
-                 n_digits=4, cv_kwargs={}):
-
+    def __init__(self,
+                 estimator: BaseEstimator,
+                 cv: int = 5,
+                 scoring: Optional[Union[str, Callable]] = None,
+                 n_gen: Optional[int] = None,
+                 crossover: str = 'one',
+                 min_features: Union[float, int] = 0.1,
+                 max_features: Union[float, int] = 0.9,
+                 pop_size: int = 50,
+                 mutation: float = 0.01,
+                 max_time: Optional[int] = None,
+                 random_state: Optional[int] = None,
+                 n_jobs: Optional[int] = None,
+                 verbose: int = 1,
+                 n_digits: int = 4,
+                 cv_kwargs: Optional[dict] = None):
+        if cv_kwargs is None:
+            cv_kwargs = {}
         self.estimator = estimator
         self.scoring = scoring
         self.cv = cv
@@ -229,33 +338,99 @@ class GeneticSelector(_WrappedSelector):
         self.n_digits = n_digits
         self.n_jobs = n_jobs
 
+    def fit(self,
+            X: pd.DataFrame,
+            y: pd.Series,
+            groups: Optional[pd.Series] = None) -> 'GeneticSelector':
+        """
+        Fits the genetic selector to the data.
 
-    def fit(self, X, y, groups=None):
+        Parameters
+        ----------
+        X : pd.DataFrame
+            Feature matrix.
 
+        y : pd.Series
+            Target variable.
+
+        groups : pd.Series, default=None
+            Group labels for grouping in stratified sampling.
+
+        Returns
+        -------
+        self : GeneticSelector
+            Fitted genetic selector.
+        """
+
+        # Prepare data and set up selector
         self._fit_start(X)
+
+        # Fit selector to data
         self._fit(X, y, groups)
 
         return self
 
+    def partial_fit(self,
+                    X: pd.DataFrame,
+                    y: pd.Series,
+                    groups: Optional[pd.Series] = None) -> 'GeneticSelector':
+        """
+        Fits the genetic selector to a partial amount of data.
 
-    def partial_fit(self, X, y, groups=None):
+        Parameters
+        ----------
+        X : pd.DataFrame
+            Feature matrix.
 
+        y : pd.Series
+            Target variable.
+
+        groups : pd.Series, default=None
+            Group labels for grouping in stratified sampling.
+
+        Returns
+        -------
+        self : GeneticSelector
+            Partially fitted genetic selector.
+        """
+
+        # Prepare data and set up selector
         self._fit_start(X, partial=True)
+
+        # Partially fit selector to data
         self._fit(X, y, groups)
 
         return self
 
+    def _fit_start(self,
+                   X: pd.DataFrame,
+                   partial: bool = False) -> 'GeneticSelector':
+        """
+        Initializes the genetic selector before fitting.
 
-    def _fit_start(self, X, partial=False):
+        Parameters
+        ----------
+        X : pd.DataFrame
+            Feature matrix.
 
+        partial : bool, default=False
+            Whether the fitting is partial or full.
+
+        Returns
+        -------
+        self : GeneticSelector
+            Initialized genetic selector.
+        """
+
+        # Set features
         self._set_features(X)
 
         if not partial or not hasattr(self, 'trials_'):
-
+            # Reset trials and generation count
             self._reset_trials()
             self.k_gen_ = 0
 
-            # Init toolbox
+            # Initialize toolbox
             self.toolbox = base.Toolbox()
             self.rstate = check_random_state(self.random_state)
 
@@ -264,7 +439,7 @@ class GeneticSelector(_WrappedSelector):
             k_max = self.max_features_
 
             def get_individual():
-                ind_size = self.rstate.choice(range(k_min, k_max+1))
+                ind_size = self.rstate.choice(range(k_min, k_max + 1))
                 features = self.features_.sample(ind_size)
                 return features
 
@@ -276,8 +451,27 @@ class GeneticSelector(_WrappedSelector):
 
         return self
 
+    def _fit(self,
+             X: pd.DataFrame,
+             y: pd.Series,
+             groups: pd.Series) -> 'GeneticSelector':
+        """
+        Fits the GeneticSelector Feature Selector model to the provided data.
 
-    def _fit(self, X, y, groups):
+        Parameters
+        ----------
+        X : pd.DataFrame
+            The input feature dataset.
+        y : pd.Series
+            The target variable.
+        groups : pd.Series
+            The groups variable, used for cross-validation.
+
+        Returns
+        -------
+        GeneticSelector
+            The fitted Genetic Feature Selector object.
+        """
 
         # Define crossover & mutation
         mate = CROSSOVER[self.crossover]
@@ -291,7 +485,7 @@ class GeneticSelector(_WrappedSelector):
         while not self.n_gen or self.k_gen_ < self.n_gen:
 
             if self.verbose:
-                logmsg(f'GENERATION {self.k_gen_+1}')
+                logmsg(f'GENERATION {self.k_gen_ + 1}')
 
             try:
                 offspring = []
@@ -354,20 +548,52 @@ class GeneticSelector(_WrappedSelector):
 
         return self
 
+    def get_subset(self) -> pd.Index:
+        """
+        Get the best subset of features from the last run of the genetic selector.
 
-    def get_subset(self):
+        Returns
+        -------
+        best_subset_ : pd.Index
+            The best subset of features.
+        """
         return self.best_subset_
 
-    def plot_progress(self, **kwargs):
+    def plot_progress(self,
+                      **kwargs) -> tuple:
+        """
+        Plot the progress of the genetic selector during fitting.
+
+        Parameters
+        ----------
+        **kwargs : dict
+            Additional arguments to be passed to the plot function.
+
+        Returns
+        -------
+        tuple
+        """
         kwargs_ = dict(marker='.', linestyle='--', alpha=0.3, c='g')
         kwargs_.update(kwargs)
         return _plot_progress(self, **kwargs_)
 
-    def plot_subset(self, **kwargs):
+    def plot_subset(self,
+                    **kwargs) -> tuple:
+        """
+        Plot the best subset of features from the last run of the genetic selector.
+
+        Parameters
+        ----------
+        **kwargs : dict
+            Additional arguments to be passed to the plot function.
+
+        Returns
+        -------
+        tuple
+        """
         kwargs_ = dict(marker='.', linestyle='--', alpha=0.3, c='g')
         kwargs_.update(kwargs)
         return _plot_subset(self, **kwargs_)
-
 
 
 class GroupGeneticSelector(_WrappedGroupSelector, GeneticSelector):

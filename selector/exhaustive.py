@@ -1,15 +1,16 @@
-import pandas as pd
-import numpy as np
+from typing import Optional, Callable, Union
 
+import pandas as pd
+from sklearn.base import BaseEstimator
 from sklearn.exceptions import NotFittedError
 
-from robusta.utils import all_subsets
-from .base import _WrappedSelector, _WrappedGroupSelector
-
+from ..utils import all_subsets
+from . import _WrappedSelector, _WrappedGroupSelector
 
 
 class ExhaustiveSelector(_WrappedSelector):
-    '''Exhaustive feature selector for sampling and evaluating all possible
+    """
+    Exhaustive feature selector for sampling and evaluating all possible
     feature subsets of specified size.
 
     Parameters
@@ -77,11 +78,21 @@ class ExhaustiveSelector(_WrappedSelector):
     total_time_: float
         Total optimization time (seconds)
 
-    '''
+    """
 
-    def __init__(self, estimator, cv=5, scoring=None, min_features=0.5, n_jobs=-1,
-                 max_features=0.9, verbose=1, n_digits=4, cv_kwargs={}):
+    def __init__(self,
+                 estimator: BaseEstimator,
+                 cv: int = 5,
+                 scoring: Optional[Union[str, Callable]] = None,
+                 min_features: float = 0.5,
+                 n_jobs: int = -1,
+                 max_features: float = 0.9,
+                 verbose: int = 1,
+                 n_digits: int = 4,
+                 cv_kwargs: Optional[dict] = None):
 
+        if cv_kwargs is None:
+            cv_kwargs = {}
         self.estimator = estimator
         self.min_features = min_features
         self.max_features = max_features
@@ -95,67 +106,145 @@ class ExhaustiveSelector(_WrappedSelector):
 
         self.cv_kwargs = cv_kwargs
 
+    def fit(self,
+            X: pd.DataFrame,
+            y: pd.Series,
+            groups: Optional[pd.Series] = None) -> 'ExhaustiveSelector':
+        """
+        Fits the selector on the input data and returns the fitted object.
 
+        Parameters
+        ----------
+        X : DataFrame
+            The input data frame containing the features.
+        y : Series
+            The target variable.
+        groups : Series
+            The groups of the features.
 
-    def fit(self, X, y, groups=None):
+        Returns
+        -------
+        self : object
+            ExhaustiveSelector: The fitted selector object.
+        """
 
+        # initialize the selector and perform the initial fitting steps
         self._fit_start(X)
         self._fit(X, y, groups)
 
         return self
 
+    def partial_fit(self,
+                    X: pd.DataFrame,
+                    y: pd.Series,
+                    groups: Optional[pd.Series] = None) -> 'ExhaustiveSelector':
+        """
+        Fits the selector on a subset of the input data and returns the partially fitted object.
 
+        Parameters
+        ----------
+        X : DataFrame
+            The input data frame containing the features.
+        y : Series
+            The target variable.
+        groups : Series
+            The groups of the features.
 
-    def partial_fit(self, X, y, groups=None):
+        Returns
+        -------
+        self : object
+            ExhaustiveSelector: The partially fitted selector object.
+        """
 
+        # initialize the selector and perform the initial fitting steps for partial fitting
         self._fit_start(X, partial=True)
         self._fit(X, y, groups)
 
         return self
 
+    def _fit_start(self,
+                   X: pd.DataFrame,
+                   partial: bool = False) -> 'ExhaustiveSelector':
+        """
+        Initializes the selector object and sets the features of the input data frame.
 
+        Parameters
+        ----------
+        X : DataFrame
+            The input data frame containing the features.
+        partial : bool
+            A flag indicating whether the fitting is partial or not.
 
-    def _fit_start(self, X, partial=False):
+        Returns
+        -------
+        self : object
+            ExhaustiveSelector: The selector object with the features set.
+        """
 
+        # set the features of the input data frame
         self._set_features(X)
 
+        # if the fitting is not partial, generate all possible feature subsets
         if not partial:
-            k_range = range(self.min_features_, self.max_features_+1)
+            k_range = range(self.min_features_, self.max_features_ + 1)
             self.subsets_ = all_subsets(self.features_, k_range)
             self.subsets_ = list(self.subsets_)
             self.max_iter = len(self.subsets_)
             self._reset_trials()
 
+        # if the fitting is partial, reset the iteration counter
         if not hasattr(self, 'k_iter') or not partial:
             self.k_iter = 0
 
         return self
 
+    def _fit(self,
+             X: pd.DataFrame,
+             y: pd.Series,
+             groups: pd.Series) -> 'ExhaustiveSelector':
+        """
+        Fits the selector object using the wrapped group selector algorithm.
 
+        Parameters
+        ----------
+        X : DataFrame
+            The input data frame containing the features.
+        y : Series
+            The target variable.
+        groups : Series
+            The groups of the features.
 
-    def _fit(self, X, y, groups):
+        Returns
+        -------
+        self : object
+            ExhaustiveSelector: The fitted selector object.
+        """
 
+        # iterate over all possible feature subsets and evaluate their performance
         while self.k_iter < self.max_iter:
-
             subset = self.subsets_[self.k_iter]
-
             try:
                 self.eval_subset(subset, X, y, groups)
             except KeyboardInterrupt:
                 break
-
             self.k_iter += 1
-
         return self
 
-    def get_subset(self):
+    def get_subset(self) -> None:
+        """
+        Returns the best subset of features found by the model.
+
+        Returns
+        -------
+        None:
+            None or The best subset found by the model.
+        """
 
         if hasattr(self, 'best_subset_'):
             return self.best_subset_
         else:
             model_name = self.__class__.__name__
             raise NotFittedError(f'{model_name} is not fitted')
-
 
 
 class GroupExhaustiveSelector(_WrappedGroupSelector, ExhaustiveSelector):
