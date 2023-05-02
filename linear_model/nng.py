@@ -1,24 +1,45 @@
 import numpy as np
-
-from sklearn.linear_model._base import LinearModel
+import pandas as pd
 from sklearn.linear_model import LinearRegression, Lasso
-from sklearn.preprocessing import StandardScaler
-
-# https://gist.github.com/agramfort/2351057
+from sklearn.linear_model._base import LinearModel
 
 
-__all__ = ['NNGRegressor']
+def non_negative_garotte(X: pd.DataFrame,
+                         y: pd.Series,
+                         alpha: float,
+                         tol: float = 1e-6,
+                         max_iter: int = 1000):
+    """
+    Implementation of the non-negative garotte method for linear regression.
 
+    Parameters
+    ----------
+    X : pd.DataFrame
+        The input data.
+    y : pd.Series
+        The target values.
+    alpha : float
+        Regularization strength; must be a positive float. Larger values correspond to stronger regularization.
+    tol : float, optional, default=1e-6
+        The tolerance for the optimization solver.
+    max_iter : int, optional, default=1000
+        The maximum number of iterations for the optimization solver.
 
-def non_negative_garotte(X, y, alpha, tol=1e-6, max_iter=1000):
+    Returns
+    -------
+    tuple:
+        tuple of three arrays:
+            - The estimated coefficients obtained by applying non-negative garotte.
+            - The shrinkage coefficients.
+            - The residual sum of squares.
+    """
 
     # Ordinart Least Squares coefficients
     coef_ols = LinearRegression(fit_intercept=False).fit(X, y).coef_
     X = X * coef_ols[np.newaxis, :]
 
     # Shrunken betas
-    shrink_coef = Lasso(alpha=alpha, fit_intercept=False, normalize=False,
-                        positive=True, tol=tol, max_iter=max_iter).fit(X, y).coef_
+    shrink_coef = Lasso(alpha=alpha, fit_intercept=False, positive=True, tol=tol, max_iter=max_iter).fit(X, y).coef_
     coef = coef_ols * shrink_coef
 
     # Residual Sum of Squares
@@ -26,9 +47,9 @@ def non_negative_garotte(X, y, alpha, tol=1e-6, max_iter=1000):
     return coef, shrink_coef, rss
 
 
-
 class NNGRegressor(LinearModel):
-    """Non-Negative Garrote Regressor
+    """
+    Non-Negative Garrote Regressor
 
     Code source : https://gist.github.com/agramfort/2351057
 
@@ -81,8 +102,13 @@ class NNGRegressor(LinearModel):
         Independent term in the linear model.
 
     """
-    def __init__(self, alpha=1e-3, fit_intercept=True, normalize=False,
-                 tol=1e-4, max_iter=1000, copy_X=True):
+    def __init__(self,
+                 alpha: float = 1e-3,
+                 fit_intercept: bool = True,
+                 normalize: bool = False,
+                 tol: float = 1e-4,
+                 max_iter: int = 1000,
+                 copy_X: bool = True):
         self.alpha = alpha
         self.fit_intercept = fit_intercept
         self.tol = tol
@@ -91,19 +117,31 @@ class NNGRegressor(LinearModel):
         self.max_iter = max_iter
         self.tol = tol
 
+    def fit(self,
+            X: np.ndarray,
+            y: np.ndarray) -> 'NNGRegressor':
+        """
+        Fits the Non-negative regression model to the given data.
 
-    def fit(self, X, y):
-        '''
-        X : array-like, shape = (n_samples, n_features)
-        y : array-like, shape = (n_samples, )
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            The input data to fit the model. It can be a NumPy array or a Pandas DataFrame.
+        y : array-like of shape (n_samples,)
+            The target values.
 
-        '''
+        Returns
+        -------
+        self : NNGRegressor
+            The fitted NNGRegressor object.
 
+        """
         X, y, X_mean, y_mean, X_std = self._preprocess_data(X, y,
-            self.fit_intercept, self.normalize, self.copy_X)
+                                                            self.fit_intercept, self.normalize, self.copy_X)
 
         self.coef_, self.shrink_coef_, self.rss_ = non_negative_garotte(X, y,
-            alpha=self.alpha, tol=self.tol, max_iter=self.max_iter)
+                                                                        alpha=self.alpha, tol=self.tol,
+                                                                        max_iter=self.max_iter)
 
         self._set_intercept(X_mean, y_mean, X_std)
         return self
