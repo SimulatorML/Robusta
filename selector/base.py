@@ -16,8 +16,7 @@ from robusta.utils._verbose import _print_last
 
 
 class _Selector(BaseEstimator, TransformerMixin):
-    """
-    A base class for feature selection transformers.
+    """A base class for feature selection transformers.
 
     Attributes
     ----------
@@ -30,7 +29,6 @@ class _Selector(BaseEstimator, TransformerMixin):
         Reduce X to the selected features.
     get_subset() -> List[str]:
         Get list of columns to select.
-
     """
 
     def transform(self, X):
