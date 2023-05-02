@@ -1,37 +1,58 @@
-from sklearn.utils.random import check_random_state
-from sklearn.model_selection import check_cv
-from sklearn.metrics import check_scoring
+from typing import Union, List, Callable, Optional
 
+import numpy as np
+import pandas as pd
 from sklearn.base import (
     BaseEstimator,
     MetaEstimatorMixin,
-    clone,
-    is_classifier,
 )
-
+from sklearn.utils.random import check_random_state
 from tqdm import tqdm_notebook as tqdm
 
-from .importance import get_importance
-from ..crossval import crossval
-
-import numpy as np
+from . import get_importance
+from .. import crossval
 
 
+def _shuffle_data(*data: Union[pd.DataFrame, pd.Series],
+                  seed: int) -> List[Union[pd.DataFrame, pd.Series]]:
+    """
+    Shuffle the data along axis 0, maintaining the same order for all data arrays.
 
+    Parameters
+    ----------
+    *data : Union[pd.DataFrame, pd.Series]
+        A variable number of pandas DataFrames or Series to be shuffled.
+    seed: int
+        The random seed to use for the shuffling.
 
-def _shuffle_data(*data, seed):
+    Returns
+    -------
+    data_ :
+        A list containing the shuffled data arrays.
+    """
+
+    # Get the index of the first data array
     x_index = data[0].index
     data_ = []
+
+    # Iterate over each data array
     for x in data:
+        # Check if the data array is not None
         if x is not None:
+            # Shuffle the data array along axis 0 using the specified random seed
             x = x.sample(frac=1, random_state=seed)
+            # Set the index of the shuffled data array to match the index of the first data array
             x.index = x_index
+        # Append the shuffled data array to the output list
         data_.append(x)
+
+    # Return the list of shuffled data arrays
     return data_
 
 
 class ShuffleTargetImportance(BaseEstimator, MetaEstimatorMixin):
-    """Shuffle Target importance for feature evaluation.
+    """
+    Shuffle Target importance for feature evaluation.
 
     Parameters
     ----------
@@ -100,9 +121,27 @@ class ShuffleTargetImportance(BaseEstimator, MetaEstimatorMixin):
 
     """
 
-    def __init__(self, estimator, cv, scoring=None, n_repeats=5, mode='dif',
-                 tqdm=False, verbose=0, n_jobs=None, random_state=None,
-                 cv_kwargs={}):
+    def __init__(self,
+                 estimator: BaseEstimator,
+                 cv: int,
+                 scoring: Optional[Union[str, Callable]] = None,
+                 n_repeats=5,
+                 mode: str = 'dif',
+                 tqdm: bool = False,
+                 verbose: int = 0,
+                 n_jobs: Optional[int] = None,
+                 random_state: Optional[int] = None,
+                 cv_kwargs: Optional[dict] = None):
+        self.feature_importances_std_ = None
+        self.feature_importances_ = None
+        self.shuff_scores_ = None
+        self.scores_ = None
+        self.bench_scores_ = None
+        self.raw_importances_ = None
+        self.shuff_importances_ = None
+        self.bench_importances_ = None
+        if cv_kwargs is None:
+            cv_kwargs = {}
         self.estimator = estimator
         self.scoring = scoring
         self.cv = cv
@@ -114,60 +153,99 @@ class ShuffleTargetImportance(BaseEstimator, MetaEstimatorMixin):
         self.n_jobs = n_jobs
         self.random_state = random_state
 
+    def fit(self,
+            X: pd.DataFrame,
+            y: pd.Series,
+            groups: np.array = None) -> 'ImportanceEstimator':
+        """
+        Fits the ImportanceEstimator to the input data.
 
-    def fit(self, X, y, groups=None, **fit_params):
+        Parameters
+        ----------
+        X : pd.DataFrame
+            The input data to fit the estimator.
+        y: pd.Series
+            The target variable.
+        groups: np.array, optional
+            Group labels for the samples.
+
+        Returns
+        -------
+        self:
+            ImportanceEstimator, the fitted estimator.
+
+        """
 
         rstate = check_random_state(self.random_state)
 
+        # Check that n_repeats is a positive integer
         msg = "<n_repeats> must be positive integer"
         assert isinstance(self.n_repeats, int) and self.n_repeats > 0, msg
 
+        # Check that mode is either 'dif' or 'div'
         msg = "<mode> must be in {'dif', 'div'}"
         assert self.mode in ['dif', 'div'], msg
 
+        # Initialize lists to store feature importances and scores
         self.bench_importances_ = []
         self.shuff_importances_ = []
         self.raw_importances_ = []
-
         self.bench_scores_ = []
         self.shuff_scores_ = []
         self.scores_ = []
 
+        # Iterate over the number of repeats
         iters = range(self.n_repeats)
         iters = tqdm(iters) if self.tqdm else iters
 
         for _ in iters:
-            seed = rstate.randint(2**32-1)
+            # Shuffle the data
+            seed = rstate.randint(2 ** 32 - 1)
             X_, y_, groups_ = _shuffle_data(X, y, groups, seed=seed)
 
             # Benchmark
-            result = crossval(self.estimator, self.cv, X_, y_, groups_,
-                              scoring=self.scoring, verbose=self.verbose,
-                              return_estimator=True, return_pred=False,
-                              n_jobs=self.n_jobs, **self.cv_kwargs)
+            result = crossval(estimator=self.estimator,
+                              cv=self.cv,
+                              X=X_,
+                              y=y_,
+                              groups=groups_,
+                              scoring=self.scoring,
+                              verbose=self.verbose,
+                              return_estimator=True,
+                              return_pred=False,
+                              n_jobs=self.n_jobs,
+                              **self.cv_kwargs)
 
+            # Store the feature importances and scores
             for e in result['estimator']:
-                self.bench_importances_.append(get_importance(e) + 1) # +1 to avoid 0/0
-
+                self.bench_importances_.append(get_importance(e) + 1)
             self.scores_.append(np.mean(result['val_score']))
             self.bench_scores_.append(result['val_score'])
 
-            # Shuffle
-            result = crossval(self.estimator, self.cv, X, y_, groups,
-                              scoring=self.scoring, verbose=self.verbose,
-                              return_estimator=True, return_pred=False,
-                              n_jobs=self.n_jobs, **self.cv_kwargs)
+            # Shuffle the target variable
+            result = crossval(estimator=self.estimator,
+                              cv=self.cv,
+                              X=X,
+                              y=y_,
+                              groups=groups,
+                              scoring=self.scoring,
+                              verbose=self.verbose,
+                              return_estimator=True,
+                              return_pred=False,
+                              n_jobs=self.n_jobs,
+                              **self.cv_kwargs)
 
+            # Store the feature importances and scores
             for e in result['estimator']:
-                self.shuff_importances_.append(get_importance(e) + 1) # +1 to avoid 0/0
-
+                self.shuff_importances_.append(get_importance(e) + 1)
             self.shuff_scores_.append(result['val_score'])
 
-        # Relative/Absolute Mode
+        # Compute the raw feature importances
         for b, s in zip(self.bench_importances_, self.shuff_importances_):
             if self.mode == 'dif': self.raw_importances_.append(b - s)
             if self.mode == 'div': self.raw_importances_.append(b / s)
 
+        # Compute the average feature importances and their standard deviation
         imps = self.raw_importances_
         self.feature_importances_ = np.average(imps, axis=0)
         self.feature_importances_std_ = np.std(imps, axis=0)
