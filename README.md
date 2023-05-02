@@ -1,20 +1,3 @@
-<p align="center">
-    <img width=30% src="https://w7.pngwing.com/pngs/884/47/png-transparent-fight-club-thumbnail.png">
-</p>
-
-<!-- buttons -->
-<p align="center">
-    <a href="https://www.python.org/">
-        <img src="https://img.shields.io/badge/python-v3-brightgreen.svg"
-            alt="python"></a> &nbsp;
-    <a href="https://pypi.org/project/PyPortfolioOpt/">
-        <img src="https://img.shields.io/badge/pypi-v1.0.0-brightgreen.svg"
-            alt="pypi"></a> &nbsp;
-    <a href="https://opensource.org/licenses/MIT">
-        <img src="https://img.shields.io/badge/license-MIT-brightgreen.svg"
-            alt="MIT license"></a> &nbsp;
-</p>
-
 <!-- content -->
 Developed by students of the [Simulator ML (Karpov.Courses)](https://karpov.courses/simulator-ml)
 
@@ -22,8 +5,8 @@ Developed by students of the [Simulator ML (Karpov.Courses)](https://karpov.cour
 
 Robusta ML Framework library features include:
 
--    Support for a large number of machine learning algorithms and models, including classical algorithms.
--   Implementation of data preprocessing methods such as feature scaling, outlier processing, categorical feature coding.
+- Support for a large number of machine learning algorithms and models, including classical algorithms.
+- Implementation of data preprocessing methods such as feature scaling, outlier processing, categorical feature coding.
 - Tools for choosing the best model, including cross-validation, hyperparameter fitting, and model evaluation.
 - Ability to save and load results for later use.
     
@@ -33,7 +16,6 @@ Robusta ML Framework library features include:
 -   [Table of contents](#table-of-contents)
 -   [Getting started](#getting-started)
     -   [For development](#for-development)
--   [A quick example](#a-quick-example)
 -   [Features](#features)
     -   [Cross-validation](#cross-validation)
     -   [Importances](#importances)
@@ -69,108 +51,6 @@ Alternatively, you could try:
 
 ```bash
 pip install -e git+https://github.com/uberkinder/robusta.git
-```
-
-## A quick example
-
-Here is an example on how to use extended cross-validation.
-
-```python
-# Basic
-import pandas as pd
-import numpy as np
-import warnings
-
-warnings.simplefilter('ignore')
-
-# ML Toolkit
-from robusta.crossval import *
-from robusta.pipeline import *
-from robusta.preprocessing import *
-from sklearn.preprocessing import LabelBinarizer, StandardScaler
-from sklearn.model_selection import StratifiedShuffleSplit
-from sklearn.metrics import roc_auc_score
-
-# Data
-from catboost.datasets import adult
-
-# Model
-from lightgbm import LGBMClassifier
-
-
-
-TARGET = 'income'
-
-train, test = adult()
-
-# Target
-labels_train = train['income']
-labels_test = test['income']
-
-train.drop(columns='income', inplace=True)
-test.drop(columns='income', inplace=True)
-
-# Target Binarization
-y_train = labels_train.astype('category').cat.codes
-y_test  = labels_test.astype('category').cat.codes
-
-del labels_train, labels_test
-
-prep_pipe = FeatureUnion([
-    ("category", make_pipeline(
-        TypeSelector("object"),
-        Categorizer(),
-    )),
-    ("numeric", make_pipeline(
-        TypeSelector(np.number),
-    )),
-])
-
-X_train = prep_pipe.fit_transform(train)
-X_test = prep_pipe.transform(test)
-
-cv = StratifiedShuffleSplit(n_splits=1, test_size=0.2)
-model = LGBMClassifier()
-scoring = 'roc_auc'
-
-_, y_pred = crossval_predict(model, cv, X_train, y_train, X_new=X_test,
-                             scoring=scoring, method='predict_proba',
-                             verbose=2, n_jobs=None)
-
-roc_auc_score(y_test, y_pred)
-```
-
-```txt
-[20:23:34]  LGBMClassifier
-
-[20:23:35]  FOLD  0:   0.9265
-
-[20:23:35]  AVERAGE:   0.9265 ± 0.0000
-
-0.9266619076504115
-```
-
-**Adversarial Validation**
-```python
-cv = make_adversarial_validation(model, X_train, X_test, test_size=0.2)
-model = LGBMClassifier()
-scoring = 'roc_auc'
-
-_, y_pred = crossval_predict(model, cv, X_train, y_train, X_new=X_test,
-                             scoring=scoring, method='predict_proba',
-                             verbose=2, n_jobs=None)
-
-roc_auc_score(y_test, y_pred)
-```
-
-```txt
-[20:24:05]  LGBMClassifier
-
-[20:24:05]  FOLD  0:   0.9328
-
-[20:24:06]  AVERAGE:   0.9328 ± 0.0000
-
-0.9260441555579393
 ```
 
 ## Features
