@@ -1,17 +1,37 @@
-import pandas as pd
-import numpy as np
 import abc
 from copy import copy
 from time import time
+from typing import List, Optional, Callable, Dict, Any, Union
+
+import numpy as np
+import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.exceptions import NotFittedError
 from sklearn.utils import check_random_state
+
 from robusta.crossval import crossval
 from robusta.utils._subset import FeatureSubset
 from robusta.utils._plot import _plot_progress, _plot_subset
 from robusta.utils._verbose import _print_last
 
-class _Selector(BaseEstimator, TransformerMixin):
 
+class _Selector(BaseEstimator, TransformerMixin):
+    """
+    A base class for feature selection transformers.
+
+    Attributes
+    ----------
+    features_ : FeatureSubset
+        The selected features to be used in `transform`.
+    """
+Methods
+    -------
+    transform(X: pd.DataFrame) -> pd.DataFrame:
+        Reduce X to the selected features.
+    get_subset() -> List[str]:
+        Get list of columns to select.
+
+    """
 
     def transform(self, X):
         """Reduce X to the selected features.
