@@ -1,565 +1,667 @@
-import pandas as pd
+from typing import Union, List, Iterable, Callable, Mapping, Sequence, Optional
+
 import numpy as np
-
+import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
-from typing import Iterable
-
-
-__all__ = [
-    'TypeSelector',
-    'TypeConverter',
-    'ColumnSelector',
-    'ColumnFilter',
-    'ColumnRenamer',
-    'ColumnGrouper',
-    'SimpleImputer',
-    'Identity',
-    'FunctionTransformer',
-]
-
-
 
 
 class ColumnSelector(BaseEstimator, TransformerMixin):
-    '''Select specified columns.
-
-    Useful for freezing Feature Selection after subset search is ended.
+    """
+    Transformer that selects specific columns from a Pandas DataFrame.
 
     Parameters
     ----------
-    columns : list of strings
-        Columns to select.
+    columns : str or list, default=None
+        The name(s) of the column(s) to select. If None, returns the entire DataFrame.
 
-    '''
-    def __init__(self, columns=None):
+    Attributes
+    ----------
+    columns : list
+        The name(s) of the column(s) to select.
+
+    Raises
+    ------
+    KeyError
+        If any of the specified columns are not present in the input DataFrame.
+    """
+    def __init__(self,
+                 columns: Union[list, str] = None) -> None:
         self.columns = columns
 
-
-    def fit(self, X, y=None):
-        '''Does nothing.
-
-        Parameters
-        ----------
-        X : DataFrame, shape [n_samples, n_features]
-            The data to transform.
-
-        Returns
-        -------
-        self: ColumnSelector
-            This estimator.
-
-        '''
+    def fit(self) -> 'ColumnSelector':
+        """Return instance"""
         return self
 
-
-    def transform(self, X):
-        """Select specified columns from X.
+    def transform(self,
+                  X: pd.DataFrame) -> pd.DataFrame:
+        """
+        Transform the input data by selecting the specified columns.
 
         Parameters
         ----------
-        X : DataFrame, shape [n_samples, n_features]
-            The data to transform.
+        X : pd.DataFrame
+            The input data to transform.
 
         Returns
         -------
-        Xt : DataFrame, shape [n_samples, n_features]
-            Transformed input.
+        X_selected : pd.DataFrame
+            The transformed DataFrame with only the selected columns.
 
+        Raises
+        ------
+        KeyError
+            If any of the specified columns are not present in the input DataFrame.
         """
-        if isinstance(self.columns, str):
-            columns = self.columns
-        elif isinstance(self.columns, Iterable):
-            columns = self.columns
+
+        # If no columns are specified, return the entire DataFrame
+        if self.columns is None:
+            return X
+
+        # If only one column is specified as a string, convert it to a list
+        elif isinstance(self.columns, str):
+            columns = [self.columns]
+
+        # Otherwise, use the list of column names
         else:
-            columns = X.columns
+            columns = list(self.columns)
 
-        try:
-            return X[columns]
+        # Check if all specified columns are present in the input DataFrame
+        missing_cols = set(columns) - set(X.columns)
+        if missing_cols:
+            # Raise a KeyError with a message indicating the missing columns
+            raise KeyError(f"The DataFrame does not include the columns: {missing_cols}")
 
-        except KeyError:
-            cols_error = list(set(columns) - set(X.columns))
-            raise KeyError("The DataFrame does not include the "
-                           "columns: %s" % cols_error)
-
-
-
-
-class ColumnFilter(BaseEstimator, TransformerMixin):
-    '''Select specified columns.
-
-    Useful for freezing Feature Selection after subset search is ended.
-
-    Parameters
-    ----------
-    columns : list of strings
-        Columns to select.
-
-    '''
-    def __init__(self, func, **kwargs):
-        self.func = func
-        self.kwargs = kwargs
-
-
-    def fit(self, X, y=None):
-        '''Does nothing.
-
-        Parameters
-        ----------
-        X : DataFrame, shape [n_samples, n_features]
-            The data to transform.
-
-        Returns
-        -------
-        self: ColumnSelector
-            This estimator.
-
-        '''
-        self.features = list(filter(self.func, X.columns))
-        return self
-
-
-    def transform(self, X):
-        """Select specified columns from X.
-
-        Parameters
-        ----------
-        X : DataFrame, shape [n_samples, n_features]
-            The data to transform.
-
-        Returns
-        -------
-        Xt : DataFrame, shape [n_samples, n_features]
-            Transformed input.
-
-        """
-        return X[self.features]
-
-
+        # Return a new DataFrame with only the selected columns
+        return X[columns]
 
 
 class TypeSelector(BaseEstimator, TransformerMixin):
-    '''Select columns of specified type.
+    """
+    Transformer that selects columns of a specified data type from a Pandas DataFrame.
 
-    Parameters
-    ----------
-    dtype : type
+    Parameters:
+    dtype (type or list of types): The data type(s) of the column(s) to select.
 
+    Attributes:
+        dtypes (list of types): The data type(s) to select.
+        columns_ (pandas Index): The selected columns.
 
-    Attributes
-    ----------
-    columns_ : list of string
-        Columns of the determined type
-
-    '''
-    def __init__(self, dtype):
+    Raises:
+        ValueError: If dtype is not a type or a list of types.
+    """
+    def __init__(self,
+                 dtype: Union[type, List[type]]):
+        self.dtypes = None
+        self.columns_ = None
         self.dtype = dtype
 
+    def fit(self,
+            X: pd.DataFrame) -> 'TypeSelector':
+        """
+        Fit method for the TypeSelector transformer.
 
-    def fit(self, X, y=None):
-        '''Get names of columns of specified type.
+        Selects columns of the specified data type(s) from the input DataFrame.
 
         Parameters
         ----------
-        X : DataFrame, shape [n_samples, n_features]
-            The data to transform.
+        X : pd.DataFrame
+            The input data to fit the transformer.
 
         Returns
         -------
-        self
+        self : TypeSelector
+            The fitted transformer object.
+        """
 
-        '''
-        if hasattr(self.dtype, '__iter__') and not isinstance(self.dtype, str):
-            self.dtypes = self.dtype
-        else:
-            self.dtypes = [self.dtype]
+        # Set the dtypes attribute to the specified data type(s) as a list.
+        self.dtypes = self.dtype if isinstance(self.dtype, list) else [self.dtype]
 
+        # Select columns of the specified data type(s) and store the result in the columns_ attribute.
         self.columns_ = X.select_dtypes(include=self.dtypes).columns
-
         return self
 
+    def transform(self,
+                  X: pd.DataFrame) -> pd.DataFrame:
+        """
+        Transform method for the TypeSelector transformer.
 
-    def transform(self, X):
-        """Select columns of specified type from X.
+        Selects columns of the specified data type(s) from the input DataFrame.
 
         Parameters
         ----------
-        X : DataFrame, shape [n_samples, n_features]
-            The data to transform.
+        X : pd.Dataframe
+            The input data to transform.
 
         Returns
         -------
-        Xt : DataFrame, shape [n_samples, n_features]
-            Transformed input.
-
+        X_selected : pd.DataFrame
+            The selected columns of the input data.
         """
-        return X[self.columns_]
 
+        # Select the columns of the specified data type(s) from the input DataFrame.
+        X_selected = X[self.columns_]
+        return X_selected
 
 
 class TypeConverter(BaseEstimator, TransformerMixin):
-    '''Convert columns type(s).
+    """
+    Transformer that converts the data types of a pandas DataFrame.
 
-    Parameters
-    ----------
-    dtypes : str or dict
-        Types to convert
+    Parameters:
+    -----------
+    dtypes : dict
+        A dictionary mapping column names to desired data types.
 
-
-    Attributes
-    ----------
-    dtypes_old_ : type or iterable of type
-        Original type(s) of data
-
-    dtypes_new_ : type or iterable of type
-        Defined type(s) of data
-
-    '''
-    def __init__(self, dtypes):
+    Attributes:
+    -----------
+    dtypes_old_ : pandas Series
+        A pandas Series containing the original data types of the DataFrame.
+    """
+    def __init__(self,
+                 dtypes: dict):
+        self.dtypes_old_ = None
         self.dtypes = dtypes
 
-
-    def fit(self, X, y=None):
-        '''Get names of columns of specified type.
+    def fit(self,
+            X: pd.DataFrame) -> 'TypeConverter':
+        """
+        Fit the transformer to a pandas DataFrame.
 
         Parameters
         ----------
-        X : DataFrame, shape [n_samples, n_features]
-            The data to transform.
+        X : pandas DataFrame
+            The DataFrame to fit the transformer to.
 
         Returns
         -------
-        self
-
-        '''
+        self : TypeConverter
+            The fitted transformer.
+        """
         self.dtypes_old_ = X.dtypes
-        self.dtypes_new_ = self.dtypes
-
         return self
 
-
-    def transform(self, X):
-        """Convert features type.
-
-        Parameters
-        ----------
-        X : DataFrame, shape [n_samples, n_features]
-            The data to transform.
-
-        Returns
-        -------
-        Xt : DataFrame, shape [n_samples, n_features]
-            Transformed input.
-
+    def transform(self,
+                  X: pd.DataFrame) -> pd.DataFrame:
         """
-        return X.astype(self.dtypes_new_)
-
-
-    def inverse_transform(self, X):
-        """Convert features type to original.
+        Apply the transformer to a pandas DataFrame.
 
         Parameters
         ----------
-        X : DataFrame, shape [n_samples, n_features]
-            The data to transform.
+        X : pandas DataFrame
+            The DataFrame to apply the transformer to.
 
         Returns
         -------
-        Xt : DataFrame, shape [n_samples, n_features]
-            Inverse transformed input.
+        X_transformed : pandas DataFrame
+            The transformed DataFrame.
+        """
+        return X.astype(self.dtypes)
 
+    def inverse_transform(self,
+                          X: pd.DataFrame) -> pd.DataFrame:
+        """
+        Revert the transformer on a pandas DataFrame to the original data types.
+
+        Parameters
+        ----------
+        X : pandas DataFrame
+            The DataFrame to revert the transformer on.
+
+        Returns
+        -------
+        X_original : pandas DataFrame
+            The DataFrame with the original data types.
         """
         return X.astype(self.dtypes_old_)
 
 
-
-
 class Identity(BaseEstimator, TransformerMixin):
-    '''Dummy transformer.
+    """
+    Transformer that returns the input array as is.
 
-    Just passes through its input.
-
-    '''
-    def __init__(self):
-        pass
-
-
-    def fit(self, X, y=None):
-        '''Does nothing.
-
-        Parameters
-        ----------
-        X : DataFrame, shape [n_samples, n_features]
-            The data to transform.
+    This transformer is useful as a placeholder or identity function in a
+    pipeline. It simply returns the input array without modification.
+    """
+    def fit(self) -> 'Identity':
+        """
+        This method does nothing and returns the transformer object.
 
         Returns
         -------
-        self
-
-        '''
+        self : object
+            Returns the transformer object.
+        """
         return self
 
-
-    def transform(self, X):
-        """Pass X through.
+    def transform(self,
+                  X: pd.DataFrame) -> pd.DataFrame:
+        """
+        Returns the input array X without modification.
 
         Parameters
         ----------
-        X : DataFrame, shape [n_samples, n_features]
-            The data to transform.
+        X : pd.DataFrame
+            The input samples.
 
         Returns
         -------
-        X : DataFrame, shape [n_samples, n_features]
-            Same data.
-
+        X : pd.DataFrame
+            The unchanged input samples.
         """
         return X
 
 
-
-
 class ColumnRenamer(BaseEstimator, TransformerMixin):
-    '''Select columns of specified type.
+    """
+    A transformer that renames the columns of a pandas DataFrame.
 
     Parameters
     ----------
-    columns : None or list of strings
-        Columns to rename. If None, rename all.
+    column : callable, list, str, dict, optional
+        The column names to use for the output DataFrame. If None, the input
+        DataFrame column names will be used.
+        - If callable, should take a column name as input and return a new name.
+        - If list, should be a sequence of column names of the same length as
+          the input DataFrame.
+        - If str, should be a prefix to use for the column names. The column
+          names will be the prefix followed by a number.
+        - If dict, should be a dictionary mapping input column names to output
+          column names.
+        Default is None.
+    prefix : str, optional
+        A prefix to add to the new column names, before the column name.
+        Default is ''.
+    suffix : str, optional
+        A suffix to add to the new column names, after the column name.
+        Default is ''.
+    copy : bool, optional
+        Whether to make a copy of the input DataFrame before modifying it.
+        Default is True.
 
-    prefix, suffix : string
-        String to concatenate at the beginning or/and at the end of original
-        column name. Both equals to empty string ('') by default (do nothing).
-
-    '''
-    def __init__(self, column=None, prefix='', suffix='', copy=True):
+    Attributes
+    ----------
+    mapper_ : dict
+        A dictionary that maps input column names to output column names.
+    """
+    def __init__(
+            self,
+            column: Optional[Sequence[str]] = None,
+            prefix: str = '',
+            suffix: str = '',
+            copy: bool = True,
+    ) -> None:
         self.column = column
         self.prefix = prefix
         self.suffix = suffix
         self.copy = copy
 
-
-    def fit(self, X, y=None):
-        '''Creates mapper from old names to new names.
-
-        Parameters
-        ----------
-        X : DataFrame, shape [n_samples, n_features]
-            The data to transform.
-
-        Returns
-        -------
-        self
-
-        '''
-        if self.column is not None:
-            
-            if callable(self.column):
-                features = [self.column(x) for x in X]
-
-            elif hasattr(self.column, '__iter__') and len(self.column) is X.shape[1]:
-                features = map(str, self.column)
-
-            elif isinstance(self.column, str):
-                features = [self.column + str(x) for x in range(X.shape[1])]
-
-            elif isinstance(self.column, dict):
-                features = []
-                for feature in X:
-                    if feature in self.column:
-                        features.append(self.column[feature])
-                    else:
-                        features.append(feature)
-
-            else:
-                raise ValueError('Unknown <column> type passed: {}'.format(self.column))
-        else:
-            features = X.columns
-
-        features = [self.prefix + x + self.suffix for x in features]
-
-        self.mapper_ = dict(zip(X.columns, features))
-        return self
-
-
-    def transform(self, X):
-        """Renames selected columns.
+    def fit(self,
+            X: pd.DataFrame) -> 'ColumnRenamer':
+        """
+        Fit the transformer to the input DataFrame.
 
         Parameters
         ----------
-        X : DataFrame, shape [n_samples, n_features]
-            The data to transform.
+        X : pandas DataFrame
+            The input DataFrame to fit the transformer to.
 
         Returns
         -------
-        Xt : DataFrame, shape [n_samples, n_features]
-            Same data.
+        self : ColumnRenamer
+            The fitted transformer instance.
+
+        Raises
+        ------
+        ValueError
+            If an unknown <column> type is passed.
 
         """
+
+        # Define a dictionary that maps input column names to output column names
+        if isinstance(self.column, Callable):
+            feature_names = [self.column(x) for x in X]
+        elif isinstance(self.column, (list, tuple)):
+            feature_names = list(map(str, self.column))
+        elif isinstance(self.column, str):
+            feature_names = [f"{self.column}{i}" for i, _ in enumerate(X.columns)]
+        elif isinstance(self.column, Mapping):
+            feature_names = [self.column.get(f, f) for f in X.columns]
+        else:
+            raise ValueError(f'Unknown <column> type passed: {type(self.column)}')
+
+        # Create a mapper dictionary to map old names to new names
+        self.mapper_ = {old_name: self.prefix + new_name + self.suffix for old_name, new_name in
+                        zip(X.columns, feature_names)}
+        return self
+
+    def transform(self,
+                  X: pd.DataFrame) -> pd.DataFrame:
+        """
+        Transform the input DataFrame by renaming its columns.
+
+        Parameters
+        ----------
+        X : pandas DataFrame
+            The input DataFrame to transform.
+
+        Returns
+        -------
+        X_new : pandas DataFrame
+            The transformed DataFrame with renamed columns.
+
+        """
+
+        # Make a copy of the input DataFrame if copy is True
         X = X.copy() if self.copy else X
+
+        # Use the mapper dictionary to rename the columns of the input DataFrame
         X.columns = X.columns.map(self.mapper_)
         return X
 
 
-
-
-class SimpleImputer(BaseEstimator, TransformerMixin):
-    '''Imputation transformer for completing missing values.
+class ColumnFilter(BaseEstimator, TransformerMixin):
+    """
+    Transformer that filters the columns of a pandas DataFrame based on a given function.
 
     Parameters
     ----------
-    strategy : string, optional (default='mean')
-        The imputation strategy.
-
-            – 'mean': replace missing with mean along each column (numeric only).
-            - 'median': replace missing with median along each column (numeric only).
-            - 'mode': replace missing with most frequent value.
-            - 'const': replace missing with <fill_value>.
-
-    fill_value : string or numeric (default=None)
-        Set value if <strategy> is 'const'. Ignored otherwise.
-
-    copy : bool (default=True)
-        Whether to copy data or impute inplace
+    func : callable
+       Function that takes a column name as input and returns a boolean indicating whether
+       the column should be kept or not.
+    **kwargs
+       Additional keyword arguments to pass to the function.
 
     Attributes
     ----------
-    values_ : Series or single value
-        The imputation fill value for each feature.
+    features : list
+       List of column names to keep, determined by applying the `func` function to the
+       input DataFrame's columns.
+    """
+    def __init__(self,
+                 func: Callable,
+                 **kwargs):
+        self.func = func
+        self.kwargs = kwargs
 
-    '''
-    def __init__(self, strategy='mean', fill_value=None, copy=True):
+    def fit(self,
+            X: pd.DataFrame) -> 'ColumnFilter':
+        """
+        Compute the list of columns to keep based on the input DataFrame `X`, and return
+        the transformer object.
+
+        Parameters
+        ----------
+        X : pandas DataFrame
+            Input DataFrame from which to extract the column names.
+
+        Returns
+        -------
+        self : ColumnFilter
+            The transformer object.
+        """
+
+        # Filter the input DataFrame columns based on the provided function and store the result in `self.features`
+        self.features = list(filter(self.func, X.columns))
+        return self
+
+    def transform(self,
+                  X: pd.DataFrame) -> pd.DataFrame:
+        """
+        Return a new DataFrame with only the columns in `self.features`.
+
+        Parameters
+        ----------
+        X : pandas DataFrame
+            Input DataFrame from which to extract the columns.
+
+        Returns
+        -------
+        X_transformed : pandas DataFrame
+            Transformed DataFrame with only the columns in `self.features`.
+        """
+
+        # Select only the columns in `self.features` from the input DataFrame and return the result
+        return X[self.features]
+
+
+class SimpleImputer(BaseEstimator, TransformerMixin):
+    """
+    SimpleImputer is a transformer that replaces missing values in a dataset with a specified
+    value or statistic. The transformer operates on a pandas dataframe.
+    """
+    def __init__(self,
+                 strategy: str = 'mean',
+                 fill_value: Optional[float] = None,
+                 copy: bool = True):
+        self.fill_value_ = None
+        self.inplace = None
         self.strategy = strategy
         self.fill_value = fill_value
         self.copy = copy
 
-
-    def fit(self, X, y=None):
-        """Calculate imputing values
+    def fit(self,
+            X: pd.DataFrame) -> 'SimpleImputer':
+        """
+        Learns the fill value for the transformer based on the input dataset.
 
         Parameters
         ----------
-        X : DataFrame of shape [n_samples, n_features]
-            The data to fit.
-
-        y : array-like, shape (n_samples, ...), optional
-            Targets for supervised learning.
+        X : pd.DataFrame
+            The dataset to learn from.
 
         Returns
         -------
-        self : ColumnTransformer
-            This estimator
-
+        self:
+            Returns an instance of self.
         """
+
+        # set inplace to the opposite of copy
         self.inplace = not self.copy
 
+        # if the strategy is mean or median, calculate the fill value as the mean or median of each column
         if self.strategy in ['mean', 'median']:
-            if not X.dtypes.apply(pd.api.types.is_numeric_dtype).all():
+
+            # check that all columns have numeric values, otherwise raise a ValueError
+            if X.isna().any().any():
                 raise ValueError("With strategy '{}' all columns must "
-                                 "be numeric.".format(self.strategy))
+                                 "have numeric values.".format(self.strategy))
+
             else:
-                self.values_ = X.apply(self.strategy)
+                # calculate the fill value based on the selected strategy
+                self.fill_value_ = X.mean() if self.strategy == 'mean' else X.median()
 
-        elif self.strategy is 'mode':
-            self.values_ = X.apply('mode').loc[0]
+        # if the strategy is mode, calculate the fill value as the most common value in each column
+        elif self.strategy == 'mode':
+            self.fill_value_ = X.mode().iloc[0]
 
-        elif self.strategy is 'const':
-            self.values_ = self.fill_value
+        # if the strategy is const, use the specified fill value
+        elif self.strategy == 'const':
+            self.fill_value_ = self.fill_value
 
+        # if the strategy is unknown, raise a ValueError
         else:
             raise ValueError("Unknown strategy '{}'".format(self.strategy))
 
         return self
 
-
-    def transform(self, X):
-        """Impute missing values
+    def transform(self,
+                  X: pd.DataFrame) -> pd.DataFrame:
+        """
+        Applies the learned fill value to the input dataset.
 
         Parameters
         ----------
-        X : DataFrame, shape [n_samples, n_features]
-            The data to transform.
+        X : pd.DataFrame
+            The dataset to transform.
 
         Returns
         -------
-        Xt : DataFrame, shape [n_samples, n_features]
-            Transformed input.
-
+        pd.DataFrame:
+            The transformed dataset.
         """
-        return X.fillna(self.values_, inplace=np.invert(self.copy))
 
-
+        # fill missing values with the learned fill value, using inplace if specified and downcasting to integer if
+        # possible
+        return X.fillna(self.fill_value_, inplace=self.inplace, downcast='infer')
 
 
 class ColumnGrouper(BaseEstimator, TransformerMixin):
-    '''MultiIndex DataFrame constructor
+    """
+    A transformer that groups DataFrame columns into a MultiIndex based on the given group name.
 
     Parameters
     ----------
-    group : string, or list of strings
-        Name or names for first level in MultiIndex
+    group : str or iterable of str
+        The name of the group to assign to each column, or a list of group names in the order of the columns.
+    copy : bool, default=True
+        Whether to copy the input DataFrame before transforming.
 
-    '''
-    def __init__(self, group, copy=True):
+    Attributes
+    ----------
+    features_ : pd.MultiIndex
+        The MultiIndex representing the grouped columns.
+    """
+    def __init__(self,
+                 group: Union[str, Iterable],
+                 copy: bool = True):
         self.group = group
         self.copy = copy
-
-
-    def fit(self, X, y=None):
-        '''Form new MultiIndex column names
-
-        Parameters
-        ----------
-        X : DataFrame, shape [n_samples, n_features]
-            The data to transform.
-
-        Returns
-        -------
-        self
-
-        '''
-        features = X.columns
+        self.features_ = None
 
         if isinstance(self.group, str):
-            groups = [self.group] * len(features)
-
+            self.groups_ = [self.group]
         elif isinstance(self.group, Iterable):
-            groups = self.group
+            self.groups_ = list(self.group)
 
-        self.features_ = pd.MultiIndex.from_arrays([groups, features])
-        return self
-
-
-    def transform(self, X):
-        """Renames columns
+    def fit(self,
+            X: pd.DataFrame) -> 'ColumnGrouper':
+        """
+        Compute the MultiIndex based on the columns of the input DataFrame X.
 
         Parameters
         ----------
-        X : DataFrame, shape [n_samples, n_features]
-            The data to transform.
+        X : pd.DataFrame
+            The input DataFrame to be transformed.
 
         Returns
         -------
-        Xt : DataFrame, shape [n_samples, n_features]
-            Same data.
-
+        self : ColumnGrouper
+            The fitted transformer instance.
         """
+
+        # Assign the MultiIndex representing the grouped columns to the features_ attribute.
+        self.features_ = pd.MultiIndex.from_arrays([self.groups_ * X.shape[1], X.columns])
+        return self
+
+    def transform(self,
+                  X: pd.DataFrame) -> pd.DataFrame:
+        """
+        Group the columns of the input DataFrame X according to the MultiIndex.
+
+        Parameters
+        ----------
+        X : pd.DataFrame
+           The input DataFrame to be transformed.
+
+        Returns
+        -------
+        X_grouped : pd.DataFrame
+           The input DataFrame with its columns grouped according to the MultiIndex.
+        """
+
+        # Copy the input DataFrame if specified, and assign the MultiIndex to the columns.
         X = X.copy() if self.copy else X
         X.columns = self.features_
         return X
 
 
-
 class FunctionTransformer(BaseEstimator, TransformerMixin):
+    """
+    Applies a given function to each element of a pandas DataFrame or NumPy array.
+    This transformer can also apply an inverse function to the transformed data.
 
-    def __init__(self, func=None, inverse_func=None):
+    Parameters
+    ----------
+    func : callable
+        The function to apply to the data.
+    inverse_func : callable, optional (default=None)
+        The inverse function to apply to the transformed data.
+        If None, the transformed data is returned unchanged.
+
+    Attributes
+    ----------
+    func : callable
+        The function to apply to the data.
+    inverse_func : callable
+        The inverse function to apply to the transformed data.
+    """
+    def __init__(self,
+                 func: Optional[Callable] = None,
+                 inverse_func: Optional[Callable] = None):
         self.inverse_func = inverse_func
         self.func = func
 
-    def fit(self, X, y=None):
-        return self
+    def fit(self) -> 'FunctionTransformer':
+        """
+        No-op method that returns self.
+        """
+        pass
 
-    def transform(self, X):
-        return X.applymap(self.func)
+    def transform(self,
+                  X: pd.DataFrame) -> Union[pd.DataFrame, np.array]:
+        """
+        Applies the function to each element of the input data X.
+        Returns the transformed data.
 
-    def inverse_transform(self, X):
-        return X.applymap(self.inverse_func)
+        Parameters
+        ----------
+        X : pandas DataFrame or NumPy array
+            The input data to transform.
+
+        Returns
+        -------
+        transformed : pandas DataFrame or NumPy array
+            The transformed data.
+        """
+
+        # check if the input data is a pandas DataFrame
+        if isinstance(X, pd.DataFrame):
+            # apply the function to each element of the DataFrame
+            return X.apply(self.func)
+
+        else:
+            # apply the function to each element of the NumPy array
+            return np.vectorize(self.func)(X)
+
+    def inverse_transform(self,
+                          X: pd.DataFrame) -> pd.DataFrame:
+        """
+        Applies the inverse function to each element of the transformed data X.
+        Returns the original data.
+
+        Parameters
+        ----------
+        X : pandas DataFrame or NumPy array
+            The transformed data to inverse transform.
+
+        Returns
+        -------
+        original : pandas DataFrame or NumPy array
+            The original data before transformation.
+        """
+
+        # check if an inverse function is provided
+        if self.inverse_func is not None:
+
+            # check if the input data is a pandas DataFrame
+            if isinstance(X, pd.DataFrame):
+                # apply the inverse function to each element of the DataFrame
+                return X.apply(self.inverse_func)
+
+            else:
+                # apply the inverse function to each element of the NumPy array
+                return np.vectorize(self.inverse_func)(X)
+
+        else:
+            # if no inverse function is provided, return the transformed data unchanged
+            return X
