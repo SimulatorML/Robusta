@@ -23,6 +23,7 @@ class _Selector(BaseEstimator, TransformerMixin):
     features_ : FeatureSubset
         The selected features to be used in `transform`.
     """
+    
     Methods
     -------
     transform(X: pd.DataFrame) -> pd.DataFrame:
