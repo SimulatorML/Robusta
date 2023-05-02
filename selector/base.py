@@ -24,7 +24,7 @@ class _Selector(BaseEstimator, TransformerMixin):
     features_ : FeatureSubset
         The selected features to be used in `transform`.
     """
-Methods
+    Methods
     -------
     transform(X: pd.DataFrame) -> pd.DataFrame:
         Reduce X to the selected features.
