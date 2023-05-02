@@ -1,22 +1,14 @@
 import pandas as pd
 import numpy as np
 import abc
-
 from copy import copy
-
 from time import time
-
 from sklearn.base import BaseEstimator, TransformerMixin
-
 from sklearn.utils import check_random_state
-
 from robusta.crossval import crossval
-
-from mypackage._verbose import _print_last
-
-from mypackage._subset import FeatureSubset
-
-from mypackage._plot import _plot_progress, _plot_subset
+from robusta.utils._subset import FeatureSubset
+from robusta.utils._plot import _plot_progress, _plot_subset
+from robusta.utils._verbose import _print_last
 
 class _Selector(BaseEstimator, TransformerMixin):
 
