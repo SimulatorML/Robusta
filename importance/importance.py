@@ -21,11 +21,11 @@ def get_importance(model: BaseEstimator) -> np.ndarray:
     name = model.__class__.__name__
 
     # If the model has feature_importance's_, return them
-    if hasattr(model, 'feature_importances_'):
+    if hasattr(model, "feature_importances_"):
         imp = model.feature_importances_
 
     # If the model has coef_, return the absolute values of the coefficients
-    elif hasattr(model, 'coef_'):
+    elif hasattr(model, "coef_"):
         imp = np.abs(model.coef_)
 
     # If the model has neither feature_importance's_ nor coef_, raise an AttributeError

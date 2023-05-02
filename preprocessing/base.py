@@ -24,16 +24,15 @@ class ColumnSelector(BaseEstimator, TransformerMixin):
     KeyError
         If any of the specified columns are not present in the input DataFrame.
     """
-    def __init__(self,
-                 columns: Union[list, str] = None) -> None:
+
+    def __init__(self, columns: Union[list, str] = None) -> None:
         self.columns = columns
 
-    def fit(self) -> 'ColumnSelector':
+    def fit(self) -> "ColumnSelector":
         """Return instance"""
         return self
 
-    def transform(self,
-                  X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Transform the input data by selecting the specified columns.
 
@@ -69,7 +68,9 @@ class ColumnSelector(BaseEstimator, TransformerMixin):
         missing_cols = set(columns) - set(X.columns)
         if missing_cols:
             # Raise a KeyError with a message indicating the missing columns
-            raise KeyError(f"The DataFrame does not include the columns: {missing_cols}")
+            raise KeyError(
+                f"The DataFrame does not include the columns: {missing_cols}"
+            )
 
         # Return a new DataFrame with only the selected columns
         return X[columns]
@@ -89,14 +90,13 @@ class TypeSelector(BaseEstimator, TransformerMixin):
     Raises:
         ValueError: If dtype is not a type or a list of types.
     """
-    def __init__(self,
-                 dtype: Union[type, List[type]]):
+
+    def __init__(self, dtype: Union[type, List[type]]):
         self.dtypes = None
         self.columns_ = None
         self.dtype = dtype
 
-    def fit(self,
-            X: pd.DataFrame) -> 'TypeSelector':
+    def fit(self, X: pd.DataFrame) -> "TypeSelector":
         """
         Fit method for the TypeSelector transformer.
 
@@ -120,8 +120,7 @@ class TypeSelector(BaseEstimator, TransformerMixin):
         self.columns_ = X.select_dtypes(include=self.dtypes).columns
         return self
 
-    def transform(self,
-                  X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Transform method for the TypeSelector transformer.
 
@@ -157,13 +156,12 @@ class TypeConverter(BaseEstimator, TransformerMixin):
     dtypes_old_ : pandas Series
         A pandas Series containing the original data types of the DataFrame.
     """
-    def __init__(self,
-                 dtypes: dict):
+
+    def __init__(self, dtypes: dict):
         self.dtypes_old_ = None
         self.dtypes = dtypes
 
-    def fit(self,
-            X: pd.DataFrame) -> 'TypeConverter':
+    def fit(self, X: pd.DataFrame) -> "TypeConverter":
         """
         Fit the transformer to a pandas DataFrame.
 
@@ -180,8 +178,7 @@ class TypeConverter(BaseEstimator, TransformerMixin):
         self.dtypes_old_ = X.dtypes
         return self
 
-    def transform(self,
-                  X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Apply the transformer to a pandas DataFrame.
 
@@ -197,8 +194,7 @@ class TypeConverter(BaseEstimator, TransformerMixin):
         """
         return X.astype(self.dtypes)
 
-    def inverse_transform(self,
-                          X: pd.DataFrame) -> pd.DataFrame:
+    def inverse_transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Revert the transformer on a pandas DataFrame to the original data types.
 
@@ -222,7 +218,8 @@ class Identity(BaseEstimator, TransformerMixin):
     This transformer is useful as a placeholder or identity function in a
     pipeline. It simply returns the input array without modification.
     """
-    def fit(self) -> 'Identity':
+
+    def fit(self) -> "Identity":
         """
         This method does nothing and returns the transformer object.
 
@@ -233,8 +230,7 @@ class Identity(BaseEstimator, TransformerMixin):
         """
         return self
 
-    def transform(self,
-                  X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Returns the input array X without modification.
 
@@ -283,20 +279,20 @@ class ColumnRenamer(BaseEstimator, TransformerMixin):
     mapper_ : dict
         A dictionary that maps input column names to output column names.
     """
+
     def __init__(
-            self,
-            column: Optional[Sequence[str]] = None,
-            prefix: str = '',
-            suffix: str = '',
-            copy: bool = True,
+        self,
+        column: Optional[Sequence[str]] = None,
+        prefix: str = "",
+        suffix: str = "",
+        copy: bool = True,
     ) -> None:
         self.column = column
         self.prefix = prefix
         self.suffix = suffix
         self.copy = copy
 
-    def fit(self,
-            X: pd.DataFrame) -> 'ColumnRenamer':
+    def fit(self, X: pd.DataFrame) -> "ColumnRenamer":
         """
         Fit the transformer to the input DataFrame.
 
@@ -327,15 +323,16 @@ class ColumnRenamer(BaseEstimator, TransformerMixin):
         elif isinstance(self.column, Mapping):
             feature_names = [self.column.get(f, f) for f in X.columns]
         else:
-            raise ValueError(f'Unknown <column> type passed: {type(self.column)}')
+            raise ValueError(f"Unknown <column> type passed: {type(self.column)}")
 
         # Create a mapper dictionary to map old names to new names
-        self.mapper_ = {old_name: self.prefix + new_name + self.suffix for old_name, new_name in
-                        zip(X.columns, feature_names)}
+        self.mapper_ = {
+            old_name: self.prefix + new_name + self.suffix
+            for old_name, new_name in zip(X.columns, feature_names)
+        }
         return self
 
-    def transform(self,
-                  X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Transform the input DataFrame by renaming its columns.
 
@@ -377,14 +374,12 @@ class ColumnFilter(BaseEstimator, TransformerMixin):
        List of column names to keep, determined by applying the `func` function to the
        input DataFrame's columns.
     """
-    def __init__(self,
-                 func: Callable,
-                 **kwargs):
+
+    def __init__(self, func: Callable, **kwargs):
         self.func = func
         self.kwargs = kwargs
 
-    def fit(self,
-            X: pd.DataFrame) -> 'ColumnFilter':
+    def fit(self, X: pd.DataFrame) -> "ColumnFilter":
         """
         Compute the list of columns to keep based on the input DataFrame `X`, and return
         the transformer object.
@@ -404,8 +399,7 @@ class ColumnFilter(BaseEstimator, TransformerMixin):
         self.features = list(filter(self.func, X.columns))
         return self
 
-    def transform(self,
-                  X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Return a new DataFrame with only the columns in `self.features`.
 
@@ -429,18 +423,20 @@ class SimpleImputer(BaseEstimator, TransformerMixin):
     SimpleImputer is a transformer that replaces missing values in a dataset with a specified
     value or statistic. The transformer operates on a pandas dataframe.
     """
-    def __init__(self,
-                 strategy: str = 'mean',
-                 fill_value: Optional[float] = None,
-                 copy: bool = True):
+
+    def __init__(
+        self,
+        strategy: str = "mean",
+        fill_value: Optional[float] = None,
+        copy: bool = True,
+    ):
         self.fill_value_ = None
         self.inplace = None
         self.strategy = strategy
         self.fill_value = fill_value
         self.copy = copy
 
-    def fit(self,
-            X: pd.DataFrame) -> 'SimpleImputer':
+    def fit(self, X: pd.DataFrame) -> "SimpleImputer":
         """
         Learns the fill value for the transformer based on the input dataset.
 
@@ -459,23 +455,24 @@ class SimpleImputer(BaseEstimator, TransformerMixin):
         self.inplace = not self.copy
 
         # if the strategy is mean or median, calculate the fill value as the mean or median of each column
-        if self.strategy in ['mean', 'median']:
-
+        if self.strategy in ["mean", "median"]:
             # check that all columns have numeric values, otherwise raise a ValueError
             if X.isna().any().any():
-                raise ValueError("With strategy '{}' all columns must "
-                                 "have numeric values.".format(self.strategy))
+                raise ValueError(
+                    "With strategy '{}' all columns must "
+                    "have numeric values.".format(self.strategy)
+                )
 
             else:
                 # calculate the fill value based on the selected strategy
-                self.fill_value_ = X.mean() if self.strategy == 'mean' else X.median()
+                self.fill_value_ = X.mean() if self.strategy == "mean" else X.median()
 
         # if the strategy is mode, calculate the fill value as the most common value in each column
-        elif self.strategy == 'mode':
+        elif self.strategy == "mode":
             self.fill_value_ = X.mode().iloc[0]
 
         # if the strategy is const, use the specified fill value
-        elif self.strategy == 'const':
+        elif self.strategy == "const":
             self.fill_value_ = self.fill_value
 
         # if the strategy is unknown, raise a ValueError
@@ -484,8 +481,7 @@ class SimpleImputer(BaseEstimator, TransformerMixin):
 
         return self
 
-    def transform(self,
-                  X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Applies the learned fill value to the input dataset.
 
@@ -502,7 +498,7 @@ class SimpleImputer(BaseEstimator, TransformerMixin):
 
         # fill missing values with the learned fill value, using inplace if specified and downcasting to integer if
         # possible
-        return X.fillna(self.fill_value_, inplace=self.inplace, downcast='infer')
+        return X.fillna(self.fill_value_, inplace=self.inplace, downcast="infer")
 
 
 class ColumnGrouper(BaseEstimator, TransformerMixin):
@@ -521,9 +517,8 @@ class ColumnGrouper(BaseEstimator, TransformerMixin):
     features_ : pd.MultiIndex
         The MultiIndex representing the grouped columns.
     """
-    def __init__(self,
-                 group: Union[str, Iterable],
-                 copy: bool = True):
+
+    def __init__(self, group: Union[str, Iterable], copy: bool = True):
         self.group = group
         self.copy = copy
         self.features_ = None
@@ -533,8 +528,7 @@ class ColumnGrouper(BaseEstimator, TransformerMixin):
         elif isinstance(self.group, Iterable):
             self.groups_ = list(self.group)
 
-    def fit(self,
-            X: pd.DataFrame) -> 'ColumnGrouper':
+    def fit(self, X: pd.DataFrame) -> "ColumnGrouper":
         """
         Compute the MultiIndex based on the columns of the input DataFrame X.
 
@@ -550,11 +544,12 @@ class ColumnGrouper(BaseEstimator, TransformerMixin):
         """
 
         # Assign the MultiIndex representing the grouped columns to the features_ attribute.
-        self.features_ = pd.MultiIndex.from_arrays([self.groups_ * X.shape[1], X.columns])
+        self.features_ = pd.MultiIndex.from_arrays(
+            [self.groups_ * X.shape[1], X.columns]
+        )
         return self
 
-    def transform(self,
-                  X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Group the columns of the input DataFrame X according to the MultiIndex.
 
@@ -595,20 +590,20 @@ class FunctionTransformer(BaseEstimator, TransformerMixin):
     inverse_func : callable
         The inverse function to apply to the transformed data.
     """
-    def __init__(self,
-                 func: Optional[Callable] = None,
-                 inverse_func: Optional[Callable] = None):
+
+    def __init__(
+        self, func: Optional[Callable] = None, inverse_func: Optional[Callable] = None
+    ):
         self.inverse_func = inverse_func
         self.func = func
 
-    def fit(self) -> 'FunctionTransformer':
+    def fit(self) -> "FunctionTransformer":
         """
         No-op method that returns self.
         """
         pass
 
-    def transform(self,
-                  X: pd.DataFrame) -> Union[pd.DataFrame, np.array]:
+    def transform(self, X: pd.DataFrame) -> Union[pd.DataFrame, np.array]:
         """
         Applies the function to each element of the input data X.
         Returns the transformed data.
@@ -633,8 +628,7 @@ class FunctionTransformer(BaseEstimator, TransformerMixin):
             # apply the function to each element of the NumPy array
             return np.vectorize(self.func)(X)
 
-    def inverse_transform(self,
-                          X: pd.DataFrame) -> pd.DataFrame:
+    def inverse_transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Applies the inverse function to each element of the transformed data X.
         Returns the original data.
@@ -652,7 +646,6 @@ class FunctionTransformer(BaseEstimator, TransformerMixin):
 
         # check if an inverse function is provided
         if self.inverse_func is not None:
-
             # check if the input data is a pandas DataFrame
             if isinstance(X, pd.DataFrame):
                 # apply the inverse function to each element of the DataFrame

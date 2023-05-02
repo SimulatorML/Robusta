@@ -71,21 +71,21 @@ class SelectFromModel(_Selector):
 
     """
 
-    def __init__(self,
-                 estimator: BaseEstimator,
-                 cv: Optional[int] = None,
-                 threshold: Optional[float] = None,
-                 max_features: Optional[float] = None):
-
+    def __init__(
+        self,
+        estimator: BaseEstimator,
+        cv: Optional[int] = None,
+        threshold: Optional[float] = None,
+        max_features: Optional[float] = None,
+    ):
         self.estimator = estimator
         self.threshold = threshold
         self.max_features = max_features
         self.cv = cv
 
-    def fit(self,
-            X: pd.DataFrame,
-            y: pd.Series,
-            groups: Optional[pd.Series] = None) -> 'SelectFromModel':
+    def fit(
+        self, X: pd.DataFrame, y: pd.Series, groups: Optional[pd.Series] = None
+    ) -> "SelectFromModel":
         """
         Fit the estimator to the data and select the most important features.
 
@@ -106,7 +106,7 @@ class SelectFromModel(_Selector):
         """
 
         # If 'cv=prefit', estimator should have already been fit
-        if self.cv is 'prefit':
+        if self.cv is "prefit":
             raise NotFittedError("Since 'cv=prefit', call transform directly")
 
         # If no cross-validation is performed, fit the estimator to the full dataset
@@ -142,7 +142,7 @@ class SelectFromModel(_Selector):
         imps = []
 
         # If 'cv=prefit', there's only one estimator to consider
-        if self.cv is 'prefit':
+        if self.cv is "prefit":
             estimators = [self.estimator]
 
         # If no cross-validation is performed, there's only one estimator to consider
@@ -175,19 +175,20 @@ class SelectFromModel(_Selector):
 
         # Check threshold and max features and create masks for features that pass
         self.threshold_ = _check_threshold(imp, self.threshold)
-        threshold_mask = (imp >= self.threshold_)
+        threshold_mask = imp >= self.threshold_
 
         self.max_features_ = _check_max_features(imp, self.max_features)
-        ranking_mask = (imp.rank(ascending=False) <= self.max_features_)
+        ranking_mask = imp.rank(ascending=False) <= self.max_features_
 
         # Return list of selected features
         use_cols = imp.index[threshold_mask & ranking_mask]
         return list(use_cols)
 
 
-def _check_max_features(importances: pd.Series,
-                        max_features: Union[int, float, None]) -> int:
-    """"
+def _check_max_features(
+    importances: pd.Series, max_features: Union[int, float, None]
+) -> int:
+    """ "
     Determine the maximum number of features to select.
 
     Parameters
@@ -222,8 +223,9 @@ def _check_max_features(importances: pd.Series,
     return max_features
 
 
-def _check_threshold(importances: pd.Series,
-                     threshold: Union[str, float, None]) -> float:
+def _check_threshold(
+    importances: pd.Series, threshold: Union[str, float, None]
+) -> float:
     """
     Interpret the threshold value.
 
@@ -251,7 +253,6 @@ def _check_threshold(importances: pd.Series,
 
     # If threshold is a string
     elif isinstance(threshold, str):
-
         # Check if it contains a scaling factor and a reference value
         if "*" in threshold:
             scale, reference = threshold.split("*")
@@ -281,8 +282,9 @@ def _check_threshold(importances: pd.Series,
 
         # If the threshold is not recognized, raise a ValueError
         else:
-            raise ValueError("Expected threshold='mean' or threshold='median' "
-                             "got %s" % threshold)
+            raise ValueError(
+                "Expected threshold='mean' or threshold='median' " "got %s" % threshold
+            )
 
     # If the threshold is a float, leave it as is
     else:

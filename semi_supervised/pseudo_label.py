@@ -28,19 +28,20 @@ class PseudoLabeling(_BaseComposition, ClassifierMixin):
     verbose : int, default=0
         Verbosity level. If 1 or greater, prints information about the fitting process.
     """
-    def __init__(self,
-                 estimator: BaseEstimator,
-                 proba: float = 0.95,
-                 max_iter: Optional[int] = None,
-                 verbose: int = 0):
+
+    def __init__(
+        self,
+        estimator: BaseEstimator,
+        proba: float = 0.95,
+        max_iter: Optional[int] = None,
+        verbose: int = 0,
+    ):
         self.estimator = estimator
         self.max_iter = max_iter
         self.verbose = verbose
         self.proba = proba
 
-    def fit(self,
-            X: pd.DataFrame,
-            y: pd.Series) -> 'PseudoLabeling':
+    def fit(self, X: pd.DataFrame, y: pd.Series) -> "PseudoLabeling":
         """
         Fits the Pseudo-Labeling model on the training data.
 
@@ -70,9 +71,7 @@ class PseudoLabeling(_BaseComposition, ClassifierMixin):
 
         return self
 
-    def partial_fit(self,
-                    X: pd.DataFrame,
-                    y: pd.Series) -> 'PseudoLabeling':
+    def partial_fit(self, X: pd.DataFrame, y: pd.Series) -> "PseudoLabeling":
         """
         Incrementally fits the Pseudo-Labeling model on additional data.
 
@@ -90,7 +89,7 @@ class PseudoLabeling(_BaseComposition, ClassifierMixin):
             Returns self.
         """
 
-        if hasattr(self, 'estimator_'):
+        if hasattr(self, "estimator_"):
             # concatenate the new data with the existing data
             self.X_ = pd.concat([self.X_, X])
             self.y_ = pd.concat([self.y_, y])
@@ -107,8 +106,7 @@ class PseudoLabeling(_BaseComposition, ClassifierMixin):
 
         return self
 
-    def predict(self,
-                X: pd.DataFrame) -> np.array:
+    def predict(self, X: pd.DataFrame) -> np.array:
         """
         Predicts the target labels for the input data.
 
@@ -124,8 +122,7 @@ class PseudoLabeling(_BaseComposition, ClassifierMixin):
         """
         return self._pseudo_label(X).predict(X)
 
-    def predict_proba(self,
-                      X: pd.DataFrame):
+    def predict_proba(self, X: pd.DataFrame):
         """
         Predicts the target probabilities for the input data.
 
@@ -141,8 +138,7 @@ class PseudoLabeling(_BaseComposition, ClassifierMixin):
         """
         return self._pseudo_label(X).predict_proba(X)
 
-    def decision_function(self,
-                          X: pd.DataFrame) -> np.ndarray:
+    def decision_function(self, X: pd.DataFrame) -> np.ndarray:
         """
         Predicts class probabilities for the input data.
 
@@ -158,8 +154,7 @@ class PseudoLabeling(_BaseComposition, ClassifierMixin):
         """
         return self._pseudo_label(X).decision_function(X)
 
-    def _pseudo_label(self,
-                      X: pd.DataFrame) -> object:
+    def _pseudo_label(self, X: pd.DataFrame) -> object:
         """
         Generates pseudo-labels for the input data using the fitted estimator.
 
@@ -175,7 +170,6 @@ class PseudoLabeling(_BaseComposition, ClassifierMixin):
         """
 
         while not self.max_iter or self.n_iter_ < self.max_iter:
-
             # Select not added rows
             index = X.index.difference(self.X_.index)
             X_new = X.loc[index]
@@ -205,12 +199,8 @@ class PseudoLabeling(_BaseComposition, ClassifierMixin):
 
         return self.estimator_
 
-    @if_delegate_has_method(delegate='estimator_')
-    def score(self,
-              X: pd.DataFrame,
-              y: Optional[pd.Series] = None,
-              *args,
-              **kwargs):
+    @if_delegate_has_method(delegate="estimator_")
+    def score(self, X: pd.DataFrame, y: Optional[pd.Series] = None, *args, **kwargs):
         return self.estimator_.score(X, y, *args, **kwargs)
 
     # @if_delegate_has_method(delegate='estimator_')

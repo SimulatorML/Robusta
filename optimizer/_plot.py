@@ -4,8 +4,7 @@ import seaborn as sns
 from matplotlib.ticker import MaxNLocator
 
 
-def _plot_progress(opt: optuna.Trial,
-                   color: str = '#eeaa24') -> None:
+def _plot_progress(opt: optuna.Trial, color: str = "#eeaa24") -> None:
     """
     Plot the optimization progress of an Optuna study.
 
@@ -27,14 +26,14 @@ def _plot_progress(opt: optuna.Trial,
 
     # Set the title and labels for the plot
     ax.set_title(type(opt).__name__)
-    ax.set_xlabel('iters')
-    ax.set_ylabel('score')
+    ax.set_xlabel("iters")
+    ax.set_ylabel("score")
 
     # Get the trials from the Optuna study object
     trials = opt.trials_
 
     # Plot a regression line of the score over the index of each trial
-    sns.regplot(trials.index + 1, 'score', trials, color=color)
+    sns.regplot(trials.index + 1, "score", trials, color=color)
 
     # Set the x-axis tick locator to only show integers
     ax.xaxis.set_major_locator(MaxNLocator(integer=True))

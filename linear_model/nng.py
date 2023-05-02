@@ -4,11 +4,9 @@ from sklearn.linear_model import LinearRegression, Lasso
 from sklearn.linear_model._base import LinearModel
 
 
-def non_negative_garotte(X: pd.DataFrame,
-                         y: pd.Series,
-                         alpha: float,
-                         tol: float = 1e-6,
-                         max_iter: int = 1000):
+def non_negative_garotte(
+    X: pd.DataFrame, y: pd.Series, alpha: float, tol: float = 1e-6, max_iter: int = 1000
+):
     """
     Implementation of the non-negative garotte method for linear regression.
 
@@ -39,7 +37,13 @@ def non_negative_garotte(X: pd.DataFrame,
     X = X * coef_ols[np.newaxis, :]
 
     # Shrunken betas
-    shrink_coef = Lasso(alpha=alpha, fit_intercept=False, positive=True, tol=tol, max_iter=max_iter).fit(X, y).coef_
+    shrink_coef = (
+        Lasso(
+            alpha=alpha, fit_intercept=False, positive=True, tol=tol, max_iter=max_iter
+        )
+        .fit(X, y)
+        .coef_
+    )
     coef = coef_ols * shrink_coef
 
     # Residual Sum of Squares
@@ -102,13 +106,16 @@ class NNGRegressor(LinearModel):
         Independent term in the linear model.
 
     """
-    def __init__(self,
-                 alpha: float = 1e-3,
-                 fit_intercept: bool = True,
-                 normalize: bool = False,
-                 tol: float = 1e-4,
-                 max_iter: int = 1000,
-                 copy_X: bool = True):
+
+    def __init__(
+        self,
+        alpha: float = 1e-3,
+        fit_intercept: bool = True,
+        normalize: bool = False,
+        tol: float = 1e-4,
+        max_iter: int = 1000,
+        copy_X: bool = True,
+    ):
         self.alpha = alpha
         self.fit_intercept = fit_intercept
         self.tol = tol
@@ -117,9 +124,7 @@ class NNGRegressor(LinearModel):
         self.max_iter = max_iter
         self.tol = tol
 
-    def fit(self,
-            X: np.ndarray,
-            y: np.ndarray) -> 'NNGRegressor':
+    def fit(self, X: np.ndarray, y: np.ndarray) -> "NNGRegressor":
         """
         Fits the Non-negative regression model to the given data.
 
@@ -136,12 +141,13 @@ class NNGRegressor(LinearModel):
             The fitted NNGRegressor object.
 
         """
-        X, y, X_mean, y_mean, X_std = self._preprocess_data(X, y,
-                                                            self.fit_intercept, self.normalize, self.copy_X)
+        X, y, X_mean, y_mean, X_std = self._preprocess_data(
+            X, y, self.fit_intercept, self.normalize, self.copy_X
+        )
 
-        self.coef_, self.shrink_coef_, self.rss_ = non_negative_garotte(X, y,
-                                                                        alpha=self.alpha, tol=self.tol,
-                                                                        max_iter=self.max_iter)
+        self.coef_, self.shrink_coef_, self.rss_ = non_negative_garotte(
+            X, y, alpha=self.alpha, tol=self.tol, max_iter=self.max_iter
+        )
 
         self._set_intercept(X_mean, y_mean, X_std)
         return self

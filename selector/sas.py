@@ -8,10 +8,12 @@ from sklearn.utils.random import check_random_state
 from . import _WrappedSelector, _WrappedGroupSelector, _check_k_features
 
 
-def perturb_subset(subset: pd.Series,
-                   step: int,
-                   random_state: Optional[int] = None,
-                   drop_attrs: Optional[List[str]] = None) -> pd.Series:
+def perturb_subset(
+    subset: pd.Series,
+    step: int,
+    random_state: Optional[int] = None,
+    drop_attrs: Optional[List[str]] = None,
+) -> pd.Series:
     """
     Randomly perturb the feature subset by removing a randomly selected set of <step> features
     and adding a different set of <step> features.
@@ -35,7 +37,7 @@ def perturb_subset(subset: pd.Series,
 
     # Set default value for drop_attrs if not provided
     if drop_attrs is None:
-        drop_attrs = ['score']
+        drop_attrs = ["score"]
 
     # Check random state and get random numbers
     rstate = check_random_state(random_state)
@@ -98,22 +100,24 @@ class SAS(_WrappedSelector):
         n_digits: The number of digits to display for floating-point values.
         n_jobs: The number of jobs to run in parallel.
     """
-    def __init__(self,
-                 estimator: BaseEstimator,
-                 cv: int = 5,
-                 scoring: Optional[Union[str, Callable]] = None,
-                 min_step: float = 0.01,
-                 max_step: float = 0.05,
-                 min_features: float = 0.1,
-                 max_features: float = 0.9,
-                 max_iter: int = 50,
-                 temp: float = 1.0,
-                 random_state: Optional[int] = None,
-                 n_jobs: Optional[int] = None,
-                 verbose: int = 1,
-                 n_digits: int = 4,
-                 cv_kwargs: Optional[dict] = None):
 
+    def __init__(
+        self,
+        estimator: BaseEstimator,
+        cv: int = 5,
+        scoring: Optional[Union[str, Callable]] = None,
+        min_step: float = 0.01,
+        max_step: float = 0.05,
+        min_features: float = 0.1,
+        max_features: float = 0.9,
+        max_iter: int = 50,
+        temp: float = 1.0,
+        random_state: Optional[int] = None,
+        n_jobs: Optional[int] = None,
+        verbose: int = 1,
+        n_digits: int = 4,
+        cv_kwargs: Optional[dict] = None,
+    ):
         if cv_kwargs is None:
             cv_kwargs = {}
         self.estimator = estimator
@@ -133,10 +137,9 @@ class SAS(_WrappedSelector):
         self.n_digits = n_digits
         self.n_jobs = n_jobs
 
-    def fit(self,
-            X: pd.DataFrame,
-            y: pd.Series,
-            groups: Optional[pd.Series] = None) -> 'SAS':
+    def fit(
+        self, X: pd.DataFrame, y: pd.Series, groups: Optional[pd.Series] = None
+    ) -> "SAS":
         """
         Run the SAS algorithm on the input data and select the best feature subset.
 
@@ -162,10 +165,9 @@ class SAS(_WrappedSelector):
         self._fit(X, y, groups)
         return self
 
-    def partial_fit(self,
-                    X: pd.DataFrame,
-                    y: pd.Series,
-                    groups: Optional[pd.Series] = None) -> 'SAS':
+    def partial_fit(
+        self, X: pd.DataFrame, y: pd.Series, groups: Optional[pd.Series] = None
+    ) -> "SAS":
         """
         Fits the sas to a partial amount of data.
 
@@ -191,10 +193,7 @@ class SAS(_WrappedSelector):
 
         return self
 
-    def _fit_start(self,
-                   X: pd.DataFrame,
-                   y: pd.Series,
-                   groups: pd.Series) -> 'SAS':
+    def _fit_start(self, X: pd.DataFrame, y: pd.Series, groups: pd.Series) -> "SAS":
         """
         Initializes the sas before fitting.
 
@@ -229,10 +228,9 @@ class SAS(_WrappedSelector):
 
         return self
 
-    def _fit(self,
-             X: pd.DataFrame,
-             y: pd.Series,
-             groups: Optional[pd.Series] = None) -> 'SAS':
+    def _fit(
+        self, X: pd.DataFrame, y: pd.Series, groups: Optional[pd.Series] = None
+    ) -> "SAS":
         """
         Fits the SAS model to the provided data.
 
@@ -295,9 +293,7 @@ class SAS(_WrappedSelector):
         """
 
         # Ensure min_step is within the range [0, 1]
-        min_step = _check_k_features(self.min_step,
-                                     self.n_features_,
-                                     'min_step')
+        min_step = _check_k_features(self.min_step, self.n_features_, "min_step")
         return min_step
 
     @property
@@ -314,9 +310,7 @@ class SAS(_WrappedSelector):
         """
 
         # Ensure max_step is within the range [0, 1]
-        max_step = _check_k_features(self.max_step,
-                                      self.n_features_,
-                                     'max_step')
+        max_step = _check_k_features(self.max_step, self.n_features_, "max_step")
         return max_step
 
 

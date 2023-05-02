@@ -25,20 +25,18 @@ class SupervisedOutlierDetector(OutlierDetector):
         The fitted estimator.
 
     """
-    _estimator_type = 'outlier_detector'
 
-    def __init__(self,
-                 estimator: BaseEstimator,
-                 scoring: Union[Callable, str],
-                 thresh: float):
+    _estimator_type = "outlier_detector"
+
+    def __init__(
+        self, estimator: BaseEstimator, scoring: Union[Callable, str], thresh: float
+    ):
         self.estimator_ = None
         self.estimator = estimator
         self.scoring = scoring  # by sample
         self.thresh = thresh
 
-    def fit_predict(self,
-                    X: pd.DataFrame,
-                    y: pd.Series) -> pd.Series:
+    def fit_predict(self, X: pd.DataFrame, y: pd.Series) -> pd.Series:
         """
         Fit the estimator to the data and predict outlier labels.
 

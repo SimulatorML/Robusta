@@ -5,8 +5,7 @@ import numpy as np
 from pympler.asizeof import asizeof
 
 
-def all_subsets(cols: List,
-                k_range: Tuple[int, int]) -> chain:
+def all_subsets(cols: List, k_range: Tuple[int, int]) -> chain:
     """
     Return an iterator that yields all possible combinations of the columns
     in `cols` with length `k` for all `k` in the range of `k_range`.
@@ -28,8 +27,9 @@ def all_subsets(cols: List,
     return chain(*map(lambda k: combinations(cols, k), k_range))
 
 
-def get_ranks(arr: Union[List[float], np.ndarray],
-              normalize: bool = False) -> np.ndarray:
+def get_ranks(
+    arr: Union[List[float], np.ndarray], normalize: bool = False
+) -> np.ndarray:
     """
     Computes the ranks of an array of numeric values.
 
@@ -58,8 +58,7 @@ def get_ranks(arr: Union[List[float], np.ndarray],
     return arr / sum(arr) if normalize else arr
 
 
-def bytefmt(n: int,
-            rnd: bool = True) -> str:
+def bytefmt(n: int, rnd: bool = True) -> str:
     """
     Converts a number of bytes to a formatted string.
 
@@ -81,21 +80,19 @@ def bytefmt(n: int,
     """
     # Define the byte units and their corresponding bases.
     byte_units = {
-        'TB': 2 ** 40,
-        'GB': 2 ** 30,
-        'MB': 2 ** 20,
-        'KB': 2 ** 10,
-        'bytes': 2 ** 0,
+        "TB": 2**40,
+        "GB": 2**30,
+        "MB": 2**20,
+        "KB": 2**10,
+        "bytes": 2**0,
     }
 
     arr = []
 
     # Iterate over the byte units from largest to smallest.
     for unit, base in byte_units.items():
-
         # Check if the number of bytes is larger than the current unit.
         if n // base > 0:
-
             # Compute the number of units of the current size.
             k = n // base
             n = n % base
@@ -110,15 +107,13 @@ def bytefmt(n: int,
                 k = int(k)
 
             # Append the formatted string to the array.
-            arr.append('{} {}'.format(k, unit))
+            arr.append("{} {}".format(k, unit))
 
     # Join the array into a single string with double spaces as separator.
-    return '  '.join(arr)
+    return "  ".join(arr)
 
 
-def sizeof(obj: object,
-           fmt: bool = True,
-           rnd: bool = True) -> Union[int, str]:
+def sizeof(obj: object, fmt: bool = True, rnd: bool = True) -> Union[int, str]:
     """
     Return the full size of an (nested) object in bytes or a formatted string.
 

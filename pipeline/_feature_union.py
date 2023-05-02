@@ -37,16 +37,16 @@ class FeatureUnion(_BaseComposition, TransformerMixin):
         Access the fitted transformer by name.
     """
 
-    def __init__(self,
-                 transformers: list,
-                 n_jobs: Optional[int] = None,):
+    def __init__(
+        self,
+        transformers: list,
+        n_jobs: Optional[int] = None,
+    ):
         self.named_transformers_ = None
         self.transformers = transformers
         self.n_jobs = n_jobs
 
-    def fit(self,
-            X: pd.DataFrame,
-            y: pd.Series = None) -> 'FeatureUnion':
+    def fit(self, X: pd.DataFrame, y: pd.Series = None) -> "FeatureUnion":
         """
         Fit all transformers using X.
 
@@ -70,7 +70,8 @@ class FeatureUnion(_BaseComposition, TransformerMixin):
         # Create a list of transformers fitted in parallel
         transformers = Parallel(n_jobs=self.n_jobs)(
             delayed(self._fit)(clone(transformer), X, y)
-            for _, transformer in self.transformers)
+            for _, transformer in self.transformers
+        )
 
         # Create a dictionary of fitted transformers using the transformer names as keys
         self.named_transformers_ = dict(zip(names, transformers))
@@ -78,8 +79,7 @@ class FeatureUnion(_BaseComposition, TransformerMixin):
         # Return the FeatureUnion instance
         return self
 
-    def transform(self,
-                  X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Transform X separately by each transformer, concatenate results.
 
@@ -99,15 +99,14 @@ class FeatureUnion(_BaseComposition, TransformerMixin):
         # Create a list of transformed data from each fitted transformer, in parallel
         Xt_list = Parallel(n_jobs=self.n_jobs)(
             delayed(self._transform)(transformer, X)
-            for transformer in self.named_transformers_.values())
+            for transformer in self.named_transformers_.values()
+        )
 
         # Concatenate the transformed data into a single DataFrame
         Xt = pd.concat(Xt_list, axis=1)
         return Xt
 
-    def fit_transform(self,
-                      X: pd.DataFrame,
-                      y: Optional[pd.Series] = None):
+    def fit_transform(self, X: pd.DataFrame, y: Optional[pd.Series] = None):
         """
         Fit & transform X separately by each transformer, concatenate results.
 
@@ -129,7 +128,8 @@ class FeatureUnion(_BaseComposition, TransformerMixin):
         # Execute the transformers in parallel
         paths = Parallel(n_jobs=self.n_jobs)(
             delayed(self._fit_transform)(clone(transformer), X, y)
-            for _, transformer in self.transformers)
+            for _, transformer in self.transformers
+        )
 
         # Collect fitted transformers and transformed data
         transformers, Xt_list = zip(*paths)
@@ -142,9 +142,7 @@ class FeatureUnion(_BaseComposition, TransformerMixin):
         return Xt
 
     @staticmethod
-    def _fit_transform(transformer: object,
-                       X: pd.DataFrame,
-                       y: pd.Series) -> tuple:
+    def _fit_transform(transformer: object, X: pd.DataFrame, y: pd.Series) -> tuple:
         """
         Helper function to fit and transform a single transformer.
 
@@ -169,10 +167,7 @@ class FeatureUnion(_BaseComposition, TransformerMixin):
         # Return the fitted transformer and transformed data as a tuple
         return transformer, Xt
 
-    def _fit(self,
-             transformer: object,
-             X: pd.DataFrame,
-             y: pd.Series) -> object:
+    def _fit(self, transformer: object, X: pd.DataFrame, y: pd.Series) -> object:
         """
         Helper function to fit a single transformer.
 
@@ -192,9 +187,7 @@ class FeatureUnion(_BaseComposition, TransformerMixin):
         """
         return transformer.fit(X, y)
 
-    def _transform(self,
-                   transformer: object,
-                   X: pd.DataFrame) -> np.array:
+    def _transform(self, transformer: object, X: pd.DataFrame) -> np.array:
         """
         Helper function to transform the data using a single transformer.
 
@@ -212,8 +205,7 @@ class FeatureUnion(_BaseComposition, TransformerMixin):
         """
         return transformer.transform(X)
 
-    def get_params(self,
-                   deep: bool = True) -> dict:
+    def get_params(self, deep: bool = True) -> dict:
         """
         Get the parameters of the transformer pipeline.
 
@@ -227,10 +219,9 @@ class FeatureUnion(_BaseComposition, TransformerMixin):
         dict
             A dictionary of parameter names mapped to their values.
         """
-        return self._get_params('transformers', deep=deep)
+        return self._get_params("transformers", deep=deep)
 
-    def set_params(self,
-                   **kwargs) -> 'FeatureUnion':
+    def set_params(self, **kwargs) -> "FeatureUnion":
         """
         Set the parameters of the transformer pipeline.
 
@@ -244,12 +235,11 @@ class FeatureUnion(_BaseComposition, TransformerMixin):
         TransformerPipeline
             The TransformerPipeline object with the updated parameters.
         """
-        self._set_params('transformers', **kwargs)
+        self._set_params("transformers", **kwargs)
         return self
 
 
-def make_union(*transformers,
-               **kwargs) -> 'FeatureUnion':
+def make_union(*transformers, **kwargs) -> "FeatureUnion":
     """
     Construct a FeatureUnion from the given transformers.
 
@@ -271,11 +261,13 @@ def make_union(*transformers,
         FeatureUnion
 
     """
-    n_jobs = kwargs.pop('n_jobs', None)
+    n_jobs = kwargs.pop("n_jobs", None)
 
     if kwargs:
         # We do not currently support `transformer_weights` as we may want to
         # change its type spec in make_union
-        raise TypeError('Unknown keyword arguments: "{}"'.format(list(kwargs.keys())[0]))
+        raise TypeError(
+            'Unknown keyword arguments: "{}"'.format(list(kwargs.keys())[0])
+        )
 
     return FeatureUnion(_name_estimators(transformers), n_jobs=n_jobs)

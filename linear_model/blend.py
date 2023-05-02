@@ -8,9 +8,9 @@ from sklearn.linear_model._base import LinearModel
 from sklearn.metrics import get_scorer
 
 _AVG_TYPES = {
-    'mean': lambda X, w: X.dot(w),
-    'hmean': lambda X, w: 1 / (X ** -1).dot(w),
-    'gmean': lambda X, w: np.exp(np.log(X).dot(w)),
+    "mean": lambda X, w: X.dot(w),
+    "hmean": lambda X, w: 1 / (X**-1).dot(w),
+    "gmean": lambda X, w: np.exp(np.log(X).dot(w)),
 }
 
 
@@ -45,7 +45,9 @@ def check_avg_type(avg_type: str) -> str:
 
     else:
         # Raise an error if <avg_type> is not valid, listing the allowed values
-        raise ValueError(f"Invalid value '{avg_type}' for <avg_type>. Allowed values: {avg_types}")
+        raise ValueError(
+            f"Invalid value '{avg_type}' for <avg_type>. Allowed values: {avg_types}"
+        )
 
 
 class _BaseBlend(LinearModel):
@@ -79,11 +81,13 @@ class _BaseBlend(LinearModel):
         The result of the optimization. None if `scoring` is None.
     """
 
-    def __init__(self,
-                 avg_type: str = 'mean',
-                 scoring: Optional[str] = None,
-                 opt_func: Optional[Callable] = None,
-                 **opt_kws):
+    def __init__(
+        self,
+        avg_type: str = "mean",
+        scoring: Optional[str] = None,
+        opt_func: Optional[Callable] = None,
+        **opt_kws,
+    ):
         self._estimator_type = None
         self.coef_ = None
         self.result_ = None
@@ -96,10 +100,9 @@ class _BaseBlend(LinearModel):
         self.opt_func = opt_func
         self.opt_kws = opt_kws
 
-    def fit(self,
-            X: pd.DataFrame,
-            y: pd.Series,
-            weights: np.ndarray = None) -> '_BaseBlend':
+    def fit(
+        self, X: pd.DataFrame, y: pd.Series, weights: np.ndarray = None
+    ) -> "_BaseBlend":
         """
         Fit the blending model.
 
@@ -119,7 +122,7 @@ class _BaseBlend(LinearModel):
         """
 
         # if it's a classifier, get the unique classes
-        if self._estimator_type is 'classifier':
+        if self._estimator_type is "classifier":
             self.classes_ = np.unique(y)
 
         # check the averaging type
@@ -143,20 +146,23 @@ class _BaseBlend(LinearModel):
             if self.opt_func is None:
                 # use scipy.optimize.minimize as the default
                 self.opt_func = minimize
-                self.opt_kws = dict(x0=self.get_weights(), method='SLSQP',
-                                    options={'maxiter': 1000}, bounds=[(0., 1.)] * self.n_features_,
-                                    constraints=[{'type': 'eq', 'fun': lambda w: np.sum(w) - 1}])
+                self.opt_kws = dict(
+                    x0=self.get_weights(),
+                    method="SLSQP",
+                    options={"maxiter": 1000},
+                    bounds=[(0.0, 1.0)] * self.n_features_,
+                    constraints=[{"type": "eq", "fun": lambda w: np.sum(w) - 1}],
+                )
 
             # optimize the objective to get the blending weights
             self.result_ = self.opt_func(objective, **self.opt_kws)
 
             # set the weights based on the optimization result
-            self.set_weights(self.result_['x'])
+            self.set_weights(self.result_["x"])
 
         return self
 
-    def set_weights(self,
-                    weights: Optional[np.ndarray]) -> '_BaseBlend':
+    def set_weights(self, weights: Optional[np.ndarray]) -> "_BaseBlend":
         """
         Set the blending weights.
 
@@ -195,9 +201,7 @@ class _BaseBlend(LinearModel):
         # Return the blending weights
         return self.coef_
 
-    def score(self,
-              X: pd.DataFrame,
-              y: pd.Series) -> float:
+    def score(self, X: pd.DataFrame, y: pd.Series) -> float:
         """
         Calculates the score of the fitted estimator on the input data.
 
@@ -230,7 +234,7 @@ class _BaseBlend(LinearModel):
         """
 
         # Check if the model has a 'result_' attribute or if no scoring function is defined
-        return hasattr(self, 'result_') or not self.scoring
+        return hasattr(self, "result_") or not self.scoring
 
     @property
     def intercept_(self) -> float:
@@ -244,10 +248,9 @@ class _BaseBlend(LinearModel):
         """
 
         # The intercept for this model is always 0.0
-        return .0
+        return 0.0
 
-    def _blend(self,
-               X: pd.DataFrame) -> np.ndarray:
+    def _blend(self, X: pd.DataFrame) -> np.ndarray:
         """
         Blend the predictions using the blending weights.
 
@@ -271,8 +274,7 @@ class BlendRegressor(_BaseBlend, RegressorMixin):
     Blending Estimator for regression
     """
 
-    def predict(self,
-                X: pd.DataFrame) -> np.ndarray:
+    def predict(self, X: pd.DataFrame) -> np.ndarray:
         """
         Make predictions for a given input.
 
@@ -294,8 +296,7 @@ class BlendClassifier(_BaseBlend, ClassifierMixin):
     Blending Estimator for classification
     """
 
-    def predict_proba(self,
-                      X: pd.DataFrame) -> np.ndarray:
+    def predict_proba(self, X: pd.DataFrame) -> np.ndarray:
         """
         Predict class probabilities for a given input.
 
@@ -314,8 +315,7 @@ class BlendClassifier(_BaseBlend, ClassifierMixin):
         y = self._blend(X)
         return np.stack(arrays=[1 - y, y], axis=-1)
 
-    def predict(self,
-                X: pd.DataFrame) -> np.ndarray:
+    def predict(self, X: pd.DataFrame) -> np.ndarray:
         """
         Make predictions for a given input.
 

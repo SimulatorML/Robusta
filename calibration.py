@@ -11,6 +11,7 @@ class CalibratedClassifierCV(CalibratedClassifierCV):
     - `coef_`: an array of coefficients averaged over the base estimators in the ensemble.
     The arrays have the same shape as the corresponding arrays of the base estimator.
     """
+
     @property
     def feature_importances_(self) -> np.ndarray:
         """
@@ -23,8 +24,10 @@ class CalibratedClassifierCV(CalibratedClassifierCV):
             The shape is the same as the corresponding array of the base estimator.
         """
 
-        attr = 'feature_importances_'
-        imps = [getattr(clf.base_estimator, attr) for clf in self.calibrated_classifiers_]
+        attr = "feature_importances_"
+        imps = [
+            getattr(clf.base_estimator, attr) for clf in self.calibrated_classifiers_
+        ]
 
         # Compute the mean of the feature importances over the base estimators.
         return np.mean(imps, axis=0)
@@ -41,8 +44,10 @@ class CalibratedClassifierCV(CalibratedClassifierCV):
             The shape is the same as the corresponding array of the base estimator.
         """
 
-        attr = 'coef_'
-        coef = [getattr(clf.base_estimator, attr) for clf in self.calibrated_classifiers_]
+        attr = "coef_"
+        coef = [
+            getattr(clf.base_estimator, attr) for clf in self.calibrated_classifiers_
+        ]
 
         # Compute the mean of the coefficients over the base estimators.
 

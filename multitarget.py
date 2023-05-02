@@ -36,19 +36,20 @@ class MultiTargetRegressor(BaseEstimator, RegressorMixin):
         to the overhead of spawning processes.
 
     """
-    def __init__(self,
-                 estimator: BaseEstimator,
-                 scoring: Optional[Union[str, Callable]] = None,
-                 weights: Optional[np.array ]= None,
-                 n_jobs: Optional[int] = None):
+
+    def __init__(
+        self,
+        estimator: BaseEstimator,
+        scoring: Optional[Union[str, Callable]] = None,
+        weights: Optional[np.array] = None,
+        n_jobs: Optional[int] = None,
+    ):
         self.estimator = estimator
         self.scoring = scoring
         self.weights = weights
         self.n_jobs = n_jobs
 
-    def fit(self,
-            X: pd.DataFrame,
-            Y: pd.DataFrame) -> 'MultiTargetRegressor':
+    def fit(self, X: pd.DataFrame, Y: pd.DataFrame) -> "MultiTargetRegressor":
         """
         Fit the model to data.
 
@@ -74,20 +75,17 @@ class MultiTargetRegressor(BaseEstimator, RegressorMixin):
         self.targets_ = list(Y.columns)
 
         # Check the estimator and convert to a list if necessary
-        self.estimators_ = check_estimator(self.estimator, self.targets_, 'regressor')
+        self.estimators_ = check_estimator(self.estimator, self.targets_, "regressor")
 
         # Fit a separate model for each target variable
         self.estimators_ = Parallel(n_jobs=self.n_jobs)(
             delayed(_fit_estimator)(clone(e), X, Y[target])
-            for e, target in zip(self.estimators_, self.targets_))
+            for e, target in zip(self.estimators_, self.targets_)
+        )
 
         return self
 
-    def score(self,
-              X: pd.DataFrame,
-              Y: pd.DataFrame,
-              *args,
-              **kwargs) -> float:
+    def score(self, X: pd.DataFrame, Y: pd.DataFrame, *args, **kwargs) -> float:
         """
         Evaluate the performance of the model on the test data.
 
@@ -154,8 +152,7 @@ class MultiTargetRegressor(BaseEstimator, RegressorMixin):
         # Concatenate the coefficients and average across all estimators
         return np.concatenate(imps).mean(axis=0)
 
-    def predict(self,
-                X: pd.DataFrame) -> np.array:
+    def predict(self, X: pd.DataFrame) -> np.array:
         """
         Predict target values for the given data.
 
@@ -169,7 +166,7 @@ class MultiTargetRegressor(BaseEstimator, RegressorMixin):
         y_pred : array of shape (n_samples,)
             Predicted target values.
         """
-        return _call_estimator(self, X, 'predict')
+        return _call_estimator(self, X, "predict")
 
 
 class MultiTargetClassifier(BaseEstimator, ClassifierMixin):
@@ -198,35 +195,32 @@ class MultiTargetClassifier(BaseEstimator, ClassifierMixin):
 
     """
 
-    def __init__(self,
-                 estimator: BaseEstimator,
-                 scoring: Optional[Union[str, Callable]] = None,
-                 weights: Optional[np.array] = None,
-                 n_jobs: Optional[int] = None):
+    def __init__(
+        self,
+        estimator: BaseEstimator,
+        scoring: Optional[Union[str, Callable]] = None,
+        weights: Optional[np.array] = None,
+        n_jobs: Optional[int] = None,
+    ):
         self.estimator = estimator
         self.scoring = scoring
         self.weights = weights
         self.n_jobs = n_jobs
 
-    def fit(self,
-            X: pd.DataFrame,
-            Y: pd.DataFrame) -> 'MultiTargetClassifier':
+    def fit(self, X: pd.DataFrame, Y: pd.DataFrame) -> "MultiTargetClassifier":
         self.targets_ = list(Y.columns)
         self.classes_ = [LabelBinarizer().fit(y).classes_ for _, y in Y.items()]
 
-        self.estimators_ = check_estimator(self.estimator, self.targets_, 'classifier')
+        self.estimators_ = check_estimator(self.estimator, self.targets_, "classifier")
 
         self.estimators_ = Parallel(n_jobs=self.n_jobs)(
             delayed(_fit_estimator)(clone(e), X, Y[target])
-            for e, target in zip(self.estimators_, self.targets_))
+            for e, target in zip(self.estimators_, self.targets_)
+        )
 
         return self
 
-    def score(self,
-              X: pd.DataFrame,
-              Y: pd.DataFrame,
-              *args,
-              **kwargs) -> float:
+    def score(self, X: pd.DataFrame, Y: pd.DataFrame, *args, **kwargs) -> float:
         """
         Evaluate the performance of the model on the test data.
 
@@ -292,8 +286,7 @@ class MultiTargetClassifier(BaseEstimator, ClassifierMixin):
         imps = [e.coef_ for e in self.estimators_]
         return np.concatenate(imps).mean(axis=0)
 
-    def predict(self,
-                X: pd.DataFrame) -> np.ndarray:
+    def predict(self, X: pd.DataFrame) -> np.ndarray:
         """
         Predict the target values for the input data.
 
@@ -307,10 +300,9 @@ class MultiTargetClassifier(BaseEstimator, ClassifierMixin):
         y_pred : ndarray, shape (n_samples,)
             The predicted target values.
         """
-        return _call_estimator(self, X, 'predict')
+        return _call_estimator(self, X, "predict")
 
-    def predict_proba(self,
-                      X: pd.DataFrame) -> np.ndarray:
+    def predict_proba(self, X: pd.DataFrame) -> np.ndarray:
         """
         Predict the class probabilities for the input data.
 
@@ -324,10 +316,9 @@ class MultiTargetClassifier(BaseEstimator, ClassifierMixin):
         proba : ndarray, shape (n_samples, n_classes)
             The class probabilities of the input samples.
         """
-        return _call_estimator(self, X, 'predict_proba')
+        return _call_estimator(self, X, "predict_proba")
 
-    def decision_function(self,
-                          X: pd.DataFrame) -> np.ndarray:
+    def decision_function(self, X: pd.DataFrame) -> np.ndarray:
         """
         Predict the decision function values for the input data.
 
@@ -341,13 +332,15 @@ class MultiTargetClassifier(BaseEstimator, ClassifierMixin):
         decision_function : ndarray, shape (n_samples,)
             The decision function values for the input samples.
         """
-        return _call_estimator(self, X, 'decision_function')
+        return _call_estimator(self, X, "decision_function")
 
 
-def _fit_estimator(estimator: BaseEstimator,
-                   X: pd.DataFrame,
-                   y: pd.Series,
-                   sample_weight: np.ndarray = None) -> BaseEstimator:
+def _fit_estimator(
+    estimator: BaseEstimator,
+    X: pd.DataFrame,
+    y: pd.Series,
+    sample_weight: np.ndarray = None,
+) -> BaseEstimator:
     """
     Fits an estimator to the input data.
 
@@ -374,9 +367,7 @@ def _fit_estimator(estimator: BaseEstimator,
     return estimator
 
 
-def _call_estimator(estimator: BaseEstimator,
-                    X: pd.DataFrame,
-                    method: str) -> list:
+def _call_estimator(estimator: BaseEstimator, X: pd.DataFrame, method: str) -> list:
     """
     Calls a specified method of the estimator.
 
@@ -394,21 +385,22 @@ def _call_estimator(estimator: BaseEstimator,
     Y : list
         The output of the method called on each estimator in the ensemble.
     """
-    check_is_fitted(estimator, 'estimators_')
+    check_is_fitted(estimator, "estimators_")
 
     # Define a lambda function to call the specified method on an estimator
     call_estimator = lambda e: getattr(e, method)(X)
 
     # Call the method on each estimator in the ensemble in parallel
-    Y = Parallel(n_jobs=estimator.n_jobs)(delayed(call_estimator)(e)
-                                          for e in estimator.estimators_)
+    Y = Parallel(n_jobs=estimator.n_jobs)(
+        delayed(call_estimator)(e) for e in estimator.estimators_
+    )
 
     return Y
 
 
-def check_estimator(estimator: BaseEstimator,
-                    targets: list,
-                    estimator_type: str = 'regressor') -> list:
+def check_estimator(
+    estimator: BaseEstimator, targets: list, estimator_type: str = "regressor"
+) -> list:
     """
     Check if an estimator or a list of estimators match the estimator_type.
     If a list of estimators is passed, check if the number of estimators matches the number of targets.
@@ -428,7 +420,7 @@ def check_estimator(estimator: BaseEstimator,
         The list of estimators matching the estimator_type.
     """
 
-    if getattr(estimator, '_estimator_type', None) is estimator_type:
+    if getattr(estimator, "_estimator_type", None) is estimator_type:
         # If a single estimator is passed and it matches the estimator_type
         estimators_list = [clone(estimator) for _ in targets]
 
@@ -441,22 +433,28 @@ def check_estimator(estimator: BaseEstimator,
 
         if n_est != n_tar:
             # If the number of estimators does not match the number of targets
-            raise ValueError("If passed list of estimators, number of "
-                             "estimators \n\t\tshould be equal to Y.shape[1]. "
-                             "\n\t\tFound: n_estimators = {}, n_targets = {} "
-                             " ".format(n_est, n_tar))
+            raise ValueError(
+                "If passed list of estimators, number of "
+                "estimators \n\t\tshould be equal to Y.shape[1]. "
+                "\n\t\tFound: n_estimators = {}, n_targets = {} "
+                " ".format(n_est, n_tar)
+            )
 
         for i, estimator in enumerate(estimators_list):
-            if getattr(estimator, '_estimator_type', None) is not estimator_type:
+            if getattr(estimator, "_estimator_type", None) is not estimator_type:
                 # If an estimator in the list does not match the estimator_type
-                raise ValueError("If passed list of estimators, each "
-                                 "estimator should be {}.\n"
-                                 "Error with index {}.".format(estimator_type, i))
+                raise ValueError(
+                    "If passed list of estimators, each "
+                    "estimator should be {}.\n"
+                    "Error with index {}.".format(estimator_type, i)
+                )
 
     else:
         # If an unknown type of estimator is passed
-        raise TypeError("Unknown type of <estimator> passed.\n"
-                        "Should be {} or list of {}s."
-                        " ".format(estimator_type, estimator_type))
+        raise TypeError(
+            "Unknown type of <estimator> passed.\n"
+            "Should be {} or list of {}s."
+            " ".format(estimator_type, estimator_type)
+        )
 
     return estimators_list

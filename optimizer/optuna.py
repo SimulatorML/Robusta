@@ -41,8 +41,7 @@ class OptunaCV(BaseOptimizer):
         """
         return base_space
 
-    def _get_params(self,
-                    trial: optuna.Trial) -> Dict[str, Any]:
+    def _get_params(self, trial: optuna.Trial) -> Dict[str, Any]:
         """
         Returns a dictionary with hyperparameters sampled from the search space.
 
@@ -60,36 +59,34 @@ class OptunaCV(BaseOptimizer):
         params = {}
 
         for param, btype in self.btypes.items():
-
-            if btype is 'choice':
+            if btype is "choice":
                 params[param] = trial.suggest_categorical(param, space[param])
 
-            elif btype is 'uniform':
+            elif btype is "uniform":
                 a, b = space[param]
                 params[param] = trial.suggest_uniform(param, a, b)
 
-            elif btype is 'quniform':
+            elif btype is "quniform":
                 a, b, q = space[param]
                 b = qround(b, a, b, q)
                 params[param] = trial.suggest_discrete_uniform(param, a, b, q)
 
-            elif btype is 'quniform_int':
+            elif btype is "quniform_int":
                 a, b = space[param][:2]
                 params[param] = trial.suggest_int(param, a, b)
 
-            elif btype is 'loguniform':
+            elif btype is "loguniform":
                 a, b = space[param][:2]
                 params[param] = trial.suggest_loguniform(param, a, b)
 
-            elif btype is 'const':
+            elif btype is "const":
                 pass
 
         return params
 
-    def _fit(self,
-             X: pd.DataFrame,
-             y: pd.Series,
-             groups: np.array = None) -> 'OptunaCV':
+    def _fit(
+        self, X: pd.DataFrame, y: pd.Series, groups: np.array = None
+    ) -> "OptunaCV":
         """
         Runs the hyperparameter search using Optuna.
         Returns self.
@@ -116,10 +113,10 @@ class OptunaCV(BaseOptimizer):
             score = self.eval_params(params, X, y, groups)
             return score
 
-        if not hasattr(self, 'study'):
+        if not hasattr(self, "study"):
             # TODO: set seed & other params
             sampler = optuna.samplers.TPESampler(seed=0)
-            self.study = optuna.create_study(direction='maximize', sampler=sampler)
+            self.study = optuna.create_study(direction="maximize", sampler=sampler)
 
         self.study.optimize(objective)
 
@@ -150,10 +147,10 @@ class RandomSearchCV(OptunaCV):
     verbose: int, default=0
         Controls the verbosity: the higher, the more messages.
     """
-    def _fit(self,
-             X: pd.DataFrame,
-             y: pd.Series,
-             groups: Optional[pd.Series] = None) -> 'RandomSearchCV':
+
+    def _fit(
+        self, X: pd.DataFrame, y: pd.Series, groups: Optional[pd.Series] = None
+    ) -> "RandomSearchCV":
         """
         Fit the RandomSearchCV object to the input data using Optuna library.
 
@@ -182,11 +179,11 @@ class RandomSearchCV(OptunaCV):
             score = self.eval_params(params, X, y, groups)
             return score
 
-        if not hasattr(self, 'study'):
+        if not hasattr(self, "study"):
             # TODO: set seed & other params
             # Set the random sampler as the default if no sampler is specified
             sampler = optuna.samplers.RandomSampler(seed=0)
-            self.study = optuna.create_study(direction='maximize', sampler=sampler)
+            self.study = optuna.create_study(direction="maximize", sampler=sampler)
 
         # Run the optimization process
         self.study.optimize(objective)

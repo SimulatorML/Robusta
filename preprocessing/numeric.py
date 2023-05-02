@@ -12,9 +12,9 @@ from sklearn.preprocessing import QuantileTransformer, normalize, PowerTransform
 from sklearn.utils import check_array
 from sklearn.utils.validation import check_is_fitted
 
-_NP_INT_DTYPES = ['int64', 'int32', 'int16', 'int8', 'uint32', 'uint16', 'uint8']
-_PD_INT_DTYPES = ['Int64', 'Int32', 'Int16', 'Int8', 'UInt32', 'UInt16', 'UInt8']
-_FLOAT_DTYPES = ['float64', 'float32', 'float16']
+_NP_INT_DTYPES = ["int64", "int32", "int16", "int8", "uint32", "uint16", "uint8"]
+_PD_INT_DTYPES = ["Int64", "Int32", "Int16", "Int8", "UInt32", "UInt16", "UInt8"]
+_FLOAT_DTYPES = ["float64", "float32", "float16"]
 
 
 class DowncastTransformer(BaseEstimator, TransformerMixin):
@@ -42,16 +42,15 @@ class DowncastTransformer(BaseEstimator, TransformerMixin):
     dtypes : pandas.core.series.Series
         A Series containing the dtypes of the columns in the input data.
     """
-    def __init__(self,
-                 numpy_only: bool = True,
-                 errors: str = 'raise',
-                 copy: bool = True):
+
+    def __init__(
+        self, numpy_only: bool = True, errors: str = "raise", copy: bool = True
+    ):
         self.numpy_only = numpy_only
         self.errors = errors
         self.copy = copy
 
-    def fit(self,
-            X: pd.DataFrame) -> 'DowncastTransformer':
+    def fit(self, X: pd.DataFrame) -> "DowncastTransformer":
         """
         Fit the transformer to the input data.
 
@@ -68,26 +67,25 @@ class DowncastTransformer(BaseEstimator, TransformerMixin):
 
         # Store the list of column names and numeric column names in the input data X
         self.cols = list(X.columns)
-        self.nums = list(X.select_dtypes(include=['int', 'float']))
+        self.nums = list(X.select_dtypes(include=["int", "float"]))
 
         # Store the dtypes of the columns in the input data X
         self.dtypes = X.dtypes.copy()
 
         # Check if the value of errors parameter is valid
-        errors_vals = ['raise', 'ignore']
+        errors_vals = ["raise", "ignore"]
         if self.errors not in errors_vals:
-            raise ValueError('<errors> must be in {}'.format(errors_vals))
+            raise ValueError("<errors> must be in {}".format(errors_vals))
 
         # If there are non-numeric columns in the input data X and the value of errors parameter
         # is 'raise', raise an error
-        if len(self.nums) < len(self.cols) and self.errors is 'raise':
+        if len(self.nums) < len(self.cols) and self.errors is "raise":
             cols_diff = list(set(self.cols) - set(self.nums))
             raise ValueError("Found non-numeric columns {}".format(cols_diff))
 
         return self
 
-    def transform(self,
-                  X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Transform the input data.
 
@@ -121,8 +119,7 @@ class DowncastTransformer(BaseEstimator, TransformerMixin):
         # Convert the input data X to the smallest datatype that can accommodate the range of values in each column
         return X.astype(self.dtypes, errors=self.errors, copy=self.copy)
 
-    def _fit_downcast(self,
-                      x: pd.DataFrame) -> str:
+    def _fit_downcast(self, x: pd.DataFrame) -> str:
         """
         Find the smallest datatype that can represent the input array without losing precision.
 
@@ -165,14 +162,15 @@ class DowncastTransformer(BaseEstimator, TransformerMixin):
                 # the maximum value of x is less than or equal to the maximum value of the integer type, and the
                 # number of bits in the integer type is less than or equal to the number of bits in col_type,
                 # set col_type to the integer type
-                if (x_min >= int_info.min) \
-                        and (x_max <= int_info.max) \
-                        and (col_bits >= int_info.bits):
+                if (
+                    (x_min >= int_info.min)
+                    and (x_max <= int_info.max)
+                    and (col_bits >= int_info.bits)
+                ):
                     col_bits = int_info.bits
                     col_type = int_type
 
         except (Exception,):
-
             # Set the column type to the first float type in _FLOAT_DTYPES
             col_type = _FLOAT_DTYPES[0]
 
@@ -188,9 +186,11 @@ class DowncastTransformer(BaseEstimator, TransformerMixin):
                 # the maximum value of x is less than or equal to the maximum value of the float type, and the
                 # number of bits in the float type is less than the number of bits in col_type, set col_type to
                 # the float type
-                if (x_min >= float_info.min) \
-                        and (x_max <= float_info.max) \
-                        and (col_bits > float_info.bits):
+                if (
+                    (x_min >= float_info.min)
+                    and (x_max <= float_info.max)
+                    and (col_bits > float_info.bits)
+                ):
                     col_bits = float_info.bits
                     col_type = float_type
 
@@ -206,8 +206,7 @@ class QuantileTransformer(QuantileTransformer):
     functionality to handle pandas dataframes as inputs and outputs.
     """
 
-    def transform(self,
-                  X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Transform input data X using the fitted transformer.
 
@@ -223,7 +222,7 @@ class QuantileTransformer(QuantileTransformer):
         """
 
         # Check if X is a pandas dataframe and set a flag to return a pandas dataframe later
-        return_df = hasattr(X, 'columns')
+        return_df = hasattr(X, "columns")
 
         # If X is a pandas dataframe, store the column names and index to be used when returning a pandas dataframe
         # later
@@ -265,15 +264,18 @@ class GaussRankTransformer(BaseEstimator, TransformerMixin):
     ranker_ : object
         The fitted transformer.
     """
-    def __init__(self,
-                 ranker: QuantileTransformer = QuantileTransformer(),
-                 copy: bool = True,
-                 eps: float = 1e-9):
+
+    def __init__(
+        self,
+        ranker: QuantileTransformer = QuantileTransformer(),
+        copy: bool = True,
+        eps: float = 1e-9,
+    ):
         self.ranker = ranker
         self.copy = copy
         self.eps = eps
 
-    def fit(self) -> 'GaussRankTransformer':
+    def fit(self) -> "GaussRankTransformer":
         """
         Fit the transformer to the data.
 
@@ -286,8 +288,7 @@ class GaussRankTransformer(BaseEstimator, TransformerMixin):
         """
         return self
 
-    def transform(self,
-                  X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Transform the data using Gaussian rank-based transforms.
 
@@ -341,17 +342,14 @@ class Winsorizer(BaseEstimator, TransformerMixin):
         The maximum threshold values for each column in the input data.
     """
 
-    def __init__(self,
-                 q_min: float = 0.05,
-                 q_max: float = 0.95,
-                 apply_test: bool = True):
+    def __init__(
+        self, q_min: float = 0.05, q_max: float = 0.95, apply_test: bool = True
+    ):
         self.apply_test = apply_test
         self.q_min = q_min
         self.q_max = q_max
 
-    def fit_transform(self,
-                      X: pd.DataFrame,
-                      y: np.array = None) -> pd.DataFrame:
+    def fit_transform(self, X: pd.DataFrame, y: np.array = None) -> pd.DataFrame:
         """
         Fit to the input data, then winsorize the input data.
 
@@ -375,8 +373,7 @@ class Winsorizer(BaseEstimator, TransformerMixin):
         # Return the fitted Winsorizer transformer
         return self.transform(X)
 
-    def fit(self,
-            X: pd.DataFrame) -> 'Winsorizer':
+    def fit(self, X: pd.DataFrame) -> "Winsorizer":
         """
         Compute the minimum and maximum threshold values for each column in the input data.
 
@@ -398,8 +395,7 @@ class Winsorizer(BaseEstimator, TransformerMixin):
         # Return the fitted Winsorizer transformer
         return self
 
-    def transform(self,
-                  X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Winsorize the input data by setting values outside the specified percentile range to the corresponding
         threshold value.
@@ -422,8 +418,7 @@ class Winsorizer(BaseEstimator, TransformerMixin):
         else:
             return X
 
-    def _fit(self,
-             X: pd.DataFrame) -> None:
+    def _fit(self, X: pd.DataFrame) -> None:
         """
         Compute the minimum and maximum threshold values for each column in the input data.
 
@@ -440,12 +435,12 @@ class Winsorizer(BaseEstimator, TransformerMixin):
         """
 
         # Ensure the parameter values are valid
-        assert isinstance(self.apply_test, bool), '<apply_test> must be boolean'
-        assert isinstance(self.q_min, float), '<q_min> must be float'
-        assert isinstance(self.q_max, float), '<q_max> must be float'
-        assert self.q_min < self.q_max, '<q_min> must be smaller than <q_max>'
-        assert 0 <= self.q_min <= 1, '<q_min> must be in [0..1]'
-        assert 0 <= self.q_max <= 1, '<q_max> must be in [0..1]'
+        assert isinstance(self.apply_test, bool), "<apply_test> must be boolean"
+        assert isinstance(self.q_min, float), "<q_min> must be float"
+        assert isinstance(self.q_max, float), "<q_max> must be float"
+        assert self.q_min < self.q_max, "<q_min> must be smaller than <q_max>"
+        assert 0 <= self.q_min <= 1, "<q_min> must be in [0..1]"
+        assert 0 <= self.q_max <= 1, "<q_max> must be in [0..1]"
 
         # Compute the minimum and maximum threshold values for each column in the input data
         self.min_ = X.quantile(self.q_min)
@@ -471,13 +466,16 @@ class SyntheticFeatures(BaseEstimator, TransformerMixin):
     eps : float, default=1e-2
         Small number added to the denominator to avoid division by zero.
     """
-    def __init__(self,
-                 pair_sum: bool = True,
-                 pair_dif: bool = True,
-                 pair_mul: bool = True,
-                 pair_div: bool = True,
-                 join_X: bool = True,
-                 eps: float = 1e-2):
+
+    def __init__(
+        self,
+        pair_sum: bool = True,
+        pair_dif: bool = True,
+        pair_mul: bool = True,
+        pair_div: bool = True,
+        join_X: bool = True,
+        eps: float = 1e-2,
+    ):
         self.pair_sum = pair_sum
         self.pair_dif = pair_dif
         self.pair_mul = pair_mul
@@ -485,8 +483,7 @@ class SyntheticFeatures(BaseEstimator, TransformerMixin):
         self.join_X = join_X
         self.eps = eps
 
-    def fit(self,
-            X: pd.DataFrame) -> 'SyntheticFeatures':
+    def fit(self, X: pd.DataFrame) -> "SyntheticFeatures":
         """
         Fit the synthetic features generator to the input data.
 
@@ -505,11 +502,10 @@ class SyntheticFeatures(BaseEstimator, TransformerMixin):
         if isinstance(X, pd.DataFrame):
             self.columns = X.columns
         else:
-            self.columns = ['x_{}'.format(i) for i in range(X.shape[1])]
+            self.columns = ["x_{}".format(i) for i in range(X.shape[1])]
         return self
 
-    def transform(self,
-                  X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Generate synthetic features from the input data.
 
@@ -541,7 +537,7 @@ class SyntheticFeatures(BaseEstimator, TransformerMixin):
         # Generate synthetic features by taking the difference of pairs of columns
         if self.pair_sum:
             # generate names for new synthetic columns
-            cols = ['{}+{}'.format(a, b) for a, b in cols_pairs]
+            cols = ["{}+{}".format(a, b) for a, b in cols_pairs]
 
             # compute pairwise sum of columns
             F = np.vstack([X[a].values + X[b].values for a, b in cols_pairs]).T
@@ -555,7 +551,7 @@ class SyntheticFeatures(BaseEstimator, TransformerMixin):
         # if difference of columns is enabled
         if self.pair_dif:
             # generate names for new synthetic columns
-            cols = ['{}-{}'.format(a, b) for a, b in cols_pairs]
+            cols = ["{}-{}".format(a, b) for a, b in cols_pairs]
 
             # compute pairwise difference of columns
             F = np.vstack([X[a].values - X[b].values for a, b in cols_pairs]).T
@@ -569,7 +565,7 @@ class SyntheticFeatures(BaseEstimator, TransformerMixin):
         # if multiplication of columns is enabled
         if self.pair_mul:
             # generate names for new synthetic columns
-            cols = ['{}*{}'.format(a, b) for a, b in cols_pairs]
+            cols = ["{}*{}".format(a, b) for a, b in cols_pairs]
 
             # compute pairwise multiplication of columns
             F = np.vstack([X[a].values * X[b].values for a, b in cols_pairs]).T
@@ -583,10 +579,12 @@ class SyntheticFeatures(BaseEstimator, TransformerMixin):
         # if division of columns is enabled
         if self.pair_div:
             # generate names for new synthetic columns
-            cols = ['{}/{}'.format(a, b) for a, b in cols_pairs]
+            cols = ["{}/{}".format(a, b) for a, b in cols_pairs]
 
             # compute pairwise division of columns, adding self.eps to the denominator to avoid division by zero
-            F = np.vstack([X[a].values / (X[b].values + self.eps) for a, b in cols_pairs]).T
+            F = np.vstack(
+                [X[a].values / (X[b].values + self.eps) for a, b in cols_pairs]
+            ).T
 
             # create dataframe with synthetic columns
             F = pd.DataFrame(F, index=inds, columns=cols)
@@ -595,11 +593,13 @@ class SyntheticFeatures(BaseEstimator, TransformerMixin):
             Xt = Xt.join(F)
 
             # generate additional names for new synthetic columns (inverse division)
-            cols = ['{}/{}'.format(a, b) for b, a in cols_pairs]
+            cols = ["{}/{}".format(a, b) for b, a in cols_pairs]
 
             # compute pairwise division of columns (inverse), adding self.eps to the denominator to avoid division by
             # zero
-            F = np.vstack([X[a].values / (X[b].values + self.eps) for b, a in cols_pairs]).T
+            F = np.vstack(
+                [X[a].values / (X[b].values + self.eps) for b, a in cols_pairs]
+            ).T
 
             # create dataframe with synthetic columns
             F = pd.DataFrame(F, index=inds, columns=cols)
@@ -646,20 +646,21 @@ class RobustScaler(BaseEstimator, TransformerMixin):
         The range of each feature in the training set, as determined by the specified quantiles.
     """
 
-    def __init__(self,
-                 centering: bool = True,
-                 scaling: bool = True,
-                 quantiles: tuple = (0.25, 0.75),
-                 copy: bool = True,
-                 eps: float = 1e-3):
+    def __init__(
+        self,
+        centering: bool = True,
+        scaling: bool = True,
+        quantiles: tuple = (0.25, 0.75),
+        copy: bool = True,
+        eps: float = 1e-3,
+    ):
         self.centering = centering
         self.scaling = scaling
         self.quantiles = quantiles
         self.copy = copy
         self.eps = eps
 
-    def fit(self,
-            X: pd.DataFrame) -> 'RobustScaler':
+    def fit(self, X: pd.DataFrame) -> "RobustScaler":
         """
         Compute the median and range of each feature in the training set.
 
@@ -691,8 +692,7 @@ class RobustScaler(BaseEstimator, TransformerMixin):
 
         return self
 
-    def transform(self,
-                  X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Scale the input data using the median and range computed in the `fit` method.
 
@@ -744,16 +744,14 @@ class StandardScaler(BaseEstimator, TransformerMixin):
         The standard deviation of each feature.
     """
 
-    def __init__(self,
-                 with_mean: bool = True,
-                 with_std: bool = True,
-                 copy: bool = True):
+    def __init__(
+        self, with_mean: bool = True, with_std: bool = True, copy: bool = True
+    ):
         self.with_mean = with_mean
         self.with_std = with_std
         self.copy = copy
 
-    def fit(self,
-            X: pd.DataFrame) -> 'StandardScaler':
+    def fit(self, X: pd.DataFrame) -> "StandardScaler":
         """
         Compute the mean and standard deviation of each feature from the input data.
 
@@ -776,8 +774,7 @@ class StandardScaler(BaseEstimator, TransformerMixin):
 
         return self
 
-    def transform(self,
-                  X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Scale the input data to have zero mean and unit variance.
 
@@ -825,12 +822,10 @@ class MinMaxScaler(BaseEstimator, TransformerMixin):
         Range (maximum - minimum) of each feature in the training set.
     """
 
-    def __init__(self,
-                 copy: bool = True):
+    def __init__(self, copy: bool = True):
         self.copy = copy
 
-    def fit(self,
-            X: pd.DataFrame) -> 'MinMaxScaler':
+    def fit(self, X: pd.DataFrame) -> "MinMaxScaler":
         """
         Compute the minimum, maximum, and range of each feature in the input data.
 
@@ -852,8 +847,7 @@ class MinMaxScaler(BaseEstimator, TransformerMixin):
 
         return self
 
-    def transform(self,
-                  X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Transform input data to a scaled range between 0 and 1.
 
@@ -894,12 +888,10 @@ class MaxAbsScaler(BaseEstimator, TransformerMixin):
 
     """
 
-    def __init__(self,
-                 copy: bool = True):
+    def __init__(self, copy: bool = True):
         self.copy = copy
 
-    def fit(self,
-            X: pd.DataFrame) -> 'MaxAbsScaler':
+    def fit(self, X: pd.DataFrame) -> "MaxAbsScaler":
         """
         Compute the maximum absolute values of each feature in the input data.
 
@@ -923,8 +915,7 @@ class MaxAbsScaler(BaseEstimator, TransformerMixin):
 
         return self
 
-    def transform(self,
-                  X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Scale the input data.
 
@@ -953,8 +944,7 @@ class Normalizer(Normalizer):
     A class that applies normalization to the rows of a matrix or DataFrame.
     """
 
-    def transform(self,
-                  X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Apply normalization to the rows of a matrix or DataFrame.
 
@@ -970,14 +960,14 @@ class Normalizer(Normalizer):
         """
 
         # Check if the input data is a DataFrame and keep track of the columns and index
-        return_df = hasattr(X, 'columns')
+        return_df = hasattr(X, "columns")
 
         if return_df:
             columns = X.columns
             index = X.index
 
         # Apply normalization to the input data using the specified parameters
-        X = check_array(X, accept_sparse='csr')
+        X = check_array(X, accept_sparse="csr")
         X = normalize(X, axis=1, copy=self.copy, norm=self.norm)
 
         # If the input data is a DataFrame, convert the output back to a DataFrame with original columns and index
@@ -1005,14 +995,12 @@ class KBinsDiscretizer1D(BaseEstimator, TransformerMixin):
     bins_ : ndarray, shape (n_bins + 1,)
         The computed bins.
     """
-    def __init__(self,
-                 bins: int = 5,
-                 strategy: str = 'quantile'):
+
+    def __init__(self, bins: int = 5, strategy: str = "quantile"):
         self.bins = bins
         self.strategy = strategy
 
-    def fit(self,
-            y: pd.Series) -> 'KBinsDiscretizer1D':
+    def fit(self, y: pd.Series) -> "KBinsDiscretizer1D":
         """
         Compute the bins based on the input data y.
 
@@ -1028,12 +1016,12 @@ class KBinsDiscretizer1D(BaseEstimator, TransformerMixin):
         """
 
         # check if the strategy is 'quantile' to compute bins with equal number of samples in each bin
-        if self.strategy is 'quantile':
-            _, self.bins_ = pd.qcut(y, self.bins, retbins=True, duplicates='drop')
+        if self.strategy is "quantile":
+            _, self.bins_ = pd.qcut(y, self.bins, retbins=True, duplicates="drop")
 
         # check if the strategy is 'uniform' to compute bins with equal width
-        elif self.strategy is 'uniform':
-            _, self.bins_ = pd.cut(y, self.bins, retbins=True, duplicates='drop')
+        elif self.strategy is "uniform":
+            _, self.bins_ = pd.cut(y, self.bins, retbins=True, duplicates="drop")
 
         # if the strategy is neither 'quantile' nor 'uniform', raise an error
         else:
@@ -1041,8 +1029,7 @@ class KBinsDiscretizer1D(BaseEstimator, TransformerMixin):
 
         return self
 
-    def transform(self,
-                  y: pd.Series) -> np.array:
+    def transform(self, y: pd.Series) -> np.array:
         """
         Transform the input data y using the computed bins.
 
@@ -1069,9 +1056,7 @@ class KBinsDiscretizer(KBinsDiscretizer1D):
     def __init__(self):
         super().__init__()
 
-    def fit(self,
-            X: pd.DataFrame,
-            y: pd.Series = None) -> 'KBinsDiscretizer':
+    def fit(self, X: pd.DataFrame, y: pd.Series = None) -> "KBinsDiscretizer":
         """
         Fit the discretizer on a pandas DataFrame.
 
@@ -1105,8 +1090,7 @@ class KBinsDiscretizer(KBinsDiscretizer1D):
 
         return self
 
-    def transform(self,
-                  X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Transform a pandas DataFrame using the fitted discretizer.
 
@@ -1135,9 +1119,8 @@ class PowerTransformer(PowerTransformer):
     """
     Subclass of sklearn.preprocessing.PowerTransformer that adds support for returning transformed data as a DataFrame.
     """
-    def fit_transform(self,
-                      X: pd.DataFrame,
-                      y: Optional[pd.Series] = None):
+
+    def fit_transform(self, X: pd.DataFrame, y: Optional[pd.Series] = None):
         """
         Fit to data, then transform it.
 
@@ -1156,7 +1139,7 @@ class PowerTransformer(PowerTransformer):
         """
 
         # Check if the input is a pandas DataFrame and store the column names and index values
-        return_df = hasattr(X, 'columns')
+        return_df = hasattr(X, "columns")
         if return_df:
             columns = X.columns
             index = X.index
@@ -1172,8 +1155,7 @@ class PowerTransformer(PowerTransformer):
         else:
             return X
 
-    def transform(self,
-                  X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Transform the data.
 
@@ -1190,23 +1172,24 @@ class PowerTransformer(PowerTransformer):
         """
 
         # Check if the input is a pandas DataFrame and store the column names and index values
-        return_df = hasattr(X, 'columns')
+        return_df = hasattr(X, "columns")
         if return_df:
             columns = X.columns
             index = X.index
 
         # Check if the transformer is fitted and transform the input data
-        check_is_fitted(self, 'lambdas_')
+        check_is_fitted(self, "lambdas_")
         X = self._check_input(X, check_positive=True, check_shape=True)
 
         # Select the transformation function based on the specified method
-        transform_function = {'box-cox': boxcox,
-                              'yeo-johnson': self._yeo_johnson_transform
-                              }[self.method]
+        transform_function = {
+            "box-cox": boxcox,
+            "yeo-johnson": self._yeo_johnson_transform,
+        }[self.method]
 
         # Apply the selected transformation function to each feature using the corresponding lambda value
         for i, lmbda in enumerate(self.lambdas_):
-            with np.errstate(invalid='ignore'):  # hide NaN warnings
+            with np.errstate(invalid="ignore"):  # hide NaN warnings
                 X[:, i] = transform_function(X[:, i], lmbda)
 
         # If standardize is True, standardize the transformed data
@@ -1232,11 +1215,10 @@ class Binarizer(BaseEstimator, TransformerMixin):
         The threshold value for binarization.
     """
 
-    def __init__(self,
-                 threshold: float = 0.0):
+    def __init__(self, threshold: float = 0.0):
         self.threshold = threshold
 
-    def fit(self) -> 'Binarizer':
+    def fit(self) -> "Binarizer":
         """
         Fits the Binarizer transformer to the input data.
 
@@ -1247,8 +1229,7 @@ class Binarizer(BaseEstimator, TransformerMixin):
         """
         return self
 
-    def transform(self,
-                  X: pd.DataFrame) -> np.ndarray:
+    def transform(self, X: pd.DataFrame) -> np.ndarray:
         """
         Binarizes the input data based on the threshold value.
 
@@ -1262,7 +1243,7 @@ class Binarizer(BaseEstimator, TransformerMixin):
         binarized_data : ndarray, shape [n_samples, n_features]
             The binarized data as an array of unsigned integers.
         """
-        return (X > self.threshold).astype('uint8')
+        return (X > self.threshold).astype("uint8")
 
 
 class PolynomialFeatures(PolynomialFeatures):
@@ -1286,11 +1267,14 @@ class PolynomialFeatures(PolynomialFeatures):
         the output is returned as a NumPy array.
 
     """
-    def __init__(self,
-                 degree: int = 2,
-                 interaction_only: bool = False,
-                 include_bias: bool = True,
-                 preserve_dataframe: bool = True):
+
+    def __init__(
+        self,
+        degree: int = 2,
+        interaction_only: bool = False,
+        include_bias: bool = True,
+        preserve_dataframe: bool = True,
+    ):
         self.degree = degree
         self.interaction_only = interaction_only
         self.include_bias = include_bias

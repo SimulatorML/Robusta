@@ -17,11 +17,12 @@ class OutlierDetector(BaseEstimator, OutlierMixin):
     --------
     Resampled version of X and y with the outliers removed.
     """
-    _estimator_type = 'outlier_detector'
 
-    def fit_resample(self,
-                     X: pd.DataFrame,
-                     y: Optional[pd.Series] = None) -> Tuple[pd.DataFrame, Optional[pd.Series]]:
+    _estimator_type = "outlier_detector"
+
+    def fit_resample(
+        self, X: pd.DataFrame, y: Optional[pd.Series] = None
+    ) -> Tuple[pd.DataFrame, Optional[pd.Series]]:
         """
         Fits the model to the input data X and returns a resampled version of X and y with the outliers removed.
 

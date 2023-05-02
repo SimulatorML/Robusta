@@ -8,7 +8,9 @@ from sklearn.base import (
     is_classifier,
     TransformerMixin,
     RegressorMixin,
-    ClassifierMixin, BaseEstimator, MetaEstimatorMixin,
+    ClassifierMixin,
+    BaseEstimator,
+    MetaEstimatorMixin,
 )
 from sklearn.model_selection import check_cv
 from sklearn.utils.metaestimators import _BaseComposition
@@ -65,19 +67,20 @@ class StackingTransformer(_BaseComposition, TransformerMixin):
 
     """
 
-    def __init__(self,
-                 estimators: List[BaseEstimator],
-                 cv: int = 5,
-                 scoring: Optional[Union[str, Callable]] = None,
-                 test_avg: bool = True,
-                 avg_type: str = 'auto',
-                 method: str = 'predict',
-                 join_X: bool = False,
-                 n_jobs: int = -1,
-                 verbose: int = 0,
-                 n_digits: int = 4,
-                 random_state: int = 0):
-
+    def __init__(
+        self,
+        estimators: List[BaseEstimator],
+        cv: int = 5,
+        scoring: Optional[Union[str, Callable]] = None,
+        test_avg: bool = True,
+        avg_type: str = "auto",
+        method: str = "predict",
+        join_X: bool = False,
+        n_jobs: int = -1,
+        verbose: int = 0,
+        n_digits: int = 4,
+        random_state: int = 0,
+    ):
         self.estimators = estimators
         self.cv = cv
         self.scoring = scoring
@@ -92,9 +95,7 @@ class StackingTransformer(_BaseComposition, TransformerMixin):
         self.n_digits = n_digits
         self.random_state = random_state
 
-    def transform(self,
-                  X: pd.DataFrame) -> pd.DataFrame:
-
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         # Check if the data is in train or test mode
         if self._is_train(X):
             # If in train mode, transform the data with the first layer estimators
@@ -110,10 +111,9 @@ class StackingTransformer(_BaseComposition, TransformerMixin):
         else:
             return S
 
-    def fit(self,
-            X: pd.DataFrame,
-            y: pd.Series,
-            groups: Optional[pd.Series] = None) -> 'StackingTransformer':
+    def fit(
+        self, X: pd.DataFrame, y: pd.Series, groups: Optional[pd.Series] = None
+    ) -> "StackingTransformer":
         """
         Fits the stacked transformer using the input training data and labels.
 
@@ -141,10 +141,9 @@ class StackingTransformer(_BaseComposition, TransformerMixin):
 
         return self
 
-    def _fit_1st_layer(self,
-                       X: pd.DataFrame,
-                       y: pd.Series,
-                       groups: pd.Series) -> 'StackingTransformer':
+    def _fit_1st_layer(
+        self, X: pd.DataFrame, y: pd.Series, groups: pd.Series
+    ) -> "StackingTransformer":
         """
         Fits the first layer estimators using cross-validation and saves the results.
 
@@ -178,23 +177,25 @@ class StackingTransformer(_BaseComposition, TransformerMixin):
 
         for name, estimator in self.estimators:
             # Fit the estimator using cross-validation
-            result = crossval(estimator=estimator,
-                              cv=self.folds_,
-                              X=X,
-                              y=y,
-                              groups=groups,
-                              X_new=None,
-                              test_avg=self.test_avg,
-                              avg_type=self.avg_type,
-                              scoring=self.scoring,
-                              method=self.method,
-                              verbose=self.verbose,
-                              n_digits=self.n_digits,
-                              random_state=self.random_state,
-                              n_jobs=self.n_jobs,
-                              return_estimator=True)
+            result = crossval(
+                estimator=estimator,
+                cv=self.folds_,
+                X=X,
+                y=y,
+                groups=groups,
+                X_new=None,
+                test_avg=self.test_avg,
+                avg_type=self.avg_type,
+                scoring=self.scoring,
+                method=self.method,
+                verbose=self.verbose,
+                n_digits=self.n_digits,
+                random_state=self.random_state,
+                n_jobs=self.n_jobs,
+                return_estimator=True,
+            )
 
-            estimators = result['estimator']
+            estimators = result["estimator"]
             if self.test_avg:
                 self.estimators_A_.append(estimators)
                 self.estimators_B_ = None
@@ -202,15 +203,13 @@ class StackingTransformer(_BaseComposition, TransformerMixin):
                 self.estimators_A_.append(estimators[:-1])
                 self.estimators_B_.append(estimators[-1:])
 
-            scores = result['score']
+            scores = result["score"]
             self.scores_.append(np.mean(scores))
             self.scores_std_.append(np.std(scores))
 
         return self
 
-    def _save_train(self,
-                    X: pd.DataFrame,
-                    y: pd.Series) -> None:
+    def _save_train(self, X: pd.DataFrame, y: pd.Series) -> None:
         """
         Saves the training data and labels for later use.
 
@@ -230,8 +229,7 @@ class StackingTransformer(_BaseComposition, TransformerMixin):
         self._train_index = X.index
         self._y = y.copy()
 
-    def _is_train(self,
-                  X: pd.DataFrame) -> bool:
+    def _is_train(self, X: pd.DataFrame) -> bool:
         """
         Checks if the input DataFrame is the same as the training data.
 
@@ -250,8 +248,7 @@ class StackingTransformer(_BaseComposition, TransformerMixin):
         else:
             return False
 
-    def _transform_train(self,
-                         X: pd.DataFrame) -> pd.DataFrame:
+    def _transform_train(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Transforms the training data using the first layer estimators.
 
@@ -274,8 +271,11 @@ class StackingTransformer(_BaseComposition, TransformerMixin):
 
             # Make predictions on the out-of-fold (oof) samples in parallel
             preds = Parallel(n_jobs=self.n_jobs)(
-                (delayed(_predict)(estimator, method, X.iloc[oof], self._y)
-                 for estimator, (trn, oof) in zip(estimators, self.folds_)))
+                (
+                    delayed(_predict)(estimator, method, X.iloc[oof], self._y)
+                    for estimator, (trn, oof) in zip(estimators, self.folds_)
+                )
+            )
 
             # Average the predictions and append them to the list
             pred = _avg_preds(preds, avg, X, self._y)
@@ -285,8 +285,7 @@ class StackingTransformer(_BaseComposition, TransformerMixin):
         S = stack_preds(pred_list, self.names_)
         return S
 
-    def _transform(self,
-                   X: pd.DataFrame) -> pd.DataFrame:
+    def _transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Transforms the test data using the trained first layer estimators.
 
@@ -315,8 +314,11 @@ class StackingTransformer(_BaseComposition, TransformerMixin):
 
             # Make predictions on the input samples in parallel
             preds = Parallel(n_jobs=self.n_jobs)(
-                (delayed(_predict)(estimator, method, X, self._y)
-                 for estimator in estimators))
+                (
+                    delayed(_predict)(estimator, method, X, self._y)
+                    for estimator in estimators
+                )
+            )
 
             # Average the predictions and append them to the list
             pred = _avg_preds(preds, avg, X, self._y)
@@ -326,8 +328,7 @@ class StackingTransformer(_BaseComposition, TransformerMixin):
         S = stack_preds(pred_list, self.names_)
         return S
 
-    def set_params(self,
-                   **params: dict) -> 'StackingTransformer':
+    def set_params(self, **params: dict) -> "StackingTransformer":
         """
         Sets the hyperparameters of the stacked estimator.
 
@@ -341,10 +342,9 @@ class StackingTransformer(_BaseComposition, TransformerMixin):
         StackingTransformer:
             The stacked estimator with the updated hyperparameters.
         """
-        return self._set_params('estimators', **params)
+        return self._set_params("estimators", **params)
 
-    def get_params(self,
-                   deep: bool = True) -> dict:
+    def get_params(self, deep: bool = True) -> dict:
         """
         Gets the hyperparameters of the stacked estimator.
 
@@ -358,7 +358,7 @@ class StackingTransformer(_BaseComposition, TransformerMixin):
         dict:
             A dictionary containing the hyperparameters of the stacked estimator.
         """
-        return self._get_params('estimators', deep=deep)
+        return self._get_params("estimators", deep=deep)
 
 
 class StackingRegressor(StackingTransformer, RegressorMixin):
@@ -419,17 +419,19 @@ class StackingRegressor(StackingTransformer, RegressorMixin):
         A string indicating the type of aggregation used to average predictions.
     """
 
-    def __init__(self,
-                 estimators: List[BaseEstimator],
-                 meta_estimator: MetaEstimatorMixin,
-                 cv: int = 5,
-                 scoring: Optional[Union[str, Callable]] = None,
-                 test_avg: bool = True,
-                 join_X: bool = False,
-                 n_jobs: int = -1,
-                 verbose: int = 0,
-                 n_digits: int = 4,
-                 random_state: int = 0):
+    def __init__(
+        self,
+        estimators: List[BaseEstimator],
+        meta_estimator: MetaEstimatorMixin,
+        cv: int = 5,
+        scoring: Optional[Union[str, Callable]] = None,
+        test_avg: bool = True,
+        join_X: bool = False,
+        n_jobs: int = -1,
+        verbose: int = 0,
+        n_digits: int = 4,
+        random_state: int = 0,
+    ):
         self.estimators = estimators
         self.meta_estimator = meta_estimator
         self.cv = cv
@@ -443,13 +445,12 @@ class StackingRegressor(StackingTransformer, RegressorMixin):
         self.n_digits = n_digits
         self.random_state = random_state
 
-        self.method = 'predict'
-        self.avg_type = 'mean'
+        self.method = "predict"
+        self.avg_type = "mean"
 
-    def fit(self,
-            X: pd.DataFrame,
-            y: pd.Series,
-            groups: Optional[pd.Series] = None) -> 'StackingRegressor':
+    def fit(
+        self, X: pd.DataFrame, y: pd.Series, groups: Optional[pd.Series] = None
+    ) -> "StackingRegressor":
         """
         Fit the stacking regressor using training data.
 
@@ -470,7 +471,7 @@ class StackingRegressor(StackingTransformer, RegressorMixin):
         """
 
         # Check that all base estimators are regressors
-        _check_estimator_types(self.estimators, 'regressor')
+        _check_estimator_types(self.estimators, "regressor")
 
         # Check that all base estimators have unique names
         _check_estimator_names(self.estimators)
@@ -486,9 +487,7 @@ class StackingRegressor(StackingTransformer, RegressorMixin):
 
         return self
 
-    def _fit_2nd_layer(self,
-                       X: pd.DataFrame,
-                       y: pd.Series) -> None:
+    def _fit_2nd_layer(self, X: pd.DataFrame, y: pd.Series) -> None:
         """
         Fit the meta estimator using predictions from the base estimators.
 
@@ -506,8 +505,7 @@ class StackingRegressor(StackingTransformer, RegressorMixin):
         # Fit the meta estimator using transformed data
         self.meta_estimator_ = clone(self.meta_estimator).fit(S, y)
 
-    def predict(self,
-                X: pd.DataFrame) -> pd.Series:
+    def predict(self, X: pd.DataFrame) -> pd.Series:
         """
         Generate predictions for new data using the trained meta estimator.
 
@@ -579,19 +577,21 @@ class StackingClassifier(StackingTransformer, ClassifierMixin):
 
     """
 
-    def __init__(self,
-                 estimators: List[BaseEstimator],
-                 meta_estimator: MetaEstimatorMixin,
-                 cv: int = 5,
-                 scoring: Optional[Union[str, Callable]] = None,
-                 test_avg: bool = True,
-                 avg_type: str = 'auto',
-                 method: str = 'predict',
-                 join_X: bool = False,
-                 n_jobs: int = -1,
-                 verbose: int = 0,
-                 n_digits: int = 4,
-                 random_state: int = 0):
+    def __init__(
+        self,
+        estimators: List[BaseEstimator],
+        meta_estimator: MetaEstimatorMixin,
+        cv: int = 5,
+        scoring: Optional[Union[str, Callable]] = None,
+        test_avg: bool = True,
+        avg_type: str = "auto",
+        method: str = "predict",
+        join_X: bool = False,
+        n_jobs: int = -1,
+        verbose: int = 0,
+        n_digits: int = 4,
+        random_state: int = 0,
+    ):
         self.estimators = estimators
         self.meta_estimator = meta_estimator
         self.cv = cv
@@ -607,10 +607,9 @@ class StackingClassifier(StackingTransformer, ClassifierMixin):
         self.n_digits = n_digits
         self.random_state = random_state
 
-    def fit(self,
-            X: pd.DataFrame,
-            y: pd.Series,
-            groups: Optional[pd.Series] = None) -> 'StackingClassifier':
+    def fit(
+        self, X: pd.DataFrame, y: pd.Series, groups: Optional[pd.Series] = None
+    ) -> "StackingClassifier":
         """
         Fit the stacking classifier using training data.
 
@@ -631,7 +630,7 @@ class StackingClassifier(StackingTransformer, ClassifierMixin):
         """
 
         # Check that all base estimators are classifiers
-        _check_estimator_types(self.estimators, 'classifier')
+        _check_estimator_types(self.estimators, "classifier")
 
         # Check that all base estimators have unique names
         _check_estimator_names(self.estimators)
@@ -647,9 +646,7 @@ class StackingClassifier(StackingTransformer, ClassifierMixin):
 
         return self
 
-    def _fit_2nd_layer(self,
-                       X: pd.DataFrame,
-                       y: pd.Series) -> None:
+    def _fit_2nd_layer(self, X: pd.DataFrame, y: pd.Series) -> None:
         """
         Fit the meta estimator using predictions from the base estimators.
 
@@ -667,8 +664,7 @@ class StackingClassifier(StackingTransformer, ClassifierMixin):
         # Fit the meta estimator using transformed data
         self.meta_estimator_ = clone(self.meta_estimator).fit(S, y)
 
-    def predict(self,
-                X: pd.DataFrame) -> np.ndarray:
+    def predict(self, X: pd.DataFrame) -> np.ndarray:
         """
         Make predictions using the trained regression classifier.
 
@@ -691,8 +687,7 @@ class StackingClassifier(StackingTransformer, ClassifierMixin):
 
         return y
 
-    def predict_proba(self,
-                      X: pd.DataFrame) -> np.ndarray:
+    def predict_proba(self, X: pd.DataFrame) -> np.ndarray:
         """
         Make probability predictions using the trained stacking classifier.
 
@@ -728,8 +723,9 @@ class StackingClassifier(StackingTransformer, ClassifierMixin):
         return self.meta_estimator_.classes_
 
 
-def stack_preds(pred_list: List[Union[pd.DataFrame, pd.Series]],
-                names: List[str]) -> pd.DataFrame:
+def stack_preds(
+    pred_list: List[Union[pd.DataFrame, pd.Series]], names: List[str]
+) -> pd.DataFrame:
     """
     Combine a list of predictions into a single dataframe with column names derived from the input names.
 
@@ -748,7 +744,7 @@ def stack_preds(pred_list: List[Union[pd.DataFrame, pd.Series]],
 
     # Iterate over the list of prediction dataframes or series and add a column name prefix based on the input names.
     for name, pred in zip(names, pred_list):
-        if hasattr(pred, 'columns'):  # Check if pred is a dataframe
+        if hasattr(pred, "columns"):  # Check if pred is a dataframe
             # Create a MultiIndex for the columns with a tuple for each column consisting of the column name and the
             # input name.
             cols = [(col, name) for col in pred.columns]
@@ -762,7 +758,9 @@ def stack_preds(pred_list: List[Union[pd.DataFrame, pd.Series]],
     return pred
 
 
-def stack_results(results: Dict[str, Dict[str, pd.DataFrame]]) -> Tuple[pd.DataFrame, pd.DataFrame]:
+def stack_results(
+    results: Dict[str, Dict[str, pd.DataFrame]]
+) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
     Combine the out-of-fold and new predictions of multiple models into two concatenated dataframes.
 
@@ -781,11 +779,11 @@ def stack_results(results: Dict[str, Dict[str, pd.DataFrame]]) -> Tuple[pd.DataF
           derived from the model names.
     """
     # Extract the out-of-fold and new predictions for each model from the input dictionary.
-    oof_preds = [result['oof_pred'].copy() for result in results.values()]
-    new_preds = [result['new_pred'].copy() for result in results.values()]
+    oof_preds = [result["oof_pred"].copy() for result in results.values()]
+    new_preds = [result["new_pred"].copy() for result in results.values()]
 
     # Get the names of the models from the input dictionary.
-    names = [result['model_name'] for result in results.values()]
+    names = [result["model_name"] for result in results.values()]
 
     # Stack the out-of-fold and new predictions for each model into concatenated dataframes.
     S_train = stack_preds(oof_preds, names)
@@ -794,8 +792,9 @@ def stack_results(results: Dict[str, Dict[str, pd.DataFrame]]) -> Tuple[pd.DataF
     return S_train, S_test
 
 
-def _check_estimator_types(estimators: List[BaseEstimator],
-                           allow_types: Optional[List[str]] = None) -> None:
+def _check_estimator_types(
+    estimators: List[BaseEstimator], allow_types: Optional[List[str]] = None
+) -> None:
     """
     Check that all estimators in a list have the same estimator type, and that the estimator type is allowed.
 
@@ -816,16 +815,16 @@ def _check_estimator_types(estimators: List[BaseEstimator],
 
     # If no allowed estimator types were provided, use the default list.
     if allow_types is None:
-        allow_types = ['classifier', 'regressor']
+        allow_types = ["classifier", "regressor"]
     allow_types = np.array(allow_types)
 
     # Check that all estimator types in the input list are the same.
     if not (estimator_types == estimator_types[0]).all():
-        raise ValueError('Estimator types must be the same')
+        raise ValueError("Estimator types must be the same")
 
     # Check that the estimator type is allowed.
     if not (allow_types == estimator_types[0]).any():
-        raise ValueError('Estimator types must be in: {}'.format(allow_types))
+        raise ValueError("Estimator types must be in: {}".format(allow_types))
 
 
 def _check_estimator_names(estimators: List[BaseEstimator]) -> None:
@@ -853,4 +852,4 @@ def _check_estimator_names(estimators: List[BaseEstimator]) -> None:
     # Check if the unique names have the same shape as the original names
     # If not, it means some names were duplicated, hence not unique
     if unames.shape != names.shape:
-        raise ValueError('Estimator names must be unique')
+        raise ValueError("Estimator names must be unique")

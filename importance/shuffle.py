@@ -13,8 +13,9 @@ from . import get_importance
 from .. import crossval
 
 
-def _shuffle_data(*data: Union[pd.DataFrame, pd.Series],
-                  seed: int) -> List[Union[pd.DataFrame, pd.Series]]:
+def _shuffle_data(
+    *data: Union[pd.DataFrame, pd.Series], seed: int
+) -> List[Union[pd.DataFrame, pd.Series]]:
     """
     Shuffle the data along axis 0, maintaining the same order for all data arrays.
 
@@ -121,17 +122,19 @@ class ShuffleTargetImportance(BaseEstimator, MetaEstimatorMixin):
 
     """
 
-    def __init__(self,
-                 estimator: BaseEstimator,
-                 cv: int,
-                 scoring: Optional[Union[str, Callable]] = None,
-                 n_repeats=5,
-                 mode: str = 'dif',
-                 tqdm: bool = False,
-                 verbose: int = 0,
-                 n_jobs: Optional[int] = None,
-                 random_state: Optional[int] = None,
-                 cv_kwargs: Optional[dict] = None):
+    def __init__(
+        self,
+        estimator: BaseEstimator,
+        cv: int,
+        scoring: Optional[Union[str, Callable]] = None,
+        n_repeats=5,
+        mode: str = "dif",
+        tqdm: bool = False,
+        verbose: int = 0,
+        n_jobs: Optional[int] = None,
+        random_state: Optional[int] = None,
+        cv_kwargs: Optional[dict] = None,
+    ):
         self.feature_importances_std_ = None
         self.feature_importances_ = None
         self.shuff_scores_ = None
@@ -153,10 +156,9 @@ class ShuffleTargetImportance(BaseEstimator, MetaEstimatorMixin):
         self.n_jobs = n_jobs
         self.random_state = random_state
 
-    def fit(self,
-            X: pd.DataFrame,
-            y: pd.Series,
-            groups: np.array = None) -> 'ImportanceEstimator':
+    def fit(
+        self, X: pd.DataFrame, y: pd.Series, groups: np.array = None
+    ) -> "ImportanceEstimator":
         """
         Fits the ImportanceEstimator to the input data.
 
@@ -184,7 +186,7 @@ class ShuffleTargetImportance(BaseEstimator, MetaEstimatorMixin):
 
         # Check that mode is either 'dif' or 'div'
         msg = "<mode> must be in {'dif', 'div'}"
-        assert self.mode in ['dif', 'div'], msg
+        assert self.mode in ["dif", "div"], msg
 
         # Initialize lists to store feature importances and scores
         self.bench_importances_ = []
@@ -200,50 +202,56 @@ class ShuffleTargetImportance(BaseEstimator, MetaEstimatorMixin):
 
         for _ in iters:
             # Shuffle the data
-            seed = rstate.randint(2 ** 32 - 1)
+            seed = rstate.randint(2**32 - 1)
             X_, y_, groups_ = _shuffle_data(X, y, groups, seed=seed)
 
             # Benchmark
-            result = crossval(estimator=self.estimator,
-                              cv=self.cv,
-                              X=X_,
-                              y=y_,
-                              groups=groups_,
-                              scoring=self.scoring,
-                              verbose=self.verbose,
-                              return_estimator=True,
-                              return_pred=False,
-                              n_jobs=self.n_jobs,
-                              **self.cv_kwargs)
+            result = crossval(
+                estimator=self.estimator,
+                cv=self.cv,
+                X=X_,
+                y=y_,
+                groups=groups_,
+                scoring=self.scoring,
+                verbose=self.verbose,
+                return_estimator=True,
+                return_pred=False,
+                n_jobs=self.n_jobs,
+                **self.cv_kwargs
+            )
 
             # Store the feature importances and scores
-            for e in result['estimator']:
+            for e in result["estimator"]:
                 self.bench_importances_.append(get_importance(e) + 1)
-            self.scores_.append(np.mean(result['val_score']))
-            self.bench_scores_.append(result['val_score'])
+            self.scores_.append(np.mean(result["val_score"]))
+            self.bench_scores_.append(result["val_score"])
 
             # Shuffle the target variable
-            result = crossval(estimator=self.estimator,
-                              cv=self.cv,
-                              X=X,
-                              y=y_,
-                              groups=groups,
-                              scoring=self.scoring,
-                              verbose=self.verbose,
-                              return_estimator=True,
-                              return_pred=False,
-                              n_jobs=self.n_jobs,
-                              **self.cv_kwargs)
+            result = crossval(
+                estimator=self.estimator,
+                cv=self.cv,
+                X=X,
+                y=y_,
+                groups=groups,
+                scoring=self.scoring,
+                verbose=self.verbose,
+                return_estimator=True,
+                return_pred=False,
+                n_jobs=self.n_jobs,
+                **self.cv_kwargs
+            )
 
             # Store the feature importances and scores
-            for e in result['estimator']:
+            for e in result["estimator"]:
                 self.shuff_importances_.append(get_importance(e) + 1)
-            self.shuff_scores_.append(result['val_score'])
+            self.shuff_scores_.append(result["val_score"])
 
         # Compute the raw feature importances
         for b, s in zip(self.bench_importances_, self.shuff_importances_):
-            if self.mode == 'dif': self.raw_importances_.append(b - s)
-            if self.mode == 'div': self.raw_importances_.append(b / s)
+            if self.mode == "dif":
+                self.raw_importances_.append(b - s)
+            if self.mode == "div":
+                self.raw_importances_.append(b / s)
 
         # Compute the average feature importances and their standard deviation
         imps = self.raw_importances_

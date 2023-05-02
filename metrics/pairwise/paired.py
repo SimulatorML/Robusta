@@ -3,9 +3,9 @@ from typing import Union
 import numpy as np
 
 
-def paired_radian_distances(X: np.ndarray,
-                            Y: np.ndarray,
-                            radius: Union[float, int] = 6373.0) -> np.array:
+def paired_radian_distances(
+    X: np.ndarray, Y: np.ndarray, radius: Union[float, int] = 6373.0
+) -> np.array:
     """
     Calculate the paired distances between two arrays of coordinates in radians.
 
@@ -39,4 +39,3 @@ def paired_radian_distances(X: np.ndarray,
     c = 2 * np.arctan2(np.sqrt(d), np.sqrt(1 - d))
 
     return radius * c
-

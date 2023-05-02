@@ -32,14 +32,13 @@ class Pipeline(pipeline.Pipeline):
         np.ndarray or None:
             If the final estimator has `coef_` attribute, return its value, otherwise None.
         """
-        if hasattr(self._final_estimator, 'coef_'):
+        if hasattr(self._final_estimator, "coef_"):
             return self._final_estimator.coef_
         else:
             return None
 
 
-def make_pipeline(*steps,
-                  **kwargs) -> Pipeline:
+def make_pipeline(*steps, **kwargs) -> Pipeline:
     """
     Construct a Pipeline from the given estimators.
 
@@ -68,12 +67,13 @@ def make_pipeline(*steps,
     """
 
     # Get the value of the `memory` keyword argument, or None if not provided.
-    memory = kwargs.pop('memory', None)
+    memory = kwargs.pop("memory", None)
 
     # Check if any unknown keyword arguments were provided.
     if kwargs:
-        raise TypeError('Unknown keyword arguments: "{}"'
-                        .format(list(kwargs.keys())[0]))
+        raise TypeError(
+            'Unknown keyword arguments: "{}"'.format(list(kwargs.keys())[0])
+        )
 
     # Create a new Pipeline object from the given estimators and return it.
     return Pipeline(_name_estimators(steps), memory=memory)

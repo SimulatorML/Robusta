@@ -19,13 +19,14 @@ def logmsg(msg: str) -> None:
     """
 
     # split the message into separate lines
-    for m in msg.split('\n'):
+    for m in msg.split("\n"):
         # get the current time and format it as [HH:MM:SS]
         t = datetime.datetime.now().strftime("[%H:%M:%S]")
         # print the timestamp and the message line
         print(t, m)
         # pause briefly to avoid overloading the output stream
         time.sleep(0.01)
+
 
 def secfmt(s: float) -> str:
     """
@@ -49,16 +50,17 @@ def secfmt(s: float) -> str:
     # check if there are hours, minutes, or just seconds
     if H:
         # format as "H h M min S sec"
-        return '{} h {} min {} sec'.format(int(H), int(M), int(S))
+        return "{} h {} min {} sec".format(int(H), int(M), int(S))
     elif M:
         # format as "M min S sec"
-        return '{} min {} sec'.format(int(M), int(S))
+        return "{} min {} sec".format(int(M), int(S))
     elif S >= 1:
         # format as "S sec"
-        return '{} sec'.format(int(S))
+        return "{} sec".format(int(S))
     else:
         # format as "X ms"
-        return '{} ms'.format(int(S * 1000))
+        return "{} ms".format(int(S * 1000))
+
 
 class Timer:
     """
@@ -69,11 +71,10 @@ class Timer:
         # code to be timed
     """
 
-    def __init__(self,
-                 text: Optional[str] = None):
+    def __init__(self, text: Optional[str] = None):
         self.text = text
 
-    def __enter__(self) -> 'Timer':
+    def __enter__(self) -> "Timer":
         """
         Called when the Timer is entered.
 
@@ -93,8 +94,7 @@ class Timer:
         # return the Timer object
         return self
 
-    def __exit__(self,
-                 *args: tuple) -> None:
+    def __exit__(self, *args: tuple) -> None:
         """
         Called when the Timer is exited.
 
@@ -109,4 +109,8 @@ class Timer:
 
         # log the results of the timed operation, if a description is provided
         if self.text:
-            logmsg("{}: cpu {}, time {}\n".format(self.text, secfmt(self.cpu), secfmt(self.time)))
+            logmsg(
+                "{}: cpu {}, time {}\n".format(
+                    self.text, secfmt(self.cpu), secfmt(self.time)
+                )
+            )

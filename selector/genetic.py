@@ -11,11 +11,13 @@ from . import _plot_progress, _plot_subset
 from ..utils import logmsg, get_ranks, secfmt
 
 
-def cxUniform(ind1: base.Toolbox,
-              ind2: base.Toolbox,
-              indpb: float = 0.5,
-              random_state: Optional[int] = None,
-              drop_attrs: Optional[list] = None) -> Tuple[base.Toolbox, base.Toolbox]:
+def cxUniform(
+    ind1: base.Toolbox,
+    ind2: base.Toolbox,
+    indpb: float = 0.5,
+    random_state: Optional[int] = None,
+    drop_attrs: Optional[list] = None,
+) -> Tuple[base.Toolbox, base.Toolbox]:
     """
     Perform a uniform crossover between two individuals.
 
@@ -39,7 +41,7 @@ def cxUniform(ind1: base.Toolbox,
 
     """
     if drop_attrs is None:
-        drop_attrs = ['score']
+        drop_attrs = ["score"]
 
     # Check random_state
     rstate = check_random_state(random_state)
@@ -74,13 +76,14 @@ def cxUniform(ind1: base.Toolbox,
     return child1, child2
 
 
-def cxOnePoint(ind1,
-               ind2,
-               random_state: Optional[int] = None,
-               drop_attrs: Optional[List[int]] = None) -> Tuple:
-
+def cxOnePoint(
+    ind1,
+    ind2,
+    random_state: Optional[int] = None,
+    drop_attrs: Optional[List[int]] = None,
+) -> Tuple:
     if drop_attrs is None:
-        drop_attrs = ['score']
+        drop_attrs = ["score"]
     rstate = check_random_state(random_state)
 
     # Get the number of features in the individuals
@@ -126,14 +129,15 @@ def cxOnePoint(ind1,
     return child1, child2
 
 
-def cxTwoPoint(ind1: base.Toolbox,
-               ind2: base.Toolbox,
-               random_state: Optional[int] = None,
-               drop_attrs: Optional[str] = None) -> Tuple[base.Toolbox, base.Toolbox]:
-
+def cxTwoPoint(
+    ind1: base.Toolbox,
+    ind2: base.Toolbox,
+    random_state: Optional[int] = None,
+    drop_attrs: Optional[str] = None,
+) -> Tuple[base.Toolbox, base.Toolbox]:
     # If `drop_attrs` is not provided, set it to ['score'] by default
     if drop_attrs is None:
-        drop_attrs = ['score']
+        drop_attrs = ["score"]
     rstate = check_random_state(random_state)
 
     # Get the number of features in the individual
@@ -188,16 +192,18 @@ def cxTwoPoint(ind1: base.Toolbox,
 
 
 CROSSOVER = {
-    'one': cxOnePoint,
-    'two': cxTwoPoint,
-    'uni': cxUniform,
+    "one": cxOnePoint,
+    "two": cxTwoPoint,
+    "uni": cxUniform,
 }
 
 
-def mutSubset(ind: base.Toolbox,
-              indpb: float,
-              random_state: Optional[int] = None,
-              drop_attrs: List[str] = None) -> base.Toolbox:
+def mutSubset(
+    ind: base.Toolbox,
+    indpb: float,
+    random_state: Optional[int] = None,
+    drop_attrs: List[str] = None,
+) -> base.Toolbox:
     """
     Mutate an individual by randomly flipping the values of a subset of its features.
 
@@ -220,7 +226,7 @@ def mutSubset(ind: base.Toolbox,
 
     # If no attributes to drop are specified, we drop the 'score' attribute by default
     if drop_attrs is None:
-        drop_attrs = ['score']
+        drop_attrs = ["score"]
 
     # Check if a random state was passed and create a random generator object accordingly
     rstate = check_random_state(random_state)
@@ -228,7 +234,7 @@ def mutSubset(ind: base.Toolbox,
     # Create a mask for the mutation by flipping each feature in the individual with probability indpb
     mask = []
     for x in ind.mask:
-        y = (rstate.rand() < indpb)
+        y = rstate.rand() < indpb
         mask.append(x ^ y)
 
     # Create a new individual with the mutated mask
@@ -299,22 +305,24 @@ class GeneticSelector(_WrappedSelector):
 
     """
 
-    def __init__(self,
-                 estimator: BaseEstimator,
-                 cv: int = 5,
-                 scoring: Optional[Union[str, Callable]] = None,
-                 n_gen: Optional[int] = None,
-                 crossover: str = 'one',
-                 min_features: Union[float, int] = 0.1,
-                 max_features: Union[float, int] = 0.9,
-                 pop_size: int = 50,
-                 mutation: float = 0.01,
-                 max_time: Optional[int] = None,
-                 random_state: Optional[int] = None,
-                 n_jobs: Optional[int] = None,
-                 verbose: int = 1,
-                 n_digits: int = 4,
-                 cv_kwargs: Optional[dict] = None):
+    def __init__(
+        self,
+        estimator: BaseEstimator,
+        cv: int = 5,
+        scoring: Optional[Union[str, Callable]] = None,
+        n_gen: Optional[int] = None,
+        crossover: str = "one",
+        min_features: Union[float, int] = 0.1,
+        max_features: Union[float, int] = 0.9,
+        pop_size: int = 50,
+        mutation: float = 0.01,
+        max_time: Optional[int] = None,
+        random_state: Optional[int] = None,
+        n_jobs: Optional[int] = None,
+        verbose: int = 1,
+        n_digits: int = 4,
+        cv_kwargs: Optional[dict] = None,
+    ):
         if cv_kwargs is None:
             cv_kwargs = {}
         self.estimator = estimator
@@ -338,10 +346,9 @@ class GeneticSelector(_WrappedSelector):
         self.n_digits = n_digits
         self.n_jobs = n_jobs
 
-    def fit(self,
-            X: pd.DataFrame,
-            y: pd.Series,
-            groups: Optional[pd.Series] = None) -> 'GeneticSelector':
+    def fit(
+        self, X: pd.DataFrame, y: pd.Series, groups: Optional[pd.Series] = None
+    ) -> "GeneticSelector":
         """
         Fits the genetic selector to the data.
 
@@ -370,10 +377,9 @@ class GeneticSelector(_WrappedSelector):
 
         return self
 
-    def partial_fit(self,
-                    X: pd.DataFrame,
-                    y: pd.Series,
-                    groups: Optional[pd.Series] = None) -> 'GeneticSelector':
+    def partial_fit(
+        self, X: pd.DataFrame, y: pd.Series, groups: Optional[pd.Series] = None
+    ) -> "GeneticSelector":
         """
         Fits the genetic selector to a partial amount of data.
 
@@ -402,9 +408,7 @@ class GeneticSelector(_WrappedSelector):
 
         return self
 
-    def _fit_start(self,
-                   X: pd.DataFrame,
-                   partial: bool = False) -> 'GeneticSelector':
+    def _fit_start(self, X: pd.DataFrame, partial: bool = False) -> "GeneticSelector":
         """
         Initializes the genetic selector before fitting.
 
@@ -425,7 +429,7 @@ class GeneticSelector(_WrappedSelector):
         # Set features
         self._set_features(X)
 
-        if not partial or not hasattr(self, 'trials_'):
+        if not partial or not hasattr(self, "trials_"):
             # Reset trials and generation count
             self._reset_trials()
             self.k_gen_ = 0
@@ -446,15 +450,16 @@ class GeneticSelector(_WrappedSelector):
             self.toolbox.register("individual", get_individual)
 
             # Define population
-            self.toolbox.register("population", tools.initRepeat, list, self.toolbox.individual)
+            self.toolbox.register(
+                "population", tools.initRepeat, list, self.toolbox.individual
+            )
             self.population = self.toolbox.population(n=self.pop_size)
 
         return self
 
-    def _fit(self,
-             X: pd.DataFrame,
-             y: pd.Series,
-             groups: pd.Series) -> 'GeneticSelector':
+    def _fit(
+        self, X: pd.DataFrame, y: pd.Series, groups: pd.Series
+    ) -> "GeneticSelector":
         """
         Fits the GeneticSelector Feature Selector model to the provided data.
 
@@ -476,16 +481,19 @@ class GeneticSelector(_WrappedSelector):
         # Define crossover & mutation
         mate = CROSSOVER[self.crossover]
         self.toolbox.register("mate", mate, random_state=self.rstate)
-        self.toolbox.register("mutate", mutSubset, random_state=self.rstate, indpb=self.mutation)
+        self.toolbox.register(
+            "mutate", mutSubset, random_state=self.rstate, indpb=self.mutation
+        )
 
         # Define evaluation & selection
         self.toolbox.register("eval", self.eval_subset, X=X, y=y, groups=groups)
-        self.toolbox.register("select", tools.selTournament, tournsize=5, fit_attr='score')
+        self.toolbox.register(
+            "select", tools.selTournament, tournsize=5, fit_attr="score"
+        )
 
         while not self.n_gen or self.k_gen_ < self.n_gen:
-
             if self.verbose:
-                logmsg(f'GENERATION {self.k_gen_ + 1}')
+                logmsg(f"GENERATION {self.k_gen_ + 1}")
 
             try:
                 offspring = []
@@ -524,26 +532,28 @@ class GeneticSelector(_WrappedSelector):
                 avg = np.mean(scores)
                 std = np.std(scores)
 
-                logmsg('SCORE AVG: {:.{n}f} ± {:.{n}f}'.format(avg, std, n=self.n_digits))
-                logmsg('SCORE MIN: {:.{n}f}'.format(np.min(scores), n=self.n_digits))
-                logmsg('SCORE MAX: {:.{n}f}'.format(np.max(scores), n=self.n_digits))
+                logmsg(
+                    "SCORE AVG: {:.{n}f} ± {:.{n}f}".format(avg, std, n=self.n_digits)
+                )
+                logmsg("SCORE MIN: {:.{n}f}".format(np.min(scores), n=self.n_digits))
+                logmsg("SCORE MAX: {:.{n}f}".format(np.max(scores), n=self.n_digits))
                 print()
 
                 sizes = [ind.n_selected for ind in offspring]
                 avg = int(np.mean(sizes))
                 std = int(np.std(sizes))
 
-                logmsg('SIZE AVG: {} ± {}'.format(avg, std))
-                logmsg('SIZE MIN: {}'.format(np.min(sizes)))
-                logmsg('SIZE MAX: {}'.format(np.max(sizes)))
+                logmsg("SIZE AVG: {} ± {}".format(avg, std))
+                logmsg("SIZE MIN: {}".format(np.min(sizes)))
+                logmsg("SIZE MAX: {}".format(np.max(sizes)))
                 print()
 
                 times = [ind.eval_time for ind in offspring]
                 time_avg = secfmt(np.mean(times))
                 time_sum = secfmt(np.sum(times))
 
-                logmsg('TIME SUM: {}'.format(time_sum))
-                logmsg('TIME AVG: {}'.format(time_avg))
+                logmsg("TIME SUM: {}".format(time_sum))
+                logmsg("TIME AVG: {}".format(time_avg))
                 print()
 
         return self
@@ -559,8 +569,7 @@ class GeneticSelector(_WrappedSelector):
         """
         return self.best_subset_
 
-    def plot_progress(self,
-                      **kwargs) -> tuple:
+    def plot_progress(self, **kwargs) -> tuple:
         """
         Plot the progress of the genetic selector during fitting.
 
@@ -573,12 +582,11 @@ class GeneticSelector(_WrappedSelector):
         -------
         tuple
         """
-        kwargs_ = dict(marker='.', linestyle='--', alpha=0.3, c='g')
+        kwargs_ = dict(marker=".", linestyle="--", alpha=0.3, c="g")
         kwargs_.update(kwargs)
         return _plot_progress(self, **kwargs_)
 
-    def plot_subset(self,
-                    **kwargs) -> tuple:
+    def plot_subset(self, **kwargs) -> tuple:
         """
         Plot the best subset of features from the last run of the genetic selector.
 
@@ -591,7 +599,7 @@ class GeneticSelector(_WrappedSelector):
         -------
         tuple
         """
-        kwargs_ = dict(marker='.', linestyle='--', alpha=0.3, c='g')
+        kwargs_ = dict(marker=".", linestyle="--", alpha=0.3, c="g")
         kwargs_.update(kwargs)
         return _plot_subset(self, **kwargs_)
 

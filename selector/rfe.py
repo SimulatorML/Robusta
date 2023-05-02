@@ -6,7 +6,11 @@ from sklearn.base import BaseEstimator
 from sklearn.exceptions import NotFittedError
 
 from . import _WrappedSelector, _WrappedGroupSelector
-from ..importance import PermutationImportance, GroupPermutationImportance, ShuffleTargetImportance
+from ..importance import (
+    PermutationImportance,
+    GroupPermutationImportance,
+    ShuffleTargetImportance,
+)
 
 
 class RFE(_WrappedSelector):
@@ -76,18 +80,19 @@ class RFE(_WrappedSelector):
 
     """
 
-    def __init__(self,
-                 estimator: BaseEstimator,
-                 cv: int = 5,
-                 scoring: Optional[Union[str, Callable]] = None,
-                 min_features: float = 0.5,
-                 step: int = 1,
-                 use_best: bool = True,
-                 n_jobs: Optional[int] = None,
-                 verbose: int = 1,
-                 n_digits: int = 4,
-                 cv_kwargs: Optional[dict] = None):
-
+    def __init__(
+        self,
+        estimator: BaseEstimator,
+        cv: int = 5,
+        scoring: Optional[Union[str, Callable]] = None,
+        min_features: float = 0.5,
+        step: int = 1,
+        use_best: bool = True,
+        n_jobs: Optional[int] = None,
+        verbose: int = 1,
+        n_digits: int = 4,
+        cv_kwargs: Optional[dict] = None,
+    ):
         if cv_kwargs is None:
             cv_kwargs = {}
         self.estimator = estimator
@@ -103,10 +108,9 @@ class RFE(_WrappedSelector):
         self.verbose = verbose
         self.n_digits = n_digits
 
-    def fit(self,
-            X: pd.DataFrame,
-            y: pd.Series,
-            groups: Optional[pd.Series] = None) -> 'RFE':
+    def fit(
+        self, X: pd.DataFrame, y: pd.Series, groups: Optional[pd.Series] = None
+    ) -> "RFE":
         """
         Fit the RFE model to the data.
 
@@ -133,10 +137,9 @@ class RFE(_WrappedSelector):
 
         return self
 
-    def partial_fit(self,
-                    X: pd.DataFrame,
-                    y: pd.Series,
-                    groups: Optional[pd.Series] = None) -> 'RFE':
+    def partial_fit(
+        self, X: pd.DataFrame, y: pd.Series, groups: Optional[pd.Series] = None
+    ) -> "RFE":
         """
         Fit the RFE model to a subset of the data.
 
@@ -165,9 +168,7 @@ class RFE(_WrappedSelector):
 
         return self
 
-    def _fit_start(self,
-                   X: pd.DataFrame,
-                   partial: bool = False) -> 'RFE':
+    def _fit_start(self, X: pd.DataFrame, partial: bool = False) -> "RFE":
         """
         Fits the RFE model to the given dataset in a partial manner.
 
@@ -208,7 +209,7 @@ class RFE(_WrappedSelector):
             self.k_range_.append(k_features)
 
         # Calculate the maximum number of iterations
-        self.max_iter = len(self.k_range_) + getattr(self, 'n_iters_', 0) + 1
+        self.max_iter = len(self.k_range_) + getattr(self, "n_iters_", 0) + 1
 
         # Create an iterator over the feature numbers to be considered
         self.k_range_ = iter(self.k_range_)
@@ -241,10 +242,7 @@ class RFE(_WrappedSelector):
         """
         return False
 
-    def _fit(self,
-             X: pd.DataFrame,
-             y: pd.Series,
-             groups: pd.Series) -> 'RFE':
+    def _fit(self, X: pd.DataFrame, y: pd.Series, groups: pd.Series) -> "RFE":
         """
         Perform the recursive feature elimination algorithm.
 
@@ -272,7 +270,6 @@ class RFE(_WrappedSelector):
         # Iterate over the feature subset sizes in descending order
         for k in self.k_range_:
             try:
-
                 # Get the feature importance scores of the current subset
                 scores = self.subset_.importance
 
@@ -318,7 +315,7 @@ class RFE(_WrappedSelector):
 
         else:
             model_name = self.__class__.__name__
-            raise NotFittedError(f'{model_name} is not fitted')
+            raise NotFittedError(f"{model_name} is not fitted")
 
 
 class GroupRFE(_WrappedGroupSelector, RFE):
@@ -379,21 +376,34 @@ class PermutationRFE(RFE):
     importances_std_ : ndarray of shape (n_features,)
         The standard deviation of the permutation feature importance of the selected features.
     """
-    def __init__(self,
-                 estimator: BaseEstimator,
-                 cv: Union[int, Callable] = 5,
-                 scoring: Optional[Union[str, Callable]] = None,
-                 min_features: float = 0.5,
-                 step: int = 1,
-                 n_repeats: int = 5,
-                 random_state: int = 0,
-                 use_best: bool = True,
-                 n_jobs: Optional[int] = None,
-                 verbose: int = 1,
-                 n_digits: int = 4,
-                 tqdm: Optional[bool] = None,
-                 y_transform: Optional[Callable] = None):
-        super().__init__(estimator, cv, scoring, min_features, step, use_best, n_jobs, verbose, n_digits)
+
+    def __init__(
+        self,
+        estimator: BaseEstimator,
+        cv: Union[int, Callable] = 5,
+        scoring: Optional[Union[str, Callable]] = None,
+        min_features: float = 0.5,
+        step: int = 1,
+        n_repeats: int = 5,
+        random_state: int = 0,
+        use_best: bool = True,
+        n_jobs: Optional[int] = None,
+        verbose: int = 1,
+        n_digits: int = 4,
+        tqdm: Optional[bool] = None,
+        y_transform: Optional[Callable] = None,
+    ):
+        super().__init__(
+            estimator,
+            cv,
+            scoring,
+            min_features,
+            step,
+            use_best,
+            n_jobs,
+            verbose,
+            n_digits,
+        )
         self.estimator = estimator
         self.scoring = scoring
         self.cv = cv
@@ -411,11 +421,13 @@ class PermutationRFE(RFE):
         self.n_digits = n_digits
         self.tqdm = tqdm
 
-    def _eval_subset(self,
-                     subset: pd.Series,
-                     X: pd.DataFrame,
-                     y: pd.Series,
-                     groups: Optional[pd.Series] = None) -> pd.Series:
+    def _eval_subset(
+        self,
+        subset: pd.Series,
+        X: pd.DataFrame,
+        y: pd.Series,
+        groups: Optional[pd.Series] = None,
+    ) -> pd.Series:
         """
         Evaluates the subset of features using permutation feature importance as a scoring metric.
 
@@ -437,14 +449,16 @@ class PermutationRFE(RFE):
         """
 
         # Create a PermutationImportance object with the same settings as this class
-        perm = PermutationImportance(estimator=self.estimator,
-                                     cv=self.cv,
-                                     scoring=self.scoring,
-                                     n_repeats=self.n_repeats,
-                                     n_jobs=self.n_jobs,
-                                     random_state=self.random_state,
-                                     tqdm=self.tqdm,
-                                     y_transform=self.y_transform)
+        perm = PermutationImportance(
+            estimator=self.estimator,
+            cv=self.cv,
+            scoring=self.scoring,
+            n_repeats=self.n_repeats,
+            n_jobs=self.n_jobs,
+            random_state=self.random_state,
+            tqdm=self.tqdm,
+            y_transform=self.y_transform,
+        )
 
         perm.fit(X[subset], y, groups)
 
@@ -509,11 +523,14 @@ class GroupPermutationRFE(_WrappedGroupSelector, PermutationRFE):
     importances_std_ : array of shape [n_features, n_repeats]
         The std deviation of the feature importances during the RFE.
     """
-    def _eval_subset(self,
-                     subset: pd.Series,
-                     X: pd.DataFrame,
-                     y: pd.Series,
-                     groups: Optional[pd.Series] = None) -> pd.Series:
+
+    def _eval_subset(
+        self,
+        subset: pd.Series,
+        X: pd.DataFrame,
+        y: pd.Series,
+        groups: Optional[pd.Series] = None,
+    ) -> pd.Series:
         """
         Evaluate a subset of features using GroupPermutationImportance to compute
         the permutation importance of each feature with respect to the target variable,
@@ -544,13 +561,15 @@ class GroupPermutationRFE(_WrappedGroupSelector, PermutationRFE):
         """
 
         # Instantiate a GroupPermutationImportance object with the provided parameters
-        perm = GroupPermutationImportance(estimator=self.estimator,
-                                          cv=self.cv,
-                                          scoring=self.scoring,
-                                          n_repeats=self.n_repeats,
-                                          n_jobs=self.n_jobs,
-                                          random_state=self.random_state,
-                                          tqdm=self.tqdm)
+        perm = GroupPermutationImportance(
+            estimator=self.estimator,
+            cv=self.cv,
+            scoring=self.scoring,
+            n_repeats=self.n_repeats,
+            n_jobs=self.n_jobs,
+            random_state=self.random_state,
+            tqdm=self.tqdm,
+        )
 
         # Compute the permutation importance of the features in the subset
         perm.fit(X[subset], y, groups)
@@ -638,21 +657,34 @@ class ShuffleRFE(RFE):
         - importance_std: ndarray of shape (n_features,), the standard deviation of the
                           feature importance scores obtained by the subset
     """
-    def __init__(self,
-                 estimator: BaseEstimator,
-                 cv: int = 5,
-                 scoring: Optional[Union[str, Callable]] = None,
-                 min_features: float = 0.5,
-                 step: int = 1,
-                 n_repeats: int = 5,
-                 gain: str = 'dif',
-                 random_state: int = 0,
-                 use_best: bool = True,
-                 n_jobs: Optional[int] = None,
-                 tqdm: bool = False,
-                 verbose: int = 0,
-                 cv_kwargs: Optional[dict] = None):
-        super().__init__(estimator, cv, scoring, min_features, step, use_best, n_jobs, verbose, cv_kwargs)
+
+    def __init__(
+        self,
+        estimator: BaseEstimator,
+        cv: int = 5,
+        scoring: Optional[Union[str, Callable]] = None,
+        min_features: float = 0.5,
+        step: int = 1,
+        n_repeats: int = 5,
+        gain: str = "dif",
+        random_state: int = 0,
+        use_best: bool = True,
+        n_jobs: Optional[int] = None,
+        tqdm: bool = False,
+        verbose: int = 0,
+        cv_kwargs: Optional[dict] = None,
+    ):
+        super().__init__(
+            estimator,
+            cv,
+            scoring,
+            min_features,
+            step,
+            use_best,
+            n_jobs,
+            verbose,
+            cv_kwargs,
+        )
         if cv_kwargs is None:
             cv_kwargs = {}
         self.estimator = estimator
@@ -672,11 +704,13 @@ class ShuffleRFE(RFE):
         self.verbose = verbose
         self.tqdm = tqdm
 
-    def _eval_subset(self,
-                     subset: pd.Series,
-                     X: pd.DataFrame,
-                     y: pd.Series,
-                     groups: Optional[pd.Series] = None) -> pd.Series:
+    def _eval_subset(
+        self,
+        subset: pd.Series,
+        X: pd.DataFrame,
+        y: pd.Series,
+        groups: Optional[pd.Series] = None,
+    ) -> pd.Series:
         """
         Evaluate a subset of features using ShuffleTargetImportance.
 
@@ -698,14 +732,16 @@ class ShuffleRFE(RFE):
         """
 
         # Initialize a ShuffleTargetImportance object
-        shuff = ShuffleTargetImportance(estimator=self.estimator,
-                                        cv=self.cv,
-                                        scoring=self.scoring,
-                                        n_repeats=self.n_repeats,
-                                        n_jobs=self.n_jobs,
-                                        tqdm=self.tqdm,
-                                        random_state=self.random_state,
-                                        cv_kwargs=self.cv_kwargs)
+        shuff = ShuffleTargetImportance(
+            estimator=self.estimator,
+            cv=self.cv,
+            scoring=self.scoring,
+            n_repeats=self.n_repeats,
+            n_jobs=self.n_jobs,
+            tqdm=self.tqdm,
+            random_state=self.random_state,
+            cv_kwargs=self.cv_kwargs,
+        )
 
         # Fit the ShuffleTargetImportance object on the subset of features
         shuff.fit(X[subset], y, groups)
@@ -758,11 +794,14 @@ class GroupShuffleRFE(_WrappedGroupSelector, ShuffleRFE):
         The mask of selected features
 
     """
-    def _eval_subset(self,
-                     subset: pd.Series,
-                     X: pd.DataFrame,
-                     y: pd.Series,
-                     groups: Optional[pd.Series] = None) -> pd.Series:
+
+    def _eval_subset(
+        self,
+        subset: pd.Series,
+        X: pd.DataFrame,
+        y: pd.Series,
+        groups: Optional[pd.Series] = None,
+    ) -> pd.Series:
         """
         Evaluate a subset of features by computing their importance using ShuffleTargetImportance
         with group-aware cross-validation.
@@ -783,14 +822,16 @@ class GroupShuffleRFE(_WrappedGroupSelector, ShuffleRFE):
         subset:
             A pandas Series containing the evaluated subset of features and their importance scores.
         """
-        shuff = ShuffleTargetImportance(estimator=self.estimator,
-                                        cd=self.cv,
-                                        scoring=self.scoring,
-                                        n_repeats=self.n_repeats,
-                                        n_jobs=self.n_jobs,
-                                        tqdm=self.tqdm,
-                                        random_state=self.random_state,
-                                        cv_kwargs=self.cv_kwargs)
+        shuff = ShuffleTargetImportance(
+            estimator=self.estimator,
+            cd=self.cv,
+            scoring=self.scoring,
+            n_repeats=self.n_repeats,
+            n_jobs=self.n_jobs,
+            tqdm=self.tqdm,
+            random_state=self.random_state,
+            cv_kwargs=self.cv_kwargs,
+        )
         shuff.fit(X[subset], y, groups)
 
         # Compute mean and standard deviation of the score
@@ -806,8 +847,7 @@ class GroupShuffleRFE(_WrappedGroupSelector, ShuffleRFE):
         return subset
 
 
-def _select_k_best(scores: pd.Series,
-                   k_best: int) -> pd.Index:
+def _select_k_best(scores: pd.Series, k_best: int) -> pd.Index:
     """
     Selects the k_best best features based on their scores.
 
@@ -826,9 +866,7 @@ def _select_k_best(scores: pd.Series,
     return scores.index[np.argsort(-scores.values)][:k_best]
 
 
-def _check_step(step: Union[int, float],
-                n_features: int,
-                k_features: int) -> int:
+def _check_step(step: Union[int, float], n_features: int, k_features: int) -> int:
     """
     Check the validity of the <step> parameter and convert it to integer.
 
@@ -857,29 +895,27 @@ def _check_step(step: Union[int, float],
 
     # Check if <step> is an integer
     if isinstance(step, int):
-
         # If <step> is positive, keep it as is
         if step > 0:
             step = step
 
         # Otherwise, raise an error
         else:
-            raise ValueError('Integer <step> must be greater than 0')
+            raise ValueError("Integer <step> must be greater than 0")
 
     # Check if <step> is a float
     elif isinstance(step, float):
-
         # If <step> is within the range (0, 1), calculate the number of features to remove and convert it to an integer
         if 0 < step < 1:
             step = max(step * n_features, 1)
             step = int(step)
         # Otherwise, raise an error
         else:
-            raise ValueError('Float <step> must be from interval (0, 1)')
+            raise ValueError("Float <step> must be from interval (0, 1)")
 
     # If <step> is neither an integer nor a float, raise an error
     else:
-        raise ValueError(f'Parameter <step> must be int or float, got {step}')
+        raise ValueError(f"Parameter <step> must be int or float, got {step}")
 
     # Return the minimum of <step> and the difference between the total number of features and the
     # desired number of features

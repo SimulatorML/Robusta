@@ -77,21 +77,22 @@ class GreedSelector(_WrappedSelector):
 
     """
 
-    def __init__(self,
-                 estimator: BaseEstimator,
-                 cv: int = 5,
-                 scoring: Optional[Union[str, Callable]] = None,
-                 forward: bool = True,
-                 floating: bool = False,
-                 k_features: float = 0.5,
-                 max_time: Optional[int] = None,
-                 use_best: bool = True,
-                 random_state: int = 0,
-                 n_jobs: Optional[int] = None,
-                 verbose: int = 1,
-                 n_digits: int = 4,
-                 cv_kwargs: Optional[dict] = None):
-
+    def __init__(
+        self,
+        estimator: BaseEstimator,
+        cv: int = 5,
+        scoring: Optional[Union[str, Callable]] = None,
+        forward: bool = True,
+        floating: bool = False,
+        k_features: float = 0.5,
+        max_time: Optional[int] = None,
+        use_best: bool = True,
+        random_state: int = 0,
+        n_jobs: Optional[int] = None,
+        verbose: int = 1,
+        n_digits: int = 4,
+        cv_kwargs: Optional[dict] = None,
+    ):
         if cv_kwargs is None:
             cv_kwargs = {}
         self.estimator = estimator
@@ -111,10 +112,9 @@ class GreedSelector(_WrappedSelector):
         self.verbose = verbose
         self.n_digits = n_digits
 
-    def fit(self,
-            X: pd.DataFrame,
-            y: pd.Series,
-            groups: Optional[pd.Series] = None) -> 'GreedSelector':
+    def fit(
+        self, X: pd.DataFrame, y: pd.Series, groups: Optional[pd.Series] = None
+    ) -> "GreedSelector":
         """
         Fits the genetic selector to the data.
 
@@ -143,10 +143,9 @@ class GreedSelector(_WrappedSelector):
 
         return self
 
-    def partial_fit(self,
-                    X: pd.DataFrame,
-                    y: pd.Series,
-                    groups: Optional[pd.Series] = None) -> 'GreedSelector':
+    def partial_fit(
+        self, X: pd.DataFrame, y: pd.Series, groups: Optional[pd.Series] = None
+    ) -> "GreedSelector":
         """
         Fits the GreedSelector model to the given dataset.
 
@@ -175,9 +174,7 @@ class GreedSelector(_WrappedSelector):
 
         return self
 
-    def _fit_start(self,
-                   X: pd.DataFrame,
-                   partial: bool = False) -> 'GreedSelector':
+    def _fit_start(self, X: pd.DataFrame, partial: bool = False) -> "GreedSelector":
         """
         Fits the GreedSelector model to the given dataset in a partial manner.
 
@@ -200,7 +197,9 @@ class GreedSelector(_WrappedSelector):
         self._set_features(X)
 
         # Ensure that the number of features to select is within a valid range
-        self.k_features_ = _check_k_features(self.k_features, self.n_features_, 'k_features')
+        self.k_features_ = _check_k_features(
+            self.k_features, self.n_features_, "k_features"
+        )
 
         if not partial:
             # Initialize the random state
@@ -218,10 +217,7 @@ class GreedSelector(_WrappedSelector):
 
         return self
 
-    def _fit(self,
-             X: pd.DataFrame,
-             y: pd.Series,
-             groups: pd.Series) -> 'GreedSelector':
+    def _fit(self, X: pd.DataFrame, y: pd.Series, groups: pd.Series) -> "GreedSelector":
         """
         Fits the Greed Feature Selector model to the provided data.
 
@@ -249,10 +245,9 @@ class GreedSelector(_WrappedSelector):
             self.score_ = self.subset_.score
 
         while not is_final(self.subset_):
-
             # STEP 1. Step Forward/Backward
             if self.verbose:
-                logmsg('STEP {}'.format('FORWARD' if self.forward else 'BACKWARD'))
+                logmsg("STEP {}".format("FORWARD" if self.forward else "BACKWARD"))
 
             if self.forward:
                 updates = self.features_.remove(*self.subset_)
@@ -264,7 +259,6 @@ class GreedSelector(_WrappedSelector):
             subset = None
 
             for feature in updates:
-
                 # Include/Exclude Feature
                 if self.forward:
                     candidate = self.subset_.append(feature)
@@ -297,7 +291,7 @@ class GreedSelector(_WrappedSelector):
 
             # STEP 2. Step Backward/Forward
             if self.verbose:
-                logmsg('STEP {}'.format('BACKWARD' if self.forward else 'FORWARD'))
+                logmsg("STEP {}".format("BACKWARD" if self.forward else "FORWARD"))
 
             if not self.forward:
                 updates = self.features_.remove(*self.subset_)
@@ -309,7 +303,6 @@ class GreedSelector(_WrappedSelector):
             subset = None
 
             for feature in updates:
-
                 # Exclude/Include Feature
                 if not self.forward:
                     candidate = self.subset_.append(feature)
@@ -355,7 +348,7 @@ class GreedSelector(_WrappedSelector):
         Union[List[int], np.ndarray]:
             A list or NumPy array of the indices of the selected features.
         """
-        if (self.use_best is True) and hasattr(self, 'best_subset_'):
+        if (self.use_best is True) and hasattr(self, "best_subset_"):
             # If using the best subset and the attribute `best_subset_` exists, return the best subset
             return self.best_subset_
 
@@ -366,7 +359,7 @@ class GreedSelector(_WrappedSelector):
         else:
             # If the model is not fitted or no subset is available, raise an error
             model_name = self.__class__.__name__
-            raise NotFittedError(f'{model_name} is not fitted')
+            raise NotFittedError(f"{model_name} is not fitted")
 
 
 class GroupGreedSelector(_WrappedGroupSelector, GreedSelector):

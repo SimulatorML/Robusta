@@ -10,10 +10,9 @@ from sklearn.model_selection import check_cv
 from sklearn.utils.multiclass import type_of_target
 
 
-def _smoothed_likelihood(x: pd.Series,
-                         y: pd.Series,
-                         smoothing: float,
-                         min_samples_leaf: int = 1) -> pd.Series:
+def _smoothed_likelihood(
+    x: pd.Series, y: pd.Series, smoothing: float, min_samples_leaf: int = 1
+) -> pd.Series:
     """
     Computes the smoothed likelihood of the target variable y given the values of the feature x.
 
@@ -37,16 +36,16 @@ def _smoothed_likelihood(x: pd.Series,
     prior = y.mean()
 
     # Compute the count and mean of y for each value of x.
-    stats = y.groupby(x).agg(['count', 'mean'])
+    stats = y.groupby(x).agg(["count", "mean"])
 
     # Compute the smoothing factor for each value of x.
-    smoove = 1 / (1 + np.exp(-(stats['count'] - min_samples_leaf) / smoothing))
+    smoove = 1 / (1 + np.exp(-(stats["count"] - min_samples_leaf) / smoothing))
 
     # Compute the smoothed likelihood for each value of x.
-    likelihood = prior * (1 - smoove) + stats['mean'] * smoothing
+    likelihood = prior * (1 - smoove) + stats["mean"] * smoothing
 
     # If a value of x has only one sample, replace its smoothed likelihood with the prior probability.
-    likelihood[stats['count'] == 1] = prior
+    likelihood[stats["count"] == 1] = prior
 
     return likelihood
 
@@ -107,15 +106,17 @@ class TargetEncoder(TargetEncoder):
         Names of the encoded features.
     """
 
-    def __init__(self,
-                 verbose: int = 0,
-                 cols: Optional[List[str]] = None,
-                 drop_invariant: bool = False,
-                 return_df: bool = True,
-                 handle_missing: str = 'value',
-                 handle_unknown: str = 'value',
-                 min_samples_leaf: int = 1,
-                 smoothing: float = 1.0):
+    def __init__(
+        self,
+        verbose: int = 0,
+        cols: Optional[List[str]] = None,
+        drop_invariant: bool = False,
+        return_df: bool = True,
+        handle_missing: str = "value",
+        handle_unknown: str = "value",
+        min_samples_leaf: int = 1,
+        smoothing: float = 1.0,
+    ):
         self.return_df = return_df
         self.drop_invariant = drop_invariant
         self.drop_cols = []
@@ -149,16 +150,12 @@ class FastEncoder(BaseEstimator, TransformerMixin):
         A function that maps the encoded values to the original categorical values.
     """
 
-    def __init__(self,
-                 smoothing: float = 1.0,
-                 min_samples_leaf: int = 1):
+    def __init__(self, smoothing: float = 1.0, min_samples_leaf: int = 1):
         self.mapper = None
         self.min_samples_leaf = min_samples_leaf
         self.smoothing = smoothing
 
-    def fit(self,
-            X: pd.DataFrame,
-            y: pd.Series) -> 'FastEncoder':
+    def fit(self, X: pd.DataFrame, y: pd.Series) -> "FastEncoder":
         """
         Fits the encoder to the training data.
 
@@ -175,23 +172,24 @@ class FastEncoder(BaseEstimator, TransformerMixin):
             Returns the instance itself.
         """
         # Get the categorical columns from X
-        cats = X.columns[X.dtypes.astype('str').isin(['object', 'category'])]
+        cats = X.columns[X.dtypes.astype("str").isin(["object", "category"])]
 
         # Define a lambda function for the encoder
-        encoder = lambda x: _smoothed_likelihood(x, y,
-                                                 self.min_samples_leaf,
-                                                 self.smoothing)
+        encoder = lambda x: _smoothed_likelihood(
+            x, y, self.min_samples_leaf, self.smoothing
+        )
 
         # Create a dictionary of encoders for each categorical column
-        encoders = {col: encoder(X[col].astype('str')) for col in cats}
+        encoders = {col: encoder(X[col].astype("str")) for col in cats}
 
         # Define a mapper function that maps the encoded values to the original categorical values
-        self.mapper = lambda x: x.astype('str').map(encoders[x.name]) if x.name in cats else x
+        self.mapper = (
+            lambda x: x.astype("str").map(encoders[x.name]) if x.name in cats else x
+        )
 
         return self
 
-    def transform(self,
-                  X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Encodes the categorical columns in X.
 
@@ -243,18 +241,13 @@ class EncoderCV(BaseEstimator):
         The cross-validation generator.
     """
 
-    def __init__(self,
-                 encoder: object,
-                 cv: int = 5,
-                 n_jobs: Optional[int] = None):
+    def __init__(self, encoder: object, cv: int = 5, n_jobs: Optional[int] = None):
         self.encoders_ = None
         self.encoder = encoder
         self.cv = cv
         self.n_jobs = n_jobs
 
-    def fit(self,
-            X: pd.DataFrame,
-            y: pd.Series) -> 'EncoderCV':
+    def fit(self, X: pd.DataFrame, y: pd.Series) -> "EncoderCV":
         """
         Fits the encoder on the training data using cross-validation.
 
@@ -277,13 +270,12 @@ class EncoderCV(BaseEstimator):
         # Apply the encoder object to each fold of the data and obtain the fitted encoders
         self.encoders_ = Parallel(n_jobs=self.n_jobs)(
             delayed(self._fit)(clone(self.encoder), X, y, trn)
-            for trn, oof in self._get_folds(X))
+            for trn, oof in self._get_folds(X)
+        )
 
         return self
 
-    def fit_transform(self,
-                      X: pd.DataFrame,
-                      y: pd.Series) -> pd.DataFrame:
+    def fit_transform(self, X: pd.DataFrame, y: pd.Series) -> pd.DataFrame:
         """
         Fits the encoder on the training data using cross-validation and transforms the data.
 
@@ -306,15 +298,15 @@ class EncoderCV(BaseEstimator):
         # Apply the encoder object to each fold of the data and obtain the transformed data and fitted encoders
         paths = Parallel(n_jobs=self.n_jobs)(
             delayed(self._fit_transform)(clone(self.encoder), X, y, trn, oof)
-            for trn, oof in self._get_folds(X))
+            for trn, oof in self._get_folds(X)
+        )
 
         # Unpack the fitted encoders and transformed data, take the mean of the transformed data across folds, and return it
         self.encoders_, preds = zip(*paths)
 
         return self._mean_preds(preds)[X.columns]
 
-    def transform(self,
-                  X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Transform the input data X by encoding categorical variables.
 
@@ -335,14 +327,13 @@ class EncoderCV(BaseEstimator):
 
         # Encode the input data using each fitted encoder in parallel
         preds = Parallel(n_jobs=self.n_jobs)(
-            delayed(self._transform)(encoder, X)
-            for encoder in self.encoders_)
+            delayed(self._transform)(encoder, X) for encoder in self.encoders_
+        )
 
         # Compute the mean of the encoded data
         return self._mean_preds(preds)[X.columns]
 
-    def transform_train(self,
-                        X: pd.DataFrame) -> pd.DataFrame:
+    def transform_train(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Transform the input training data X by encoding categorical variables.
 
@@ -360,13 +351,13 @@ class EncoderCV(BaseEstimator):
         # Encode the training data using each fitted encoder and its out-of-fold (oof) data in parallel
         preds = Parallel(n_jobs=self.n_jobs)(
             delayed(self._transform)(encoder, X, oof)
-            for encoder, (_, oof) in zip(self.encoders_, self._get_folds(X)))
+            for encoder, (_, oof) in zip(self.encoders_, self._get_folds(X))
+        )
 
         # Compute the mean of the encoded
         return self._mean_preds(preds)[X.columns]
 
-    def _mean_preds(self,
-                    preds: List[pd.DataFrame]) -> pd.DataFrame:
+    def _mean_preds(self, preds: List[pd.DataFrame]) -> pd.DataFrame:
         """
         Compute the mean of the predictions across all folds.
 
@@ -383,11 +374,9 @@ class EncoderCV(BaseEstimator):
         """
         return pd.concat(preds, axis=1).groupby(level=0, axis=1).mean()
 
-    def _fit(self,
-             encoder: BaseEncoder,
-             X: pd.DataFrame,
-             y: pd.Series,
-             trn: np.ndarray) -> object:
+    def _fit(
+        self, encoder: BaseEncoder, X: pd.DataFrame, y: pd.Series, trn: np.ndarray
+    ) -> object:
         """
         Fit the encoder on the training data.
 
@@ -409,12 +398,14 @@ class EncoderCV(BaseEstimator):
         """
         return encoder.fit(X.iloc[trn], y.iloc[trn])
 
-    def _fit_transform(self,
-                       encoder: BaseEncoder,
-                       X: pd.DataFrame,
-                       y: pd.Series,
-                       trn: np.ndarray,
-                       oof: np.ndarray) -> tuple[object, pd.DataFrame]:
+    def _fit_transform(
+        self,
+        encoder: BaseEncoder,
+        X: pd.DataFrame,
+        y: pd.Series,
+        trn: np.ndarray,
+        oof: np.ndarray,
+    ) -> tuple[object, pd.DataFrame]:
         """
         Fit and transform the encoder on the training and validation data.
 
@@ -439,9 +430,7 @@ class EncoderCV(BaseEstimator):
         Xt = encoder.fit(X.iloc[trn], y.iloc[trn]).transform(X.iloc[oof])
         return encoder, Xt
 
-    def _transform(self,
-                   encoder: BaseEncoder,
-                   X: pd.DataFrame) -> np.ndarray:
+    def _transform(self, encoder: BaseEncoder, X: pd.DataFrame) -> np.ndarray:
         """
         Applies the provided encoder to the given data and returns the encoded result.
 
@@ -459,10 +448,9 @@ class EncoderCV(BaseEstimator):
         """
         return encoder.transform(X)
 
-    def _transform_train(self,
-                         encoder: BaseEncoder,
-                         X: pd.DataFrame,
-                         oof: np.ndarray) -> np.ndarray:
+    def _transform_train(
+        self, encoder: BaseEncoder, X: pd.DataFrame, oof: np.ndarray
+    ) -> np.ndarray:
         """
         Applies the provided encoder to the training data based on the out-of-fold index and returns the encoded result.
 
@@ -482,9 +470,7 @@ class EncoderCV(BaseEstimator):
         """
         return encoder.transform(X.iloc[oof])
 
-    def _fit_data(self,
-                  X: pd.DataFrame,
-                  y: pd.Series) -> 'EncoderCV':
+    def _fit_data(self, X: pd.DataFrame, y: pd.Series) -> "EncoderCV":
         """
         Fits the training data for the model.
 
@@ -508,9 +494,9 @@ class EncoderCV(BaseEstimator):
         # Define cross-validation
         task_type = type_of_target(self.train_target)
 
-        if task_type == 'binary':
+        if task_type == "binary":
             classifier = True
-        elif task_type == 'continuous':
+        elif task_type == "continuous":
             classifier = False
         else:
             raise ValueError("Unsupported task type '{}'".format(task_type))
@@ -519,8 +505,7 @@ class EncoderCV(BaseEstimator):
 
         return self
 
-    def _get_folds(self,
-                   X: pd.DataFrame) -> Iterable:
+    def _get_folds(self, X: pd.DataFrame) -> Iterable:
         """
         Splits the data into folds for cross-validation.
 
@@ -536,8 +521,7 @@ class EncoderCV(BaseEstimator):
         """
         return self.cv_.split(X, self.train_target)
 
-    def _is_train(self,
-                  X: pd.DataFrame) -> bool:
+    def _is_train(self, X: pd.DataFrame) -> bool:
         """
         Checks if the given data is the same as the training data.
 
@@ -570,13 +554,12 @@ class NaiveBayesEncoder(BaseEstimator, TransformerMixin):
     _r : numpy.ndarray, shape (n_features,)
         Log-odds ratio of class probabilities for each feature.
     """
-    def __init__(self,
-                 smooth: float = 5.0):
+
+    def __init__(self, smooth: float = 5.0):
         self._r = None
         self.smooth = smooth
 
-    def transform(self,
-                  X: pd.DataFrame) -> np.ndarray:
+    def transform(self, X: pd.DataFrame) -> np.ndarray:
         """
         Transform the input sparse matrix X into a matrix of log-odds ratios
         of class probabilities for each feature using the learned _r values.
@@ -594,9 +577,7 @@ class NaiveBayesEncoder(BaseEstimator, TransformerMixin):
         """
         return X.multiply(self._r)
 
-    def fit(self,
-            X: pd.DataFrame,
-            y: pd.Series) -> 'NaiveBayesEncoder':
+    def fit(self, X: pd.DataFrame, y: pd.Series) -> "NaiveBayesEncoder":
         """
         Fit the transformer to the training data X and labels y.
         Calculates the log-odds ratio _r of class probabilities for each feature.
@@ -617,10 +598,7 @@ class NaiveBayesEncoder(BaseEstimator, TransformerMixin):
         self._r = np.log(self._pr(X, y, 1) / self._pr(X, y, 0))
         return self
 
-    def _pr(self,
-            X: pd.DataFrame,
-            y: pd.Series,
-            val: int) -> np.ndarray:
+    def _pr(self, X: pd.DataFrame, y: pd.Series, val: int) -> np.ndarray:
         """
         Private method that calculates the probability distribution of
         each feature for class y=val using Laplace smoothing.
