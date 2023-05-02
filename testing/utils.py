@@ -1,53 +1,68 @@
-import pandas as pd
-import numpy as np
-
 import warnings
+from typing import Optional, List
+
+from IPython.core.display_functions import display
+
 warnings.filterwarnings('ignore', category=DeprecationWarning)
 warnings.simplefilter("ignore", category=UserWarning)
 
-from sklearn.base import clone
+from sklearn.base import BaseEstimator
 
 from .estimators import ESTIMATORS
 from .params import PARAM_SPACE
 
 
-__all__ = [
-    # utils
-    'get_estimator',
-    'get_estimator_name',
-    'extract_param_space',
-    'extract_model',
-    'extract_model_name',
-    # testing
-    'all_estimators',
-    'all_regressors',
-    'all_classifiers',
-    'all_clusterers',
-    'all_transformers',
-]
+def all_estimators(type_filter: List[str] = None) -> dict:
+    """
+    Return a generator that yields dictionaries representing all scikit-learn
+    estimators that match the given type filter. If no filter is given, all
+    estimators are yielded.
 
+    Parameters
+    ----------
+    type_filter : list of str, default ['regressor', 'classifier']
+        A list of estimator types to include. Each type can be one of the
+        following: 'regressor', 'classifier', 'transformer', or 'clusterer'.
+        If an estimator has multiple types, it will be included if any of its
+        types match the filter.
 
-def all_estimators(type_filter=['regressor', 'classifier']):
+    Yields
+    ------
+    dict
+        A dictionary representing a scikit-learn estimator. The dictionary
+        includes the following keys: 'name', 'class', 'module', 'type'.
+    """
+
+    # Iterate over all estimators and yield them if they match the type filter
+    if type_filter is None:
+        type_filter = ['regressor', 'classifier']
     for _, row in ESTIMATORS.iterrows():
         if not type_filter or (row.type == type_filter) \
-        or (row.type and row.type in type_filter):
+                or (row.type and row.type in type_filter):
             yield row.to_dict()
+
 
 def all_regressors():
     return all_estimators('regressor')
 
+
 def all_classifiers():
     return all_estimators('classifier')
 
+
 def all_clusterers():
     return all_estimators('clusterer')
+
 
 def all_transformers():
     return all_estimators('transformer')
 
 
-def get_estimator(estimator, estimator_type=None, **params):
-    """Get model instance by name (if model is string, otherwise return model).
+def get_estimator(estimator: BaseEstimator,
+                  estimator_type: Optional[str] = None,
+                  **params) -> object:
+    """
+    Get model instance by name (if model is string, otherwise return model).
 
     Parameters
     ----------
@@ -89,24 +104,60 @@ def get_estimator(estimator, estimator_type=None, **params):
             estimator = ESTIMATORS[name_mask & type_mask]['class'].iloc[0](**params)
             return estimator
 
-    elif hassatr(name, 'fit'):
+    elif hasattr(name, 'fit'):
         return estimator.set_params(**params)
 
     else:
         raise TypeError("Unknown <estimator> type passed")
 
 
-def get_estimator_name(estimator, short=False):
+def get_estimator_name(estimator: BaseEstimator,
+                       short: bool = False) -> str:
+    """
+    Returns the name of an estimator class.
+
+    Parameters
+    ----------
+    estimator : BaseEstimator
+        An instance of an estimator class.
+    short : bool
+        A boolean indicating whether to return a shortened version of the name if available.
+
+    Returns
+    -------
+    str:
+        The name of the estimator class as a string.
+    """
+    # Get the name of the estimator class
     name = estimator.__class__.__name__
+
+    # Check if a shortened name is requested and available
     name_mask = (ESTIMATORS['class_name'] == name)
     if short and name_mask.any():
+        # Return the shortened name if available
         return ESTIMATORS[name_mask]['name'].iloc[0]
     else:
+        # Return the full name if no shortened name is available
         return name
 
 
-def extract_param_space(estimator, verbose=True):
+def extract_param_space(estimator: BaseEstimator,
+                        verbose: bool = True) -> dict:
+    """
+    Extract params
 
+    Parameters
+    ----------
+    estimator : BaseEstimator
+        An instance of an estimator class.
+    verbose : bool
+        Output state
+
+    Returns
+    -------
+    dict:
+        Param space
+    """
     params = estimator.get_params()
     param_names = {}
     param_space = {}
@@ -134,21 +185,32 @@ def extract_param_space(estimator, verbose=True):
     # Verbose
     if verbose:
         print('FOUND MODELS:')
-        #display(pd.Series(param_names))
+        # display(pd.Series(param_names))
         display(param_names)
         print()
 
         print('FOUND PARAMETERS:')
-        #display(pd.Series(param_space))
+        # display(pd.Series(param_space))
         display(param_space)
         print()
 
     return param_space
 
 
+def extract_model(estimator: BaseEstimator) -> BaseEstimator:
+    """
+    Extract model from estimator
 
-def extract_model(estimator):
+    Parameters
+    ----------
+    estimator : BaseEstimator
+        An instance of an estimator class.
 
+    Returns
+    -------
+    estimator:
+        BaseEstimator
+    """
     name = estimator.__class__.__name__
 
     if name is 'Pipeline':
@@ -178,9 +240,10 @@ def extract_model(estimator):
     return estimator
 
 
-
-def extract_model_name(estimator, short=False):
-    """Extract name of estimator instance.
+def extract_model_name(estimator: BaseEstimator,
+                       short: bool = False):
+    """
+    Extract name of estimator instance.
 
     Parameters
     ----------
