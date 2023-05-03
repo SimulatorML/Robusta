@@ -16,11 +16,11 @@ Robusta ML Framework library features include:
 -   [Table of contents](#table-of-contents)
 -   [Getting started](#getting-started)
     -   [For development](#for-development)
--   [Features](#features)
-    -   [Cross-validation](#cross-validation)
-    -   [Importances](#importances)
-    -   [Linear Models](#linear-models)
-    -   [Optimizers](#optimizers)
+-   [Modules](#Modules)
+    -   [Validation Classes](#Validation-Classes)
+    -   [Feature Importances](#Feature-Importances)
+    -   [Ensemble and Linear Models](#Ensemble-and-Linear-Models)
+    -   [Hyperparameter Optimization](#Hyperparameter-Optimization)
 -   [Project principles and design decisions](#project-principles-and-design-decisions)
 -   [Testing](#testing)
 -   [Getting in touch](#getting-in-touch)
@@ -53,11 +53,11 @@ Alternatively, you could try:
 pip install -e git+https://github.com/uberkinder/robusta.git
 ```
 
-## Features
+## Modules
 
-In this section, we detail some of robusta available functionality. More examples are offered in the Jupyter notebooks [here](https://github.com/nikneural/robust/tree/master/cookbook). Another good resource is the [tests](https://github.com/nikneural/robust/tree/master/tests).
+In this section, we detail some robusta available functionality. More examples are offered in the Jupyter notebooks [here](https://github.com/nikneural/robust/tree/master/cookbook). Another good resource is the [tests](https://github.com/nikneural/robust/tree/master/tests).
 
-### Cross-validation
+### Validation Classes
 
 -   RepeatedGroupKFold
 -   RepeatedKFold
@@ -65,20 +65,20 @@ In this section, we detail some of robusta available functionality. More example
 -   RepeatedStratifiedGroupKFold
 -   AdversarialValidation
 
-### Importances
+### Feature Importances
 
 -   PermutationImportance
 -   GroupPermutationImportance
 -   ShuffleTargetImportance
 
-### Linear Models
+### Ensemble and Linear Models
 
 -   BlendRegressor
 -   BlendClassifier
 -   CaruanaRegressor
 -   NNGRegressor
 
-### Optimizers
+### Hyperparameter Optimization
 
 -   GridSearchCV
 -   OptunaCV
