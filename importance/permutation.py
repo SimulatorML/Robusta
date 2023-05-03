@@ -16,13 +16,15 @@ from sklearn.utils.random import check_random_state
 from tqdm import tqdm_notebook
 
 
-def _get_col_score(estimator: BaseEstimator,
-                   X: pd.DataFrame,
-                   y: pd.Series,
-                   col: str,
-                   n_repeats: int,
-                   scorer: Callable,
-                   rstate: np.random.RandomState) -> np.ndarray:
+def _get_col_score(
+    estimator: BaseEstimator,
+    X: pd.DataFrame,
+    y: pd.Series,
+    col: str,
+    n_repeats: int,
+    scorer: Callable,
+    rstate: np.random.RandomState,
+) -> np.ndarray:
     """
     Calculate score when `col` is permuted.
 
@@ -68,13 +70,15 @@ def _get_col_score(estimator: BaseEstimator,
     return scores
 
 
-def get_col_score(estimator: BaseEstimator,
-                  X: pd.DataFrame,
-                  y: pd.Series,
-                  col: str,
-                  n_repeats: int = 5,
-                  scoring: Optional[Union[str, Callable]] = None,
-                  random_state: Optional[int] = None) -> np.ndarray:
+def get_col_score(
+    estimator: BaseEstimator,
+    X: pd.DataFrame,
+    y: pd.Series,
+    col: str,
+    n_repeats: int = 5,
+    scoring: Optional[Union[str, Callable]] = None,
+    random_state: Optional[int] = None,
+) -> np.ndarray:
     """
     Calculate the score when the column `col` of the input `X` is permuted.
 
@@ -107,24 +111,28 @@ def get_col_score(estimator: BaseEstimator,
     rstate = check_random_state(random_state)
 
     # Get the scores when the column is permuted
-    scores = _get_col_score(estimator=estimator,
-                            X=X,
-                            y=y,
-                            col=col,
-                            n_repeats=n_repeats,
-                            scorer=scorer,
-                            rstate=rstate)
+    scores = _get_col_score(
+        estimator=estimator,
+        X=X,
+        y=y,
+        col=col,
+        n_repeats=n_repeats,
+        scorer=scorer,
+        rstate=rstate,
+    )
 
     return scores
 
 
-def _get_group_score(estimator: BaseEstimator,
-                     X: pd.DataFrame,
-                     y: pd.Series,
-                     g: List[int],
-                     n_repeats: int,
-                     scorer: Callable,
-                     rstate: np.random.RandomState) -> np.ndarray:
+def _get_group_score(
+    estimator: BaseEstimator,
+    X: pd.DataFrame,
+    y: pd.Series,
+    g: List[int],
+    n_repeats: int,
+    scorer: Callable,
+    rstate: np.random.RandomState,
+) -> np.ndarray:
     """
     Calculate the score of an estimator on permuted data for a specified group of columns.
 
@@ -176,13 +184,15 @@ def _get_group_score(estimator: BaseEstimator,
     return scores
 
 
-def get_group_score(estimator: BaseEstimator,
-                    X: pd.DataFrame,
-                    y: pd.Series,
-                    g: List[int],
-                    n_repeats: int = 5,
-                    scoring: Optional[Union[str, Callable]] = None,
-                    random_state: Optional[int] = None) -> np.ndarray:
+def get_group_score(
+    estimator: BaseEstimator,
+    X: pd.DataFrame,
+    y: pd.Series,
+    g: List[int],
+    n_repeats: int = 5,
+    scoring: Optional[Union[str, Callable]] = None,
+    random_state: Optional[int] = None,
+) -> np.ndarray:
     """
     Calculate the score of an estimator on permuted data for a specified group of columns.
 
@@ -212,32 +222,35 @@ def get_group_score(estimator: BaseEstimator,
 
     """
     # Check the scoring method and random state
-    scorer = check_scoring(estimator=estimator,
-                           scoring=scoring)
+    scorer = check_scoring(estimator=estimator, scoring=scoring)
     rstate = check_random_state(seed=random_state)
 
     # Calculate the scores using the _get_group_score function
-    scores = _get_group_score(estimator=estimator,
-                              X=X,
-                              y=y,
-                              g=g,
-                              n_repeats=n_repeats,
-                              scorer=scorer,
-                              rstate=rstate)
+    scores = _get_group_score(
+        estimator=estimator,
+        X=X,
+        y=y,
+        g=g,
+        n_repeats=n_repeats,
+        scorer=scorer,
+        rstate=rstate,
+    )
 
     # Return the scores
     return scores
 
 
-def permutation_importance(estimator: BaseEstimator,
-                           X: pd.DataFrame,
-                           y: pd.Series,
-                           subset: Optional[list] = None,
-                           scoring: Optional[Union[str, Callable]] = None,
-                           n_repeats: int = 5,
-                           n_jobs: Optional[int] = None,
-                           random_state: int = 0,
-                           tqdm: bool = False) -> dict:
+def permutation_importance(
+    estimator: BaseEstimator,
+    X: pd.DataFrame,
+    y: pd.Series,
+    subset: Optional[list] = None,
+    scoring: Optional[Union[str, Callable]] = None,
+    n_repeats: int = 5,
+    n_jobs: Optional[int] = None,
+    random_state: int = 0,
+    tqdm: bool = False,
+) -> dict:
     """
     Compute feature importance's using permutation importance.
 
@@ -291,8 +304,7 @@ def permutation_importance(estimator: BaseEstimator,
     subset = tqdm_notebook(subset) if tqdm else subset
 
     # Check the scoring metric
-    scorer = check_scoring(estimator=estimator,
-                           scoring=scoring)
+    scorer = check_scoring(estimator=estimator, scoring=scoring)
 
     # Create a random state object
     rstate = check_random_state(seed=random_state)
@@ -302,11 +314,10 @@ def permutation_importance(estimator: BaseEstimator,
 
     # FIXME: avoid <max_nbytes>
     # Use Parallel from joblib to compute the scores of each feature in the subset in parallel
-    scores = Parallel(n_jobs=n_jobs,
-                      max_nbytes='512M',
-                      backend='multiprocessing')(
+    scores = Parallel(n_jobs=n_jobs, max_nbytes="512M", backend="multiprocessing")(
         delayed(_get_col_score)(estimator, X, y, feature, n_repeats, scorer, rstate)
-        for feature in subset)
+        for feature in subset
+    )
 
     # Create a numpy array to store the importance's for each feature
     importances = np.full((len(columns), n_repeats), np.nan)
@@ -318,24 +329,28 @@ def permutation_importance(estimator: BaseEstimator,
     importances[ind] = base_score - np.array(scores)
 
     # Create a dictionary to store the results
-    result = {'importances_mean': np.mean(importances, axis=1),
-              'importances_std': np.std(importances, axis=1),
-              'importances': importances,
-              'score': base_score}
+    result = {
+        "importances_mean": np.mean(importances, axis=1),
+        "importances_std": np.std(importances, axis=1),
+        "importances": importances,
+        "score": base_score,
+    }
 
     # Return the results
     return result
 
 
-def group_permutation_importance(estimator: BaseEstimator,
-                                 X: pd.DataFrame,
-                                 y: pd.Series,
-                                 subset: Optional[pd.Series] = None,
-                                 scoring: Optional[Union[str, Callable]] = None,
-                                 n_repeats: int = 5,
-                                 n_jobs: Optional[int] = None,
-                                 random_state: int = 0,
-                                 tqdm: bool = False) -> dict:
+def group_permutation_importance(
+    estimator: BaseEstimator,
+    X: pd.DataFrame,
+    y: pd.Series,
+    subset: Optional[pd.Series] = None,
+    scoring: Optional[Union[str, Callable]] = None,
+    n_repeats: int = 5,
+    n_jobs: Optional[int] = None,
+    random_state: int = 0,
+    tqdm: bool = False,
+) -> dict:
     """
     Compute group permutation importance for a given estimator and dataset.
 
@@ -385,8 +400,7 @@ def group_permutation_importance(estimator: BaseEstimator,
     subset = tqdm_notebook(subset) if tqdm else subset
 
     # Check the scoring metric
-    scorer = check_scoring(estimator=estimator,
-                           scoring=scoring)
+    scorer = check_scoring(estimator=estimator, scoring=scoring)
 
     # Create a random state object
     rstate = check_random_state(random_state)
@@ -396,11 +410,10 @@ def group_permutation_importance(estimator: BaseEstimator,
 
     # FIXME: avoid <max_nbytes>
     # Use Parallel from joblib to compute the scores of each group of features in the subset in parallel
-    scores = Parallel(n_jobs=n_jobs,
-                      max_nbytes='512M',
-                      backend='multiprocessing')(
+    scores = Parallel(n_jobs=n_jobs, max_nbytes="512M", backend="multiprocessing")(
         delayed(_get_group_score)(estimator, X, y, feature, n_repeats, scorer, rstate)
-        for feature in subset)
+        for feature in subset
+    )
 
     # Create a numpy array to store the importance's for each feature
     importances = np.full((len(columns), n_repeats), np.nan)
@@ -412,10 +425,12 @@ def group_permutation_importance(estimator: BaseEstimator,
     importances[ind] = base_score - np.array(scores)
 
     # Create a dictionary to store the results
-    result = {'importances_mean': np.mean(importances, axis=1),
-              'importances_std': np.std(importances, axis=1),
-              'importances': importances,
-              'score': base_score}
+    result = {
+        "importances_mean": np.mean(importances, axis=1),
+        "importances_std": np.std(importances, axis=1),
+        "importances": importances,
+        "score": base_score,
+    }
 
     # Return the results
     return result
@@ -448,15 +463,17 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
         Function to transform the target variable before fitting the estimator.
     """
 
-    def __init__(self,
-                 estimator: BaseEstimator,
-                 cv: str = 'prefit',
-                 scoring: Optional[Union[str, Callable]] = None,
-                 n_repeats: int = 5,
-                 random_state: Optional[int] = None,
-                 tqdm: bool = False,
-                 n_jobs: Optional[int] = None,
-                 y_transform: Optional[Callable] = None):
+    def __init__(
+        self,
+        estimator: BaseEstimator,
+        cv: str = "prefit",
+        scoring: Optional[Union[str, Callable]] = None,
+        n_repeats: int = 5,
+        random_state: Optional[int] = None,
+        tqdm: bool = False,
+        n_jobs: Optional[int] = None,
+        y_transform: Optional[Callable] = None,
+    ):
         self.feature_importances_std_ = None
         self.feature_importances_ = None
         self.scores_ = None
@@ -470,12 +487,14 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
         self.n_jobs = n_jobs
         self.y_transform = y_transform
 
-    def fit(self,
-            X: pd.DataFrame,
-            y: pd.Series,
-            groups: Optional[pd.Series] = None,
-            subset: Optional[pd.Series] = None,
-            **fit_params) -> 'PermutationImportance':
+    def fit(
+        self,
+        X: pd.DataFrame,
+        y: pd.Series,
+        groups: Optional[pd.Series] = None,
+        subset: Optional[pd.Series] = None,
+        **fit_params
+    ) -> "PermutationImportance":
         """
         Fits the estimator and computes feature importances using permutation
         importance.
@@ -501,7 +520,7 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
         """
 
         # check if cross-validation is specified or if there's only one training set
-        if self.cv in ['prefit', None]:
+        if self.cv in ["prefit", None]:
             # create an array of indices for each row in X
             ii = np.arange(X.shape[0])
 
@@ -532,7 +551,7 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
             y_trn_ = self.y_transform(y_trn) if self.y_transform else y_trn
 
             # if the estimator was already fit to data outside of this object
-            if self.cv is 'prefit':
+            if self.cv is "prefit":
                 # use the pre-fit estimator
                 estimator = self.estimator
 
@@ -541,24 +560,26 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
                 estimator = clone(self.estimator).fit(X_trn, y_trn_, **fit_params)
 
             # calculate the permutation importance for each feature using the validation set
-            pi = permutation_importance(estimator=estimator,
-                                        X=X_oof,
-                                        y=y_oof,
-                                        subset=subset,
-                                        n_repeats=self.n_repeats,
-                                        scoring=self.scoring,
-                                        random_state=self.random_state,
-                                        tqdm=self.tqdm,
-                                        n_jobs=self.n_jobs)
+            pi = permutation_importance(
+                estimator=estimator,
+                X=X_oof,
+                y=y_oof,
+                subset=subset,
+                n_repeats=self.n_repeats,
+                scoring=self.scoring,
+                random_state=self.random_state,
+                tqdm=self.tqdm,
+                n_jobs=self.n_jobs,
+            )
 
             # create a DataFrame with the raw feature importances for the current fold
-            imp = pd.DataFrame(pi['importances'], index=X.columns)
+            imp = pd.DataFrame(pi["importances"], index=X.columns)
 
             # add the raw feature importances for the current fold to the list
             self.raw_importances_.append(imp)
 
             # add the score for the current fold to the list
-            self.scores_.append(pi['score'])
+            self.scores_.append(pi["score"])
 
         # concatenate the raw feature importances for each fold into a single DataFrame
         imps = pd.concat(self.raw_importances_, axis=1)
@@ -572,12 +593,8 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
 
     # ============= Exposed methods of a wrapped estimator:
 
-    @if_delegate_has_method(delegate='wrapped_estimator_')
-    def score(self,
-              X: pd.DataFrame,
-              y: pd.Series = None,
-              *args,
-              **kwargs) -> float:
+    @if_delegate_has_method(delegate="wrapped_estimator_")
+    def score(self, X: pd.DataFrame, y: pd.Series = None, *args, **kwargs) -> float:
         """
         Returns the score of the wrapped estimator on the given data.
 
@@ -597,7 +614,7 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
         """
         return self.wrapped_estimator_.score(X, y, *args, **kwargs)
 
-    @if_delegate_has_method(delegate='wrapped_estimator_')
+    @if_delegate_has_method(delegate="wrapped_estimator_")
     def predict(self, X):
         """
         Predicts the class labels of the given data using the wrapped estimator.
@@ -614,9 +631,8 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
         """
         return self.wrapped_estimator_.predict(X)
 
-    @if_delegate_has_method(delegate='wrapped_estimator_')
-    def predict_proba(self,
-                      X: pd.DataFrame) -> np.ndarray:
+    @if_delegate_has_method(delegate="wrapped_estimator_")
+    def predict_proba(self, X: pd.DataFrame) -> np.ndarray:
         """
         Predicts the probabilities of each class label for the given data using the wrapped estimator.
 
@@ -632,9 +648,8 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
         """
         return self.wrapped_estimator_.predict_proba(X)
 
-    @if_delegate_has_method(delegate='wrapped_estimator_')
-    def predict_log_proba(self,
-                          X: pd.DataFrame) -> np.ndarray:
+    @if_delegate_has_method(delegate="wrapped_estimator_")
+    def predict_log_proba(self, X: pd.DataFrame) -> np.ndarray:
         """
         Predicts the logarithm of the probabilities of each class label for the given data using the wrapped estimator.
 
@@ -648,9 +663,8 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
         """
         return self.wrapped_estimator_.predict_log_proba(X)
 
-    @if_delegate_has_method(delegate='wrapped_estimator_')
-    def decision_function(self,
-                          X: pd.DataFrame) -> np.ndarray:
+    @if_delegate_has_method(delegate="wrapped_estimator_")
+    def decision_function(self, X: pd.DataFrame) -> np.ndarray:
         """
         Computes the decision function of the given data using the wrapped estimator.
 
@@ -679,7 +693,8 @@ class PermutationImportance(BaseEstimator, MetaEstimatorMixin):
         wrapped_estimator_ : estimator object
             Wrapped estimator.
         """
-        if self.cv == "prefit" or not self.refit: return self.estimator
+        if self.cv == "prefit" or not self.refit:
+            return self.estimator
         return self.estimator_
 
     @property
@@ -744,25 +759,31 @@ class GroupPermutationImportance(PermutationImportance):
         The mean feature importances across folds.
     """
 
-    def __init__(self,
-                 estimator: BaseEstimator,
-                 cv: str = 'prefit',
-                 scoring: Optional[Union[str, Callable]] = None,
-                 n_repeats: int = 5,
-                 random_state: Optional[int] = None,
-                 tqdm: bool = False,
-                 n_jobs: Optional[int] = None,
-                 y_transform: Optional[Callable] = None):
-        super().__init__(estimator, cv, scoring, n_repeats, random_state, tqdm, n_jobs, y_transform)
+    def __init__(
+        self,
+        estimator: BaseEstimator,
+        cv: str = "prefit",
+        scoring: Optional[Union[str, Callable]] = None,
+        n_repeats: int = 5,
+        random_state: Optional[int] = None,
+        tqdm: bool = False,
+        n_jobs: Optional[int] = None,
+        y_transform: Optional[Callable] = None,
+    ):
+        super().__init__(
+            estimator, cv, scoring, n_repeats, random_state, tqdm, n_jobs, y_transform
+        )
         self.feature_importances_std_ = None
         self.feature_importances_ = None
 
-    def fit(self,
-            X: pd.DataFrame,
-            y: pd.Series,
-            groups: Optional[pd.Series] = None,
-            subset: Optional[pd.Series] = None,
-            **fit_params) -> 'GroupPermutationImportance':
+    def fit(
+        self,
+        X: pd.DataFrame,
+        y: pd.Series,
+        groups: Optional[pd.Series] = None,
+        subset: Optional[pd.Series] = None,
+        **fit_params
+    ) -> "GroupPermutationImportance":
         """
         Compute group permutation importance for feature selection.
 
@@ -788,16 +809,14 @@ class GroupPermutationImportance(PermutationImportance):
         col_group = X.columns.get_level_values(0).unique()
 
         # If cv is prefit or None, create one fold for cross-validation
-        if self.cv in ['prefit', None]:
+        if self.cv in ["prefit", None]:
             ii = np.arange(X.shape[0])
             cv = np.array([(ii, ii)])
         else:
             cv = self.cv
 
         # Check if cv is a valid cross-validation object
-        cv = check_cv(cv=cv,
-                      y=y,
-                      classifier=is_classifier(self.estimator))
+        cv = check_cv(cv=cv, y=y, classifier=is_classifier(self.estimator))
 
         # Initialize empty lists for storing raw importances and scores
         self.raw_importances_ = []
@@ -807,16 +826,14 @@ class GroupPermutationImportance(PermutationImportance):
         col_group = X.columns.get_level_values(0).unique()
 
         # If cv is prefit or None, create one fold for cross-validation
-        if self.cv in ['prefit', None]:
+        if self.cv in ["prefit", None]:
             ii = np.arange(X.shape[0])
             cv = np.array([(ii, ii)])
         else:
             cv = self.cv
 
         # Check if cv is a valid cross-validation object
-        cv = check_cv(cv=cv,
-                      y=y,
-                      classifier=is_classifier(self.estimator))
+        cv = check_cv(cv=cv, y=y, classifier=is_classifier(self.estimator))
 
         # Initialize empty lists for storing raw importances and scores
         self.raw_importances_ = []
@@ -832,28 +849,30 @@ class GroupPermutationImportance(PermutationImportance):
             y_trn_ = self.y_transform(y_trn) if self.y_transform else y_trn
 
             # If cv is prefit, use the estimator as it is, otherwise clone it and fit to training data
-            if self.cv is 'prefit':
+            if self.cv is "prefit":
                 estimator = self.estimator
             else:
                 estimator = clone(self.estimator).fit(X_trn, y_trn_, **fit_params)
 
             # Calculate group permutation importance on out-of-fold data
-            pi = group_permutation_importance(estimator=estimator,
-                                              X=X_oof,
-                                              y=y_oof,
-                                              subset=subset,
-                                              n_repeats=self.n_repeats,
-                                              scoring=self.scoring,
-                                              random_state=self.random_state,
-                                              tqdm=self.tqdm,
-                                              n_jobs=self.n_jobs)
+            pi = group_permutation_importance(
+                estimator=estimator,
+                X=X_oof,
+                y=y_oof,
+                subset=subset,
+                n_repeats=self.n_repeats,
+                scoring=self.scoring,
+                random_state=self.random_state,
+                tqdm=self.tqdm,
+                n_jobs=self.n_jobs,
+            )
 
             # Save the raw feature importances to a list
-            imp = pd.DataFrame(pi['importances'], index=col_group)
+            imp = pd.DataFrame(pi["importances"], index=col_group)
             self.raw_importances_.append(imp)
 
             # Save the score of the current fold to a list
-            self.scores_.append(pi['score'])
+            self.scores_.append(pi["score"])
 
         # Combine the raw feature importances into one dataframe and calculate the mean and std over the folds
         imps = pd.concat(self.raw_importances_, axis=1)

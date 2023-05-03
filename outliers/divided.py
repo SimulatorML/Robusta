@@ -30,21 +30,24 @@ class DividedOutlierDetector(BaseEstimator, OutlierMixin):
     labels_: array-like
         The cluster labels for each sample in the input dataset.
     """
-    _estimator_type = 'outlier_detector'
 
-    def __init__(self,
-                 detector: object,
-                 clusterer: object = KMeans(random_state=0),
-                 verbose: int = 0,
-                 n_jobs: int = -1):
+    _estimator_type = "outlier_detector"
+
+    def __init__(
+        self,
+        detector: object,
+        clusterer: object = KMeans(random_state=0),
+        verbose: int = 0,
+        n_jobs: int = -1,
+    ):
         self.detector = detector
         self.clusterer = clusterer
         self.verbose = verbose
         self.n_jobs = n_jobs
 
-    def fit_resample(self,
-                     X: pd.DataFrame,
-                     y: pd.Series) -> Tuple[pd.DataFrame, pd.Series]:
+    def fit_resample(
+        self, X: pd.DataFrame, y: pd.Series
+    ) -> Tuple[pd.DataFrame, pd.Series]:
         """
         Fit the outlier detection algorithm to each cluster in the input dataset.
 
@@ -69,13 +72,17 @@ class DividedOutlierDetector(BaseEstimator, OutlierMixin):
 
         # Create a list of delayed job objects, where each job applies the detector object to the input data X
         # with a particular mask (corresponding to a particular cluster label)
-        jobs = (delayed(od_path)(clone(self.detector), X, y, mask)
-                for mask in masks)
+        jobs = (delayed(od_path)(clone(self.detector), X, y, mask) for mask in masks)
 
         # Use the Parallel function to run the delayed jobs in parallel and get the paths of outliers and outliers
         # for each cluster
-        paths = Parallel(backend='multiprocessing', max_nbytes='256M', pre_dispatch='all',
-                         verbose=self.verbose, n_jobs=self.n_jobs)(jobs)
+        paths = Parallel(
+            backend="multiprocessing",
+            max_nbytes="256M",
+            pre_dispatch="all",
+            verbose=self.verbose,
+            n_jobs=self.n_jobs,
+        )(jobs)
 
         # Unzip the paths to get the outliers and outliers for each cluster, as well as the corresponding detector
         # objects
@@ -89,10 +96,9 @@ class DividedOutlierDetector(BaseEstimator, OutlierMixin):
         return X_in, y_in
 
 
-def od_path(detector: object,
-            X: pd.DataFrame,
-            y: pd.Series,
-            ind: np.ndarray) -> Tuple[pd.DataFrame, pd.Series, object]:
+def od_path(
+    detector: object, X: pd.DataFrame, y: pd.Series, ind: np.ndarray
+) -> Tuple[pd.DataFrame, pd.Series, object]:
     """
     Perform outlier detection on a subset of the data and return a subset of the data and labels
     that do not contain outliers, along with the detector used to identify outliers.

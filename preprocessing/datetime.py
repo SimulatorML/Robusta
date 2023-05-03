@@ -17,11 +17,11 @@ class DatetimeConverter1D(BaseEstimator, TransformerMixin):
     params : dict
         The dictionary of parameters used to create the transformer.
     """
-    def __init__(self,
-                 **params):
+
+    def __init__(self, **params):
         self.params = params
 
-    def fit(self) -> 'DatetimeConverter1D':
+    def fit(self) -> "DatetimeConverter1D":
         """
         Fit the transformer to the input data.
 
@@ -32,8 +32,7 @@ class DatetimeConverter1D(BaseEstimator, TransformerMixin):
         """
         return self
 
-    def transform(self,
-                  x: np.array) -> pd.Series:
+    def transform(self, x: np.array) -> pd.Series:
         """
         Transform the input data into datetime objects.
 
@@ -67,13 +66,12 @@ class DatetimeConverter(BaseEstimator, TransformerMixin):
     DatetimeConverter
         Returns self, the transformer instance.
     """
-    def __init__(self,
-                 copy: bool = True,
-                 **params):
+
+    def __init__(self, copy: bool = True, **params):
         self.params = params
         self.copy = copy
 
-    def fit(self) -> 'DatetimeConverter':
+    def fit(self) -> "DatetimeConverter":
         """
         Fit transformer to the input data.
 
@@ -84,8 +82,7 @@ class DatetimeConverter(BaseEstimator, TransformerMixin):
         """
         return self
 
-    def transform(self,
-                  X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Transform the input data.
 
@@ -128,14 +125,13 @@ class CyclicEncoder(BaseEstimator, TransformerMixin):
     min_ : float
         The minimum value in the input data.
     """
-    def __init__(self,
-                 delta: int = 1):
+
+    def __init__(self, delta: int = 1):
         self.max_ = None
         self.min_ = None
         self.delta = delta
 
-    def fit(self,
-            X: pd.DataFrame) -> 'CyclicEncoder':
+    def fit(self, X: pd.DataFrame) -> "CyclicEncoder":
         """
         Computes the maximum and minimum values in the input data.
 
@@ -154,8 +150,7 @@ class CyclicEncoder(BaseEstimator, TransformerMixin):
 
         return self
 
-    def transform(self,
-                  X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Transforms the input data into sine and cosine functions.
 
@@ -174,6 +169,10 @@ class CyclicEncoder(BaseEstimator, TransformerMixin):
         X = (X - self.min_) / (self.max_ - self.min_ + self.delta)
 
         # Compute cosine and sine functions for each feature and concatenate into a single dataframe
-        return pd.concat([np.cos(X).rename(lambda x: x + '_cos', axis=1),
-                          np.sin(X).rename(lambda x: x + '_sin', axis=1)],
-                         axis=1).sort_index(axis=1)
+        return pd.concat(
+            [
+                np.cos(X).rename(lambda x: x + "_cos", axis=1),
+                np.sin(X).rename(lambda x: x + "_sin", axis=1),
+            ],
+            axis=1,
+        ).sort_index(axis=1)

@@ -57,15 +57,17 @@ class _BaseCaruana(LinearModel):
         Target bias
     """
 
-    def __init__(self,
-                 scoring: str,
-                 iters: int = 100,
-                 init_iters: int = 10,
-                 colsample: float = 0.5,
-                 replace: bool = True,
-                 random_state: int = None,
-                 n_jobs: int = -1,
-                 tqdm: bool = False):
+    def __init__(
+        self,
+        scoring: str,
+        iters: int = 100,
+        init_iters: int = 10,
+        colsample: float = 0.5,
+        replace: bool = True,
+        random_state: int = None,
+        n_jobs: int = -1,
+        tqdm: bool = False,
+    ):
         self.y_avg_ = None
         self.weights_ = None
         self.scorer = None
@@ -79,9 +81,7 @@ class _BaseCaruana(LinearModel):
         self.n_jobs = n_jobs
         self.tqdm = tqdm
 
-    def fit(self,
-            X: pd.DataFrame,
-            y: pd.Series) -> '_BaseCaruana':
+    def fit(self, X: pd.DataFrame, y: pd.Series) -> "_BaseCaruana":
         """
         Parameters
         ----------
@@ -97,7 +97,7 @@ class _BaseCaruana(LinearModel):
         """
 
         # Check if the model is a classifier
-        if self._estimator_type is 'classifier':
+        if self._estimator_type is "classifier":
             self.classes_ = np.unique(y)
 
         # Get the scoring function for the objective
@@ -123,7 +123,7 @@ class _BaseCaruana(LinearModel):
             self.weights_[k] -= 1
 
         scores = pd.Series(scores).sort_values(ascending=False)
-        scores = scores[:self.init_iters]
+        scores = scores[: self.init_iters]
         self.weights_[scores.index] += 1
 
         # Core Algorithm
@@ -157,9 +157,7 @@ class _BaseCaruana(LinearModel):
 
         return self
 
-    def score(self,
-              X: pd.DataFrame,
-              y: pd.Series) -> float:
+    def score(self, X: pd.DataFrame, y: pd.Series) -> float:
         """
         Returns the score of the blended model on the given data.
 
@@ -177,8 +175,7 @@ class _BaseCaruana(LinearModel):
         """
         return self.scorer(self, X, y)
 
-    def _blend(self,
-               X: pd.DataFrame) -> np.ndarray:
+    def _blend(self, X: pd.DataFrame) -> np.ndarray:
         """
         Returns the predicted values of the blended model on the given data.
 
@@ -223,9 +220,7 @@ class _BaseCaruana(LinearModel):
 
 
 class CaruanaRegressor(_BaseCaruana, RegressorMixin):
-
-    def predict(self,
-                X: np.ndarray) -> np.ndarray:
+    def predict(self, X: np.ndarray) -> np.ndarray:
         """
         Make predictions for a given input.
 
@@ -243,9 +238,7 @@ class CaruanaRegressor(_BaseCaruana, RegressorMixin):
 
 
 class CaruanaClassifier(_BaseCaruana, ClassifierMixin):
-
-    def predict_proba(self,
-                      X: np.ndarray) -> np.ndarray:
+    def predict_proba(self, X: np.ndarray) -> np.ndarray:
         """
         Predict class probabilities for a given input.
 
@@ -262,10 +255,9 @@ class CaruanaClassifier(_BaseCaruana, ClassifierMixin):
             the negative class, and the second column is the probability of the positive class.
         """
         y = self._blend(X)
-        return np.stack([1-y, y], axis=-1)
+        return np.stack([1 - y, y], axis=-1)
 
-    def predict(self,
-                X: np.ndarray) -> np.ndarray:
+    def predict(self, X: np.ndarray) -> np.ndarray:
         """
         Make predictions for a given input.
 

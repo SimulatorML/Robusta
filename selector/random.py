@@ -102,21 +102,22 @@ class RandomSelector(_WrappedSelector):
 
     """
 
-    def __init__(self,
-                 estimator: BaseEstimator,
-                 cv: int = 5,
-                 scoring: Optional[Union[str, Callable]] = None,
-                 max_iter: int = 20,
-                 max_time: Optional[int] = None,
-                 min_features: float = 0.5,
-                 max_features: float = 0.9,
-                 weights: str = 'uniform',
-                 n_jobs: int = -1,
-                 random_state: int = 0,
-                 verbose: int = 1,
-                 n_digits: int = 4,
-                 cv_kwargs: Optional[dict] = None):
-
+    def __init__(
+        self,
+        estimator: BaseEstimator,
+        cv: int = 5,
+        scoring: Optional[Union[str, Callable]] = None,
+        max_iter: int = 20,
+        max_time: Optional[int] = None,
+        min_features: float = 0.5,
+        max_features: float = 0.9,
+        weights: str = "uniform",
+        n_jobs: int = -1,
+        random_state: int = 0,
+        verbose: int = 1,
+        n_digits: int = 4,
+        cv_kwargs: Optional[dict] = None,
+    ):
         if cv_kwargs is None:
             cv_kwargs = {}
         self.estimator = estimator
@@ -135,10 +136,9 @@ class RandomSelector(_WrappedSelector):
         self.verbose = verbose
         self.n_digits = n_digits
 
-    def fit(self,
-            X: pd.DataFrame,
-            y: pd.Series,
-            groups: Optional[pd.Series] = None) -> 'RandomSelector':
+    def fit(
+        self, X: pd.DataFrame, y: pd.Series, groups: Optional[pd.Series] = None
+    ) -> "RandomSelector":
         """
         Fits the random selector to the data.
 
@@ -167,10 +167,9 @@ class RandomSelector(_WrappedSelector):
 
         return self
 
-    def partial_fit(self,
-                    X: pd.DataFrame,
-                    y: pd.Series,
-                    groups: Optional[pd.Series] = None) -> 'RandomSelector':
+    def partial_fit(
+        self, X: pd.DataFrame, y: pd.Series, groups: Optional[pd.Series] = None
+    ) -> "RandomSelector":
         """
         Fits the RandomSelector model to the given dataset.
 
@@ -199,10 +198,9 @@ class RandomSelector(_WrappedSelector):
 
         return self
 
-    def _fit(self,
-             X: pd.DataFrame,
-             y: pd.Series,
-             groups: Optional[pd.Series] = None) -> 'RandomSelector':
+    def _fit(
+        self, X: pd.DataFrame, y: pd.Series, groups: Optional[pd.Series] = None
+    ) -> "RandomSelector":
         """
         Fits the RandomSelector model by randomly selecting subsets of features according to specified weights,
         and evaluating their performance on the given data.
@@ -241,9 +239,7 @@ class RandomSelector(_WrappedSelector):
 
         return self
 
-    def _fit_start(self,
-                   X: pd.DataFrame,
-                   partial: bool = False) -> 'RandomSelector':
+    def _fit_start(self, X: pd.DataFrame, partial: bool = False) -> "RandomSelector":
         """
         Fits the RandomSelector model to the given dataset in a partial manner.
 
@@ -267,27 +263,26 @@ class RandomSelector(_WrappedSelector):
             # If not re-using previously computed weights, reset list of trials
             self._reset_trials()
 
-        if not partial and hasattr(self, 'random_state'):
+        if not partial and hasattr(self, "random_state"):
             self.rstate_ = check_random_state(self.random_state)
 
         # Set the list of available features
         self._set_features(X)
 
-        weights_vals = ['uniform', 'binomal']
+        weights_vals = ["uniform", "binomal"]
 
-        if self.weights == 'binomal':
+        if self.weights == "binomal":
             # Generate binomial weights if specified
-            self.weights_ = binomal_weights(self.min_features_,
-                                            self.max_features_,
-                                            self.n_features_)
+            self.weights_ = binomal_weights(
+                self.min_features_, self.max_features_, self.n_features_
+            )
 
-        elif self.weights == 'uniform':
+        elif self.weights == "uniform":
             # Generate uniform weights if specified
-            self.weights_ = uniform_weights(self.min_features_,
-                                            self.max_features_)
+            self.weights_ = uniform_weights(self.min_features_, self.max_features_)
         else:
             # Raise error if weights value is not valid
-            raise ValueError(f'<weights> must be from {weights_vals}')
+            raise ValueError(f"<weights> must be from {weights_vals}")
 
         return self
 
@@ -301,13 +296,13 @@ class RandomSelector(_WrappedSelector):
             A list or NumPy array of the indices of the selected features.
         """
 
-        if hasattr(self, 'best_subset_'):
+        if hasattr(self, "best_subset_"):
             # If using the best subset and the attribute `best_subset_` exists, return the best subset
             return self.best_subset_
         else:
             # If the model is not fitted or no subset is available, raise an error
             model_name = self.__class__.__name__
-            raise NotFittedError(f'{model_name} is not fitted')
+            raise NotFittedError(f"{model_name} is not fitted")
 
 
 class GroupRandomSelector(_WrappedGroupSelector, RandomSelector):

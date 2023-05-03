@@ -35,17 +35,14 @@ class WrappedRegressor(BaseEstimator, ClassifierMixin):
     predict(X)
         Predict the class of the input data.
     """
-    def __init__(self,
-                 regressor: BaseEstimator,
-                 method: str = 'minmax'):
+
+    def __init__(self, regressor: BaseEstimator, method: str = "minmax"):
         self.regressor_ = None
         self.classes_ = None
         self.regressor = regressor
         self.method = method
 
-    def fit(self,
-            X: pd.DataFrame,
-            y: pd.Series) -> 'WrappedRegressor':
+    def fit(self, X: pd.DataFrame, y: pd.Series) -> "WrappedRegressor":
         """
         Fit the regressor to the data and binarize the target variable.
 
@@ -70,8 +67,7 @@ class WrappedRegressor(BaseEstimator, ClassifierMixin):
 
         return self
 
-    def decision_function(self,
-                          X: pd.DataFrame) -> np.array:
+    def decision_function(self, X: pd.DataFrame) -> np.array:
         """
         Compute the decision function of the regressor on the input data.
 
@@ -93,8 +89,7 @@ class WrappedRegressor(BaseEstimator, ClassifierMixin):
         y = y - 0.5
         return y
 
-    def predict_proba(self,
-                      X: pd.DataFrame) -> np.ndarray:
+    def predict_proba(self, X: pd.DataFrame) -> np.ndarray:
         """
         Compute class probabilities of the input data.
 
@@ -113,15 +108,14 @@ class WrappedRegressor(BaseEstimator, ClassifierMixin):
         y = self.decision_function(X)
 
         # Scale the output to [0, 1] using the specified method
-        if self.method is 'minmax':
+        if self.method is "minmax":
             y = y - y.min()
             y = y / y.max()
 
         # Return the class probabilities
         return np.stack([1 - y, y], axis=-1)
 
-    def predict(self,
-                X: pd.DataFrame) -> np.array:
+    def predict(self, X: pd.DataFrame) -> np.array:
         """
         Predict the class of the input data.
 

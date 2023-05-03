@@ -28,14 +28,16 @@ class FeatureSubset:
     AssertionError:
         If features are not unique.
     """
-    def __init__(self,
-                 features: Union[pd.Index, np.ndarray],
-                 subset: Optional[Sequence[Union[int, str]]] = None,
-                 mask: Optional[Sequence[bool]] = None,
-                 group: bool = False):
 
+    def __init__(
+        self,
+        features: Union[pd.Index, np.ndarray],
+        subset: Optional[Sequence[Union[int, str]]] = None,
+        mask: Optional[Sequence[bool]] = None,
+        group: bool = False,
+    ):
         # Features
-        msg = '<features> must be unique'
+        msg = "<features> must be unique"
         assert len(set(features)) == len(features), msg
 
         if group:
@@ -47,7 +49,7 @@ class FeatureSubset:
 
         # subset OR mask
         if subset is not None and mask is not None:
-            raise ValueError('<subset> & <mask> could not be set at once')
+            raise ValueError("<subset> & <mask> could not be set at once")
 
         elif subset is not None:
             self.set_subset(subset)
@@ -70,9 +72,7 @@ class FeatureSubset:
         """
         return self.n_selected
 
-    def __array__(self,
-                  *args,
-                  **kwargs) -> np.ndarray:
+    def __array__(self, *args, **kwargs) -> np.ndarray:
         """
         Returns a numpy array of the selected features.
         """
@@ -89,18 +89,16 @@ class FeatureSubset:
         Returns a string representation of the FeatureSubset object.
         """
         nm = self.__class__.__name__
-        st = self.__str__().replace('\n', '\n ' + ' ' * len(nm))
-        return '{}({})'.format(nm, st)
+        st = self.__str__().replace("\n", "\n " + " " * len(nm))
+        return "{}({})".format(nm, st)
 
-    def __eq__(self,
-               other) -> bool:
+    def __eq__(self, other) -> bool:
         """
         Returns True if this FeatureSubset object is equal to the other FeatureSubset object.
         """
         return np.all(self.mask == other.mask)
 
-    def set_subset(self,
-                   subset: Sequence[Union[int, str]]) -> 'FeatureSubset':
+    def set_subset(self, subset: Sequence[Union[int, str]]) -> "FeatureSubset":
         """
         Sets the subset of features to the given indices or feature names.
 
@@ -119,18 +117,17 @@ class FeatureSubset:
         self : object
             The FeatureSubset object with the new subset.
         """
-        msg = 'Not all <subset> values are in <features>'
+        msg = "Not all <subset> values are in <features>"
         assert np.isin(subset, self.features).all(), msg
 
-        msg = 'All <subset> values must be unique'
+        msg = "All <subset> values must be unique"
         assert len(set(subset)) == len(subset), msg
 
         self.set_mask(np.isin(self.features, subset))
 
         return self
 
-    def set_mask(self,
-                 mask: np.ndarray) -> 'FeatureSubset':
+    def set_mask(self, mask: np.ndarray) -> "FeatureSubset":
         """
         Set the mask for the selected features.
 
@@ -144,7 +141,7 @@ class FeatureSubset:
         self : object
             FeatureSelector: A new FeatureSelector object with the updated mask.
         """
-        msg = '<mask> length must be the same as <features>'
+        msg = "<mask> length must be the same as <features>"
         assert len(mask) == self.n_features, msg
 
         self.mask = np.array(mask, dtype=bool)
@@ -152,9 +149,9 @@ class FeatureSubset:
 
         return self
 
-    def sample(self,
-               size: Optional[int] = None,
-               random_state: Optional[int] = None) -> 'FeatureSubset':
+    def sample(
+        self, size: Optional[int] = None, random_state: Optional[int] = None
+    ) -> "FeatureSubset":
         """
         Sample a subset of features randomly.
 
@@ -180,9 +177,7 @@ class FeatureSubset:
             mask = rstate.randint(0, 2, size=self.n_features, dtype=bool)
             return self.copy().set_mask(mask)
 
-    def remove(self,
-               *features,
-               copy: bool = True) -> 'FeatureSubset':
+    def remove(self, *features, copy: bool = True) -> "FeatureSubset":
         """
         Remove the specified features from the selected subset.
 
@@ -200,10 +195,10 @@ class FeatureSubset:
         """
         self = self.copy() if copy else self
 
-        msg = 'All elements must be unique'
+        msg = "All elements must be unique"
         assert len(set(features)) == len(features), msg
 
-        msg = 'All elements must be in <subset>'
+        msg = "All elements must be in <subset>"
         assert np.isin(features, self.subset).all(), msg
 
         mask = np.isin(self.features, features)
@@ -211,9 +206,7 @@ class FeatureSubset:
 
         return self
 
-    def append(self,
-               *features,
-               copy: bool = True) -> 'FeatureSubset':
+    def append(self, *features, copy: bool = True) -> "FeatureSubset":
         """
         Append the specified features to the selected subset.
 
@@ -231,20 +224,20 @@ class FeatureSubset:
         """
         self = self.copy() if copy else self
 
-        msg = 'All elements must be unique'
+        msg = "All elements must be unique"
         assert len(set(features)) == len(features), msg
 
-        msg = 'All elements must be in <features>'
+        msg = "All elements must be in <features>"
         assert np.isin(features, self.features).all(), msg
 
-        msg = 'Some elements already in <subset>'
+        msg = "Some elements already in <subset>"
         assert not np.isin(features, self.subset).any(), msg
 
         self.set_subset(np.append(self.subset, features))
 
         return self
 
-    def copy(self) -> 'FeatureSubset':
+    def copy(self) -> "FeatureSubset":
         """
         Return a copy of the current FeatureSelector object.
 

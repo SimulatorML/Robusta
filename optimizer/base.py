@@ -143,19 +143,20 @@ class BaseOptimizer(BaseEstimator):
 
     """
 
-    def __init__(self,
-                 estimator: BaseEstimator,
-                 cv: int = 5,
-                 scoring: Optional[Union[str, Callable]] = None,
-                 param_space: Optional[dict] = None,
-                 warm_start: bool = False,
-                 max_time: Optional[int] = None,
-                 max_iter: Optional[int] = None,
-                 n_jobs: Optional[int] = None,
-                 verbose: int = 1,
-                 n_digits: int = 4,
-                 debug: bool = False):
-
+    def __init__(
+        self,
+        estimator: BaseEstimator,
+        cv: int = 5,
+        scoring: Optional[Union[str, Callable]] = None,
+        param_space: Optional[dict] = None,
+        warm_start: bool = False,
+        max_time: Optional[int] = None,
+        max_iter: Optional[int] = None,
+        n_jobs: Optional[int] = None,
+        verbose: int = 1,
+        n_digits: int = 4,
+        debug: bool = False,
+    ):
         self.estimator = estimator
         self.param_space = param_space
         self.warm_start = warm_start
@@ -171,11 +172,9 @@ class BaseOptimizer(BaseEstimator):
         self.n_jobs = n_jobs
         self.debug = debug
 
-    def eval_params(self,
-                    params: dict,
-                    X: pd.DataFrame,
-                    y: pd.Series,
-                    groups: pd.Series = None) -> Union[float]:
+    def eval_params(
+        self, params: dict, X: pd.DataFrame, y: pd.Series, groups: pd.Series = None
+    ) -> Union[float]:
         """
         Evaluates the given hyperparameters on the provided dataset using cross-validation.
 
@@ -214,23 +213,25 @@ class BaseOptimizer(BaseEstimator):
             estimator = clone(self.estimator).set_params(**params)
 
             # Perform cross-validation and compute scores
-            scores = crossval_score(estimator=estimator,
-                                    cv=self.cv,
-                                    X=X,
-                                    y=y,
-                                    groups=groups,
-                                    scoring=self.scoring,
-                                    n_jobs=self.n_jobs,
-                                    verbose=0)
+            scores = crossval_score(
+                estimator=estimator,
+                cv=self.cv,
+                X=X,
+                y=y,
+                groups=groups,
+                scoring=self.scoring,
+                n_jobs=self.n_jobs,
+                verbose=0,
+            )
 
             # Record the results of the trial
             trial = {
-                'params': params,
-                'status': 'ok',
-                'time': time() - tic,
-                'score': np.mean(scores),
-                'score_std': np.std(scores),
-                'scores': scores,
+                "params": params,
+                "status": "ok",
+                "time": time() - tic,
+                "score": np.mean(scores),
+                "score_std": np.std(scores),
+                "scores": scores,
             }
 
             # Add the trial to the list of trials
@@ -240,7 +241,7 @@ class BaseOptimizer(BaseEstimator):
             _print_last(self)
 
             # Return the mean score obtained through cross-validation
-            return trial['score']
+            return trial["score"]
 
         except KeyboardInterrupt:
             # If the user interrupts the evaluation, raise a KeyboardInterrupt exception
@@ -248,9 +249,9 @@ class BaseOptimizer(BaseEstimator):
 
             # Record the results of the trial as failed
             trial = {
-                'params': params,
-                'status': 'fail',
-                'time': time() - tic,
+                "params": params,
+                "status": "fail",
+                "time": time() - tic,
             }
 
             # Add the trial to the list of trials
@@ -267,8 +268,7 @@ class BaseOptimizer(BaseEstimator):
             if self.debug:
                 raise
 
-    def _append_trial(self,
-                      trial: dict) -> None:
+    def _append_trial(self, trial: dict) -> None:
         """
         Append a trial to the trials_ dataframe.
 
@@ -294,7 +294,7 @@ class BaseOptimizer(BaseEstimator):
         best_iter: int
             Best iteration from trials
         """
-        return self.trials_['score'].idxmax()
+        return self.trials_["score"].idxmax()
 
     @property
     def best_score_(self) -> int:
@@ -306,7 +306,7 @@ class BaseOptimizer(BaseEstimator):
         score : int
             Best score among trials
         """
-        return self.trials_['score'][self.best_iter_]
+        return self.trials_["score"][self.best_iter_]
 
     @property
     def best_params_(self) -> dict:
@@ -318,7 +318,7 @@ class BaseOptimizer(BaseEstimator):
         params : dict
             Best parameter settings
         """
-        return self.trials_['params'][self.best_iter_]
+        return self.trials_["params"][self.best_iter_]
 
     @property
     def best_estimator_(self) -> BaseEstimator:
@@ -342,11 +342,11 @@ class BaseOptimizer(BaseEstimator):
         int:
             Number of iterations.
         """
-        return len(self.trials_) if hasattr(self, 'trials_') else 0
+        return len(self.trials_) if hasattr(self, "trials_") else 0
 
     @property
     def total_time_(self) -> float:
-        return self.trials_['time'].sum() if hasattr(self, 'trials_') else .0
+        return self.trials_["time"].sum() if hasattr(self, "trials_") else 0.0
 
     @property
     def predict(self) -> float:
@@ -358,30 +358,31 @@ class BaseOptimizer(BaseEstimator):
         float:
             Total time spent (in seconds).
         """
-        return self.trials_['time'].sum() if hasattr(self, 'trials_') else .0
+        return self.trials_["time"].sum() if hasattr(self, "trials_") else 0.0
 
     def _check_max_iter(self) -> None:
         """
         Checks if the maximum number of iterations has been reached and raises a KeyboardInterrupt if it has.
         """
-        if hasattr(self, 'max_iter') and self.max_iter:
+        if hasattr(self, "max_iter") and self.max_iter:
             if self.max_iter <= self.n_iters_:
-                if self.verbose: print('Iterations limit exceed!')
+                if self.verbose:
+                    print("Iterations limit exceed!")
                 raise KeyboardInterrupt
 
     def _check_max_time(self) -> None:
         """
         Checks if the maximum time limit has been reached and raises a KeyboardInterrupt if it has.
         """
-        if hasattr(self, 'max_time') and self.max_time:
+        if hasattr(self, "max_time") and self.max_time:
             if self.max_time <= self.total_time_:
-                if self.verbose: print('Time limit exceed!')
+                if self.verbose:
+                    print("Time limit exceed!")
                 raise KeyboardInterrupt
 
-    def fit(self,
-            X: pd.DataFrame,
-            y: pd.Series,
-            groups: pd.Series = None) -> 'BaseOptimizer':
+    def fit(
+        self, X: pd.DataFrame, y: pd.Series, groups: pd.Series = None
+    ) -> "BaseOptimizer":
         """
         Fits the optimizer to the data.
 
@@ -403,15 +404,17 @@ class BaseOptimizer(BaseEstimator):
         # Check if params set to auto
         self.param_space_ = self.param_space
         if not self.param_space_:
-            self.param_space_ = extract_param_space(self.estimator, verbose=self.verbose)
+            self.param_space_ = extract_param_space(
+                self.estimator, verbose=self.verbose
+            )
 
         # Define new space
-        if not self.warm_start or not hasattr(self, 'btypes'):
+        if not self.warm_start or not hasattr(self, "btypes"):
             self.btypes = get_bound_types(self.param_space_)
             self.space = self._get_space(self.param_space_)
 
         # Reset trials
-        if not self.warm_start or not hasattr(self, 'trials_'):
+        if not self.warm_start or not hasattr(self, "trials_"):
             self.trials_ = pd.DataFrame()
 
         # Custom core fit
@@ -419,8 +422,7 @@ class BaseOptimizer(BaseEstimator):
 
         return self
 
-    def plot(self,
-             **kwargs) -> None:
+    def plot(self, **kwargs) -> None:
         """
         Plots the optimization process using the defined plotting function.
 
@@ -455,49 +457,45 @@ def get_bound_types(space: dict) -> dict:
     btypes = {}
 
     for param, bounds in space.items():
-
         if isinstance(bounds, str):
-            btype = 'const'
+            btype = "const"
 
         elif isinstance(bounds, Iterable):
             if isinstance(bounds, set):
-                btype = 'choice'
+                btype = "choice"
 
             elif isinstance(bounds, tuple):
-
                 if len(bounds) == 2:
-                    btype = 'uniform'
+                    btype = "uniform"
 
                 elif len(bounds) == 3:
-
-                    if bounds[2] == 'log':
-                        btype = 'loguniform'
+                    if bounds[2] == "log":
+                        btype = "loguniform"
 
                     elif isinstance(bounds[2], int):
-                        btype = 'quniform_int'
+                        btype = "quniform_int"
 
                     elif isinstance(bounds[2], Number):
-                        btype = 'quniform'
+                        btype = "quniform"
 
                     else:
-                        raise ValueError('Unknown bounds type: {}'.format(bounds))
+                        raise ValueError("Unknown bounds type: {}".format(bounds))
 
                 else:
-                    raise ValueError('Unknown bounds type: {}'.format(bounds))
+                    raise ValueError("Unknown bounds type: {}".format(bounds))
 
             else:
-                raise ValueError('Unknown bounds type: {}'.format(bounds))
+                raise ValueError("Unknown bounds type: {}".format(bounds))
 
         else:
-            btype = 'const'
+            btype = "const"
 
         btypes[param] = btype
 
     return btypes
 
 
-def fix_params(params: dict,
-               space: dict) -> dict:
+def fix_params(params: dict, space: dict) -> dict:
     """
     Normalize parameters value according to defined space:
 
@@ -526,12 +524,11 @@ def fix_params(params: dict,
 
     # Normalize the parameters values according to the boundary types
     for param, bounds in space.items():
-
-        if btypes[param] in ['quniform', 'quniform_int']:
+        if btypes[param] in ["quniform", "quniform_int"]:
             a, b, q = bounds
             params[param] = qround(params[param], a, b, q)
 
-        elif btypes[param] is 'const':
+        elif btypes[param] is "const":
             params[param] = bounds
 
     return params
@@ -554,17 +551,19 @@ def ranking(ser: pd.Series) -> pd.Series:
     """
     ser = ser.fillna(ser.min())
 
-    rnk = ser.rank(method='dense', ascending=False)
+    rnk = ser.rank(method="dense", ascending=False)
     rnk = rnk.astype(int)
 
     return rnk
 
 
-def qround(x: Union[int, float],
-           a: Union[int, float],
-           b: Union[int, float],
-           q: Union[int, float],
-           decimals: int = 4):
+def qround(
+    x: Union[int, float],
+    a: Union[int, float],
+    b: Union[int, float],
+    q: Union[int, float],
+    decimals: int = 4,
+):
     """
     Convert x to one of [a, a+q, a+2q, .., b]
 

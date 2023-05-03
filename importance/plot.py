@@ -7,9 +7,11 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 
-def plot_importance(imps: List[pd.Series],
-                    features: Optional[List[str]] = None,
-                    k_top: Optional[int] = 30) -> None:
+def plot_importance(
+    imps: List[pd.Series],
+    features: Optional[List[str]] = None,
+    k_top: Optional[int] = 30,
+) -> None:
     """
     Plot feature importance using barplot.
 
@@ -42,11 +44,17 @@ def plot_importance(imps: List[pd.Series],
     imp_vals = np.hstack(imp_vals)
     imp_inds = np.hstack(imp_inds)
     imp = pd.Series(imp_vals, index=imp_inds)
-    imp.index.name = 'feature'
-    imp.name = 'importance'
+    imp.index.name = "feature"
+    imp.name = "importance"
 
     # Plot feature importance barplot
-    sns.barplot(x='importance', y='feature', data=imp.loc[features].reset_index(),
-                edgecolor=('#d4c3a3'), linewidth=2, palette="inferno_r")
+    sns.barplot(
+        x="importance",
+        y="feature",
+        data=imp.loc[features].reset_index(),
+        edgecolor=("#d4c3a3"),
+        linewidth=2,
+        palette="inferno_r",
+    )
     plt.grid(False)
     plt.show()

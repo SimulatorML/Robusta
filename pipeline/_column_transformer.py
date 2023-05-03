@@ -56,9 +56,7 @@ class ColumnTransformer(_BaseComposition, TransformerMixin):
 
     """
 
-    def __init__(self,
-                 transformer_list: list,
-                 remainder: str = 'drop'):
+    def __init__(self, transformer_list: list, remainder: str = "drop"):
         self.remaining_columns_ = None
         self.named_transformers_ = None
         self.transformers_ = None
@@ -80,9 +78,9 @@ class ColumnTransformer(_BaseComposition, TransformerMixin):
         """
         return [(name, trans) for name, trans, _ in self.transformer_list]
 
-    def fit(self,
-            X: pd.DataFrame,
-            y: Optional[pd.Series] = None) -> 'ColumnTransformer':
+    def fit(
+        self, X: pd.DataFrame, y: Optional[pd.Series] = None
+    ) -> "ColumnTransformer":
         """
         Fit all transformers using X.
 
@@ -122,24 +120,26 @@ class ColumnTransformer(_BaseComposition, TransformerMixin):
 
         # If there are remaining columns, transform them based on the given remainder value
         if self.remaining_columns_:
-            name, cols = 'remainder', self.remaining_columns_
+            name, cols = "remainder", self.remaining_columns_
 
             # Handle remainder based on given value
-            if hasattr(self.remainder, 'fit') and hasattr(self.remainder, 'transform'):
+            if hasattr(self.remainder, "fit") and hasattr(self.remainder, "transform"):
                 # If remainder is an estimator, clone & fit it
                 fitted_transformer = clone(self.remainder).fit(X[cols], y)
 
-            elif self.remainder is 'pass':
+            elif self.remainder is "pass":
                 # If remainder is 'pass', do nothing
                 fitted_transformer = Identity().fit(X[cols], y)
 
-            elif self.remainder is 'drop':
+            elif self.remainder is "drop":
                 # If remainder is 'drop', remove columns
                 fitted_transformer = ColumnSelector(cols=[]).fit(X[cols], y)
 
             else:
                 # If remainder is not 'pass', 'drop', or an estimator, raise error
-                raise ValueError('Unknown type for remainder. Must be "drop", "pass" or estimator.')
+                raise ValueError(
+                    'Unknown type for remainder. Must be "drop", "pass" or estimator.'
+                )
 
             # Create tuple to store fitted transformer, transformer name, and columns
             fitted_tuple = (name, fitted_transformer, cols)
@@ -150,8 +150,7 @@ class ColumnTransformer(_BaseComposition, TransformerMixin):
         # return self object
         return self
 
-    def transform(self,
-                  X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Transform X separately by each transformer, concatenate results.
 
@@ -178,8 +177,7 @@ class ColumnTransformer(_BaseComposition, TransformerMixin):
         Xt = pd.concat(Xt_list, axis=1)
         return Xt
 
-    def get_params(self,
-                   deep: bool = True) -> dict:
+    def get_params(self, deep: bool = True) -> dict:
         """
         Get parameters for this estimator.
 
@@ -194,10 +192,9 @@ class ColumnTransformer(_BaseComposition, TransformerMixin):
             Parameter names mapped to their values.
 
         """
-        return self._get_params('_transformers', deep=deep)
+        return self._get_params("_transformers", deep=deep)
 
-    def set_params(self,
-                   **kwargs) -> 'ColumnTransformer':
+    def set_params(self, **kwargs) -> "ColumnTransformer":
         """
         Set the parameters of this estimator.
         Valid parameter keys can be listed with ``get_params()``.
@@ -208,11 +205,13 @@ class ColumnTransformer(_BaseComposition, TransformerMixin):
             ColumnTransformer
 
         """
-        self._set_params('_transformers', **kwargs)
+        self._set_params("_transformers", **kwargs)
         return self
 
 
-def _get_transformer_list(estimators: List[Tuple]) -> List[Tuple[str, object, List[str]]]:
+def _get_transformer_list(
+    estimators: List[Tuple],
+) -> List[Tuple[str, object, List[str]]]:
     """
     Constructs a list of (name, transformer, column) tuples from a list of (transformer, column) tuples.
 
@@ -239,8 +238,7 @@ def _get_transformer_list(estimators: List[Tuple]) -> List[Tuple[str, object, Li
     return transformer_list
 
 
-def make_column_transformer(*transformers,
-                            **kwargs) -> ColumnTransformer:
+def make_column_transformer(*transformers, **kwargs) -> ColumnTransformer:
     """
     Construct a ColumnTransformer from the given transformers.
 
@@ -265,14 +263,15 @@ def make_column_transformer(*transformers,
     """
     # transformer_weights keyword is not passed through because the user
     # would need to know the automatically generated names of the transformers
-    n_jobs = kwargs.pop('n_jobs', None)
-    remainder = kwargs.pop('remainder', 'drop')
-    sparse_threshold = kwargs.pop('sparse_threshold', 0.3)
+    n_jobs = kwargs.pop("n_jobs", None)
+    remainder = kwargs.pop("remainder", "drop")
+    sparse_threshold = kwargs.pop("sparse_threshold", 0.3)
 
     if kwargs:
-        raise TypeError('Unknown keyword arguments: "{}"'.format(list(kwargs.keys())[0]))
+        raise TypeError(
+            'Unknown keyword arguments: "{}"'.format(list(kwargs.keys())[0])
+        )
 
     transformer_list = _get_transformer_list(transformers)
 
-    return ColumnTransformer(transformer_list,
-                             remainder=remainder)
+    return ColumnTransformer(transformer_list, remainder=remainder)

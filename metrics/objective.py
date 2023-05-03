@@ -3,9 +3,9 @@ from typing import Optional, Tuple
 import numpy as np
 
 
-def blend_objective(y_true: np.array,
-                    y_pred: np.array,
-                    coef: Optional[list] = None) -> Tuple[np.array, np.array]:
+def blend_objective(
+    y_true: np.array, y_pred: np.array, coef: Optional[list] = None
+) -> Tuple[np.array, np.array]:
     """
     A function that calculates the gradient and Hessian of a blend of loss functions for a given set of predictions.
 
@@ -46,7 +46,7 @@ def blend_objective(y_true: np.array,
     residual = y_pred - y_true
 
     grad = c * residual / (abs_residual + c)
-    hess = c ** 2 / (abs_residual + c) ** 2
+    hess = c**2 / (abs_residual + c) ** 2
 
     # Calculate gradient and Hessian for second loss function
     delta = 1.2
@@ -62,12 +62,16 @@ def blend_objective(y_true: np.array,
     # Calculate gradient and Hessian for fourth loss function
 
     grad_mae = np.array(residual)
-    grad_mae[grad_mae > 0] = 1.
-    grad_mae[grad_mae <= 0] = -1.
+    grad_mae[grad_mae > 0] = 1.0
+    grad_mae[grad_mae <= 0] = -1.0
     hess_mae = 1.0
 
     # Weight the gradient and Hessian for each loss function according to the provided coefficients
-    grad = coef[0] * grad + coef[1] * grad_huber + coef[2] * residual + coef[3] * grad_mae
-    hess = coef[0] * hess + coef[1] * hess_huber + coef[2] * hess_rmse + coef[3] * hess_mae
+    grad = (
+        coef[0] * grad + coef[1] * grad_huber + coef[2] * residual + coef[3] * grad_mae
+    )
+    hess = (
+        coef[0] * hess + coef[1] * hess_huber + coef[2] * hess_rmse + coef[3] * hess_mae
+    )
 
     return grad, hess

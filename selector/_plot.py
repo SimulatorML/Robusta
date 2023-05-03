@@ -4,8 +4,7 @@ import matplotlib.pylab as plt
 from matplotlib.ticker import MaxNLocator
 
 
-def _plot_subset(fs: object,
-                 **kwargs) -> Tuple:
+def _plot_subset(fs: object, **kwargs) -> Tuple:
     """
     Plots the score versus the number of selected features for each trial in a feature selection object.
 
@@ -27,11 +26,11 @@ def _plot_subset(fs: object,
 
     # Set the title and labels of the plot
     ax.set_title(type(fs).__name__)
-    ax.set_xlabel('# features')
-    ax.set_ylabel('score')
+    ax.set_xlabel("# features")
+    ax.set_ylabel("score")
 
     # Check if the feature selection was performed in a forward or backward fashion
-    forward = getattr(fs, 'forward', True)
+    forward = getattr(fs, "forward", True)
 
     # Invert the x-axis if the feature selection was performed in a backward fashion
     if not forward:
@@ -39,7 +38,6 @@ def _plot_subset(fs: object,
 
     # Iterate through each trial and plot the scores versus the number of selected features
     for trial in fs.trials_:
-
         # Current Point
         x1 = trial.n_selected
         y1 = trial.score
@@ -47,12 +45,11 @@ def _plot_subset(fs: object,
         ax.plot([x1], [y1], **kwargs)
 
         # Previous Point
-        if hasattr(trial, 'parents'):
-
+        if hasattr(trial, "parents"):
             # Iterate through each parent trial and plot the scores versus the number of selected features
             for parent in trial.parents:
-
-                if not hasattr(parent, 'score'): continue
+                if not hasattr(parent, "score"):
+                    continue
 
                 x0 = parent.n_selected
                 y0 = parent.score
@@ -85,12 +82,11 @@ def _plot_progress(fs: Any, **kwargs: Dict[str, Any]) -> tuple:
 
     # Set the title, x-label, and y-label for the plot
     ax.set_title(type(fs).__name__)
-    ax.set_xlabel('iters')
-    ax.set_ylabel('score')
+    ax.set_xlabel("iters")
+    ax.set_ylabel("score")
 
     # Loop over each trial in the optimization algorithm
     for i, trial in enumerate(fs.trials_):
-
         # Get the current point's x and y coordinates
         x1 = trial.idx
         y1 = trial.score
@@ -99,13 +95,11 @@ def _plot_progress(fs: Any, **kwargs: Dict[str, Any]) -> tuple:
         ax.plot([x1], [y1], **kwargs)
 
         # Check if the current trial has parents
-        if hasattr(trial, 'parents'):
-
+        if hasattr(trial, "parents"):
             # Loop over each parent of the current trial
             for parent in trial.parents:
-
                 # Check if the parent has a score attribute
-                if not hasattr(parent, 'score'):
+                if not hasattr(parent, "score"):
                     continue
 
                 # Get the parent's x and y coordinates

@@ -35,8 +35,8 @@ class GridSearchCV(BaseOptimizer):
     grid : ParameterGrid
         A ParameterGrid object containing all the parameter combinations that will be evaluated.
     """
-    def _get_space(self,
-                   base_space: dict) -> dict:
+
+    def _get_space(self, base_space: dict) -> dict:
         """
         Convert the base_space dictionary into a dictionary of possible parameter values.
 
@@ -62,7 +62,7 @@ class GridSearchCV(BaseOptimizer):
         # Iterate through each parameter and its type in btypes
         for param, btype in self.btypes.items():
             # If the parameter is quantitative:
-            if btype in ['quniform', 'quniform_int']:
+            if btype in ["quniform", "quniform_int"]:
                 # Extract the minimum value, maximum value and step size from base_space dictionary for the parameter
                 a, b, q = base_space[param]
 
@@ -70,19 +70,21 @@ class GridSearchCV(BaseOptimizer):
                 space[param] = np.arange(a, b + q, q)
 
             # If the parameter is choice:
-            elif btype is 'choice':
+            elif btype is "choice":
                 # Populate the space dictionary with all the possible values for this parameter
                 space[param] = base_space[param]
 
             # If the parameter is constant:
-            elif btype is 'const':
+            elif btype is "const":
                 # Populate the space dictionary with a set containing the constant value for this parameter
                 space[param] = {base_space[param]}
 
             # If the parameter type is not valid, raise an error.
             else:
-                raise ValueError("Continuous type of parameter bounds are not "
-                                 "allowed for GridSearchCV")
+                raise ValueError(
+                    "Continuous type of parameter bounds are not "
+                    "allowed for GridSearchCV"
+                )
 
         # Calculate the maximum number of iterations required to cover all possible parameter values in space
         self.max_iter = reduce(lambda N, grid: N * len(grid), space.values(), 1)
@@ -90,10 +92,9 @@ class GridSearchCV(BaseOptimizer):
         # Return the space dictionary
         return space
 
-    def _fit(self,
-             X: pd.DataFrame,
-             y: pd.Series,
-             groups: pd.Series = None) -> 'GridSearchCV':
+    def _fit(
+        self, X: pd.DataFrame, y: pd.Series, groups: pd.Series = None
+    ) -> "GridSearchCV":
         """
         Generate all possible parameter combinations and evaluate them using the eval_params method.
 

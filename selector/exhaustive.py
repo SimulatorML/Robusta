@@ -80,17 +80,18 @@ class ExhaustiveSelector(_WrappedSelector):
 
     """
 
-    def __init__(self,
-                 estimator: BaseEstimator,
-                 cv: int = 5,
-                 scoring: Optional[Union[str, Callable]] = None,
-                 min_features: float = 0.5,
-                 n_jobs: int = -1,
-                 max_features: float = 0.9,
-                 verbose: int = 1,
-                 n_digits: int = 4,
-                 cv_kwargs: Optional[dict] = None):
-
+    def __init__(
+        self,
+        estimator: BaseEstimator,
+        cv: int = 5,
+        scoring: Optional[Union[str, Callable]] = None,
+        min_features: float = 0.5,
+        n_jobs: int = -1,
+        max_features: float = 0.9,
+        verbose: int = 1,
+        n_digits: int = 4,
+        cv_kwargs: Optional[dict] = None,
+    ):
         if cv_kwargs is None:
             cv_kwargs = {}
         self.estimator = estimator
@@ -106,10 +107,9 @@ class ExhaustiveSelector(_WrappedSelector):
 
         self.cv_kwargs = cv_kwargs
 
-    def fit(self,
-            X: pd.DataFrame,
-            y: pd.Series,
-            groups: Optional[pd.Series] = None) -> 'ExhaustiveSelector':
+    def fit(
+        self, X: pd.DataFrame, y: pd.Series, groups: Optional[pd.Series] = None
+    ) -> "ExhaustiveSelector":
         """
         Fits the selector on the input data and returns the fitted object.
 
@@ -134,10 +134,9 @@ class ExhaustiveSelector(_WrappedSelector):
 
         return self
 
-    def partial_fit(self,
-                    X: pd.DataFrame,
-                    y: pd.Series,
-                    groups: Optional[pd.Series] = None) -> 'ExhaustiveSelector':
+    def partial_fit(
+        self, X: pd.DataFrame, y: pd.Series, groups: Optional[pd.Series] = None
+    ) -> "ExhaustiveSelector":
         """
         Fits the selector on a subset of the input data and returns the partially fitted object.
 
@@ -162,9 +161,9 @@ class ExhaustiveSelector(_WrappedSelector):
 
         return self
 
-    def _fit_start(self,
-                   X: pd.DataFrame,
-                   partial: bool = False) -> 'ExhaustiveSelector':
+    def _fit_start(
+        self, X: pd.DataFrame, partial: bool = False
+    ) -> "ExhaustiveSelector":
         """
         Initializes the selector object and sets the features of the input data frame.
 
@@ -193,15 +192,14 @@ class ExhaustiveSelector(_WrappedSelector):
             self._reset_trials()
 
         # if the fitting is partial, reset the iteration counter
-        if not hasattr(self, 'k_iter') or not partial:
+        if not hasattr(self, "k_iter") or not partial:
             self.k_iter = 0
 
         return self
 
-    def _fit(self,
-             X: pd.DataFrame,
-             y: pd.Series,
-             groups: pd.Series) -> 'ExhaustiveSelector':
+    def _fit(
+        self, X: pd.DataFrame, y: pd.Series, groups: pd.Series
+    ) -> "ExhaustiveSelector":
         """
         Fits the selector object using the wrapped group selector algorithm.
 
@@ -240,11 +238,11 @@ class ExhaustiveSelector(_WrappedSelector):
             None or The best subset found by the model.
         """
 
-        if hasattr(self, 'best_subset_'):
+        if hasattr(self, "best_subset_"):
             return self.best_subset_
         else:
             model_name = self.__class__.__name__
-            raise NotFittedError(f'{model_name} is not fitted')
+            raise NotFittedError(f"{model_name} is not fitted")
 
 
 class GroupExhaustiveSelector(_WrappedGroupSelector, ExhaustiveSelector):

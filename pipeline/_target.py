@@ -45,17 +45,17 @@ class TransformedTargetRegressor(BaseEstimator, RegressorMixin):
 
     """
 
-    def __init__(self,
-                 regressor: Optional[RegressorMixin] = None,
-                 func: Optional[Callable] = None,
-                 inverse_func: Optional[Callable] = None):
+    def __init__(
+        self,
+        regressor: Optional[RegressorMixin] = None,
+        func: Optional[Callable] = None,
+        inverse_func: Optional[Callable] = None,
+    ):
         self.regressor = regressor
         self.func = func
         self.inverse_func = inverse_func
 
-    def fit(self,
-            X: pd.DataFrame,
-            y: pd.Series) -> 'TransformedTargetRegressor':
+    def fit(self, X: pd.DataFrame, y: pd.Series) -> "TransformedTargetRegressor":
         """
         Fit the model according to the given training data.
 
@@ -76,7 +76,7 @@ class TransformedTargetRegressor(BaseEstimator, RegressorMixin):
         """
 
         # Check if the input data has index and set attributes
-        if hasattr(X, 'index'):
+        if hasattr(X, "index"):
             self.return_df = True
             self.y_name = y.name
 
@@ -88,8 +88,7 @@ class TransformedTargetRegressor(BaseEstimator, RegressorMixin):
 
         return self
 
-    def predict(self,
-                X: pd.DataFrame) -> pd.Series:
+    def predict(self, X: pd.DataFrame) -> pd.Series:
         """
         Predict using the base regressor, applying inverse.
 

@@ -34,14 +34,14 @@ class LabelEncoder1D(BaseEstimator, TransformerMixin):
     cats_ : numpy.ndarray
         The unique categorical labels in the input array.
     """
+
     def __init__(self):
         self.inv_mapper = None
         self.mapper = None
         self.dtype = None
         self.cats_ = None
 
-    def fit(self,
-            y: pd.Series) -> 'LabelEncoder1D':
+    def fit(self, y: pd.Series) -> "LabelEncoder1D":
         """
         Fit the encoder to the input array of categorical labels.
 
@@ -75,8 +75,7 @@ class LabelEncoder1D(BaseEstimator, TransformerMixin):
 
         return self
 
-    def transform(self,
-                  y: pd.Series) -> pd.Series:
+    def transform(self, y: pd.Series) -> pd.Series:
         """
         Transform an input array of categorical labels to integer encodings.
 
@@ -94,8 +93,7 @@ class LabelEncoder1D(BaseEstimator, TransformerMixin):
         # Map each categorical label to its corresponding integer encoding using the mapper attribute.
         return y.map(self.mapper)
 
-    def inverse_transform(self,
-                          y: pd.Series) -> pd.Series:
+    def inverse_transform(self, y: pd.Series) -> pd.Series:
         """
         Transform an input array of integer encodings back to their original categorical labels.
 
@@ -125,11 +123,11 @@ class LabelEncoder:
         A dictionary containing a LabelEncoder1D transformer for each column in the input DataFrame.
 
     """
+
     def __init__(self):
         self.transformers = None
 
-    def fit(self,
-            X: pd.DataFrame) -> 'LabelEncoder':
+    def fit(self, X: pd.DataFrame) -> "LabelEncoder":
         """
         Fits a LabelEncoder1D instance to each column of the input pandas DataFrame.
 
@@ -153,8 +151,7 @@ class LabelEncoder:
             self.transformers[col] = LabelEncoder1D().fit(X[col])
         return self
 
-    def transform(self,
-                  X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Transforms a pandas DataFrame using the fitted LabelEncoder1D instances.
 
@@ -177,8 +174,7 @@ class LabelEncoder:
             Xt[col] = transformer.transform(X[col])
         return Xt
 
-    def inverse_transform(self,
-                          X: pd.DataFrame) -> pd.DataFrame:
+    def inverse_transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Inverse transforms a pandas DataFrame using the fitted LabelEncoder1D instances.
 
@@ -216,11 +212,11 @@ class Categorizer1D(BaseEstimator, TransformerMixin):
         The unique categories inferred from the input data during the `fit` method. If `fit` has not yet been called,
         this attribute is None.
     """
+
     def __init__(self):
         self.cats_ = None
 
-    def fit(self,
-            y: pd.Series) -> 'Categorizer1D':
+    def fit(self, y: pd.Series) -> "Categorizer1D":
         """
         Infers the unique categories from the input y and stores them in `cats_` attribute.
 
@@ -236,11 +232,10 @@ class Categorizer1D(BaseEstimator, TransformerMixin):
         """
 
         # infer unique categories from input y and store them in `cats_` attribute
-        self.cats_ = y.astype('category').values.categories
+        self.cats_ = y.astype("category").values.categories
         return self
 
-    def transform(self,
-                  y: pd.Series) -> pd.Categorical:
+    def transform(self, y: pd.Series) -> pd.Categorical:
         """
         Converts the input y into a categorical variable using the categories stored in `cats_` attribute.
 
@@ -271,11 +266,11 @@ class Categorizer(BaseEstimator, TransformerMixin):
     transformers : dict
         A dictionary mapping column names to the fitted Categorizer1D transformers.
     """
+
     def __init__(self):
         self.transformers = None
 
-    def fit(self,
-            X: pd.DataFrame) -> 'Categorizer':
+    def fit(self, X: pd.DataFrame) -> "Categorizer":
         """
         Fit a separate Categorizer1D transformer on each column of the input DataFrame.
 
@@ -300,8 +295,7 @@ class Categorizer(BaseEstimator, TransformerMixin):
 
         return self
 
-    def transform(self,
-                  X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Transform the input DataFrame by applying the fitted Categorizer1D transformers.
 
@@ -340,13 +334,12 @@ class FrequencyEncoder(BaseEstimator, TransformerMixin):
     value_counts_ : dict
         A dictionary containing the value counts for each categorical feature in the training set.
     """
-    def __init__(self,
-                 normalize: bool = True):
+
+    def __init__(self, normalize: bool = True):
         self.value_counts_ = None
         self.normalize = normalize
 
-    def fit(self,
-            X: pd.DataFrame) -> 'FrequencyEncoder':
+    def fit(self, X: pd.DataFrame) -> "FrequencyEncoder":
         """
         Fit the transformer to the training data.
 
@@ -365,8 +358,7 @@ class FrequencyEncoder(BaseEstimator, TransformerMixin):
         self.value_counts_ = {col: collections.Counter(X[col]) for col in X.columns}
         return self
 
-    def transform(self,
-                  X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Transform the input data by encoding the categorical features using their frequency in the training set.
 
@@ -408,9 +400,8 @@ class FeatureCombiner(BaseEstimator, TransformerMixin):
     n_subsets_: int
         Total number of subsets generated.
     """
-    def __init__(self,
-                 orders: Optional[list] = None,
-                 sep: str = ','):
+
+    def __init__(self, orders: Optional[list] = None, sep: str = ","):
         self.n_subsets_ = None
         self.subsets_ = None
         if orders is None:
@@ -418,8 +409,7 @@ class FeatureCombiner(BaseEstimator, TransformerMixin):
         self.orders = orders
         self.sep = sep
 
-    def fit(self,
-            X: pd.DataFrame) -> 'FeatureCombiner':
+    def fit(self, X: pd.DataFrame) -> "FeatureCombiner":
         """
         Generate all possible subsets of features up to the highest order specified in orders.
 
@@ -441,8 +431,7 @@ class FeatureCombiner(BaseEstimator, TransformerMixin):
 
         return self
 
-    def transform(self,
-                  X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Combine features by taking all possible subsets of features and concatenating their
         values using the separator specified in sep.
@@ -463,8 +452,13 @@ class FeatureCombiner(BaseEstimator, TransformerMixin):
         X = X.astype(str)
 
         # Concatenate values of all possible subsets of features up to the highest order specified in orders
-        X = pd.concat([X[subset].apply(self.sep.join, axis=1).rename(sep(subset))
-                       for subset in self.subsets_], axis=1)
+        X = pd.concat(
+            [
+                X[subset].apply(self.sep.join, axis=1).rename(sep(subset))
+                for subset in self.subsets_
+            ],
+            axis=1,
+        )
         return X
 
 
@@ -500,15 +494,13 @@ class SVDEncoder(BaseEstimator, TransformerMixin):
         the singular values of the count matrix for that pair of columns.
     """
 
-    def __init__(self,
-                 n_components: float = 0.9):
+    def __init__(self, n_components: float = 0.9):
         self.sigmas_ = None
         self.n_components_ = None
         self.embeddings_ = None
         self.n_components = n_components
 
-    def fit(self,
-            X: pd.DataFrame) -> 'SVDEncoder':
+    def fit(self, X: pd.DataFrame) -> "SVDEncoder":
         """
         Compute the SVD embeddings for each pair of columns in the input DataFrame X.
 
@@ -525,7 +517,7 @@ class SVDEncoder(BaseEstimator, TransformerMixin):
         """
 
         # Check for missing values in input DataFrame
-        assert not X.isna().any().any(), 'Missing values are not allowed'
+        assert not X.isna().any().any(), "Missing values are not allowed"
 
         # Initialize embeddings dictionary, number of components dataframe, and sigmas dictionary
         self.embeddings_ = {}
@@ -547,28 +539,31 @@ class SVDEncoder(BaseEstimator, TransformerMixin):
                 ratio = s.cumsum() / s.sum()
                 n_components_ = (ratio > self.n_components).argmax() + 1
             else:
-                raise ValueError('Unknown n_components type:', self.n_components)
+                raise ValueError("Unknown n_components type:", self.n_components)
 
             # Save number of components used for a pair of columns a and b
             self.n_components_.loc[a, b] = n_components_
             self.n_components_.loc[b, a] = n_components_
 
             # Create column names for left and right singular vectors
-            u_cols = [f'({a},{b})_svd{i}' for i in range(1, n_components_ + 1)]
-            v_cols = [f'({b},{a})_svd{i}' for i in range(1, n_components_ + 1)]
+            u_cols = [f"({a},{b})_svd{i}" for i in range(1, n_components_ + 1)]
+            v_cols = [f"({b},{a})_svd{i}" for i in range(1, n_components_ + 1)]
 
             # Create DataFrame of left singular vectors and add to embeddings dictionary
             u = pd.DataFrame(u[:, :n_components_], columns=u_cols, index=x.index)
             v = pd.DataFrame(v[:, :n_components_], columns=v_cols, index=x.columns)
 
             # Create DataFrame of right singular vectors and add to embeddings dictionary
-            self.embeddings_[a] = self.embeddings_.get(a, pd.DataFrame(index=X[a].unique())).join(u)
-            self.embeddings_[b] = self.embeddings_.get(b, pd.DataFrame(index=X[b].unique())).join(v)
+            self.embeddings_[a] = self.embeddings_.get(
+                a, pd.DataFrame(index=X[a].unique())
+            ).join(u)
+            self.embeddings_[b] = self.embeddings_.get(
+                b, pd.DataFrame(index=X[b].unique())
+            ).join(v)
 
         return self
 
-    def transform(self,
-                  X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Transform the input data by mapping each column to its SVD embeddings.
 
@@ -584,14 +579,17 @@ class SVDEncoder(BaseEstimator, TransformerMixin):
         """
 
         # Create a DataFrame of SVD embeddings for each column in input DataFrame
-        return pd.concat([self.embeddings_[col].loc[x].set_index(x.index)
-                          for col, x in X.items()], axis=1)
+        return pd.concat(
+            [self.embeddings_[col].loc[x].set_index(x.index) for col, x in X.items()],
+            axis=1,
+        )
 
 
 class LabelBinarizer(BaseEstimator, TransformerMixin):
     """
     Transformer to convert a categorical target variable to binary or one-hot encoded format.
     """
+
     def __init__(self):
         self.y_type_ = None
         self.y_name_ = None
@@ -600,8 +598,7 @@ class LabelBinarizer(BaseEstimator, TransformerMixin):
         self.inv_mapper_ = None
         self.encoder_ = None
 
-    def fit(self,
-            y: pd.Series) -> 'LabelBinarizer':
+    def fit(self, y: pd.Series) -> "LabelBinarizer":
         """
         Fit the transformer to the target variable.
 
@@ -624,11 +621,11 @@ class LabelBinarizer(BaseEstimator, TransformerMixin):
         self.y_name_ = y.name
 
         # Raise an error if multioutput target data is provided
-        if 'multioutput' in self.y_type_:
+        if "multioutput" in self.y_type_:
             raise ValueError("Multioutput target data is not supported")
 
         # Get the unique classes in the target variable
-        self.classes_ = y.astype('category').values.categories
+        self.classes_ = y.astype("category").values.categories
 
         # Raise an error if there is only one class in the target variable
         if len(self.classes_) == 1:
@@ -649,8 +646,7 @@ class LabelBinarizer(BaseEstimator, TransformerMixin):
 
         return self
 
-    def transform(self,
-                  y: pd.Series) -> pd.Series:
+    def transform(self, y: pd.Series) -> pd.Series:
         """
         Transform the target variable to binary or one-hot encoded format.
 
@@ -666,16 +662,15 @@ class LabelBinarizer(BaseEstimator, TransformerMixin):
         """
 
         # If binary encoding is used, map the class labels to binary values
-        if self.y_type_ == 'binary':
+        if self.y_type_ == "binary":
             y = np.asarray([self.mapper_[c] for c in y])
 
         # If multiclass encoding is used, transform the target variable using the encoder
-        elif self.y_type_ == 'multiclass':
+        elif self.y_type_ == "multiclass":
             y = self.encoder_.transform(y.values.reshape(-1, 1)).toarray()
         return y
 
-    def inverse_transform(self,
-                          y: pd.Series) -> pd.Series:
+    def inverse_transform(self, y: pd.Series) -> pd.Series:
         """
         Transform the binary or one-hot encoded target variable back to the original format.
 
@@ -691,11 +686,11 @@ class LabelBinarizer(BaseEstimator, TransformerMixin):
         """
 
         # If binary encoding is used, map the binary values to class labels
-        if self.y_type_ == 'binary':
+        if self.y_type_ == "binary":
             y = np.asarray([self.inv_mapper_[c] for c in y])
 
         # If multiclass encoding is used, transform the multiclass values to class labels
-        elif self.y_type_ == 'multiclass':
+        elif self.y_type_ == "multiclass":
             y = np.argwhere(y)[:, 1]
             y = pd.Series(self.classes_[y], name=self.y_name_)
         return y
@@ -709,13 +704,13 @@ class ThermometerEncoder1D(BaseEstimator, TransformerMixin):
     A thermometer encoding is a binary encoding where each column corresponds to a category and contains a
     1 if the value is less than or equal to that category and 0 otherwise.
     """
+
     def __init__(self):
         self.type_ = None
         self.name_ = None
         self.cats_ = None
 
-    def fit(self,
-            y: pd.Series) -> 'ThermometerEncoder1D':
+    def fit(self, y: pd.Series) -> "ThermometerEncoder1D":
         """
         Fit the transformer to the input data.
 
@@ -731,7 +726,7 @@ class ThermometerEncoder1D(BaseEstimator, TransformerMixin):
         """
 
         # Convert the input data to a categorical variable
-        self.cats_ = y.astype('category').cat.categories
+        self.cats_ = y.astype("category").cat.categories
 
         # Save the original data type, column name, and categories
         self.type_ = y.dtype
@@ -739,8 +734,7 @@ class ThermometerEncoder1D(BaseEstimator, TransformerMixin):
 
         return self
 
-    def transform(self,
-                  y: pd.Series) -> pd.DataFrame:
+    def transform(self, y: pd.Series) -> pd.DataFrame:
         """
         Transform the input data to a one-dimensional thermometer encoding.
 
@@ -766,10 +760,9 @@ class ThermometerEncoder1D(BaseEstimator, TransformerMixin):
         y.rename(lambda cat: f"{self.name_}:{cat}", axis=1, inplace=True)
 
         # Convert the data type to unsigned 8-bit integers
-        return y.astype('uint8')
+        return y.astype("uint8")
 
-    def inverse_transform(self,
-                          y: pd.DataFrame) -> pd.Series:
+    def inverse_transform(self, y: pd.DataFrame) -> pd.Series:
         """
         Inverse transform the one-dimensional thermometer encoding back to the original categorical variable.
 
@@ -786,8 +779,12 @@ class ThermometerEncoder1D(BaseEstimator, TransformerMixin):
 
         # Compute the original categorical variable by counting the number of 1s in each row and mapping to the
         # category names
-        y = pd.Series(self.cats_[y.sum(axis=1) - 1], index=y.index,
-                      name=self.name_, dtype=self.type_)
+        y = pd.Series(
+            self.cats_[y.sum(axis=1) - 1],
+            index=y.index,
+            name=self.name_,
+            dtype=self.type_,
+        )
         return y
 
 
@@ -796,13 +793,14 @@ class ThermometerEncoder(ThermometerEncoder1D):
     Encodes categorical features using the Thermometer Encoding technique in a one-hot fashion.
     Inherits from ThermometerEncoder1D class for encoding individual features.
     """
+
     def __init__(self):
         super().__init__()
         self.transformers = None
 
-    def fit(self,
-            X: pd.DataFrame,
-            y: Optional[pd.Series] = None) -> 'ThermometerEncoder':
+    def fit(
+        self, X: pd.DataFrame, y: Optional[pd.Series] = None
+    ) -> "ThermometerEncoder":
         """
         Fit a thermometer encoder for each column in X.
 
@@ -827,8 +825,7 @@ class ThermometerEncoder(ThermometerEncoder1D):
             self.transformers[col] = ThermometerEncoder1D().fit(X[col])
         return self
 
-    def transform(self,
-                  X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Transform each categorical feature in X using the fitted thermometer encoders.
 
@@ -844,10 +841,11 @@ class ThermometerEncoder(ThermometerEncoder1D):
         """
 
         # Concatenate the transformed data from each column's ThermometerEncoder1D object
-        return pd.concat([self.transformers[col].transform(X[col]) for col in X.columns], axis=1)
+        return pd.concat(
+            [self.transformers[col].transform(X[col]) for col in X.columns], axis=1
+        )
 
-    def inverse_transform(self,
-                          X: pd.DataFrame) -> pd.DataFrame:
+    def inverse_transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Inverse transform the encoded data X back to its original form.
 
@@ -866,8 +864,14 @@ class ThermometerEncoder(ThermometerEncoder1D):
         # Use ColumnFilter to select only the relevant columns from X
         # and then transform each column using the corresponding ThermometerEncoder1D object
         return pd.concat(
-            [self.transformers[col].inverse_transform(ColumnFilter(lambda s: s.startswith(col)).fit_transform(X)) for
-             col in X.columns], axis=1)
+            [
+                self.transformers[col].inverse_transform(
+                    ColumnFilter(lambda s: s.startswith(col)).fit_transform(X)
+                )
+                for col in X.columns
+            ],
+            axis=1,
+        )
 
 
 class GroupByEncoder(BaseEstimator, TransformerMixin):
@@ -894,16 +898,14 @@ class GroupByEncoder(BaseEstimator, TransformerMixin):
     diff : bool
         Whether to compute the difference between the original value and the aggregated value.
     """
-    def __init__(self,
-                 func: str = 'mean',
-                 diff: bool = False):
+
+    def __init__(self, func: str = "mean", diff: bool = False):
         self.nums_ = None
         self.cats_ = None
         self.func = func
         self.diff = diff
 
-    def fit(self,
-            X: pd.DataFrame) -> 'GroupByEncoder':
+    def fit(self, X: pd.DataFrame) -> "GroupByEncoder":
         """
         Fit the Transformer to the input DataFrame.
 
@@ -919,12 +921,11 @@ class GroupByEncoder(BaseEstimator, TransformerMixin):
         """
 
         # Find the names of the categorical and numerical features in the input DataFrame.
-        self.cats_ = list(X.select_dtypes(['category', 'object']))
+        self.cats_ = list(X.select_dtypes(["category", "object"]))
         self.nums_ = list(X.select_dtypes(np.number))
         return self
 
-    def transform(self,
-                  X: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Transform the input DataFrame by grouping numerical features by categorical features
         and applying the aggregation function to the groups.
@@ -946,7 +947,6 @@ class GroupByEncoder(BaseEstimator, TransformerMixin):
 
         # For each categorical feature and numerical feature pair:
         for cat, num in [(cat, num) for cat in self.cats_ for num in self.nums_]:
-
             # Create a new column name for the transformed feature.
             col = f"{num}__{cat}"
 
