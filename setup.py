@@ -1,22 +1,40 @@
 import setuptools
+from setuptools import setup
+import os
 
-with open("README.md", "r") as fh:
-    long_description = fh.read()
+cwd = os.path.dirname(os.path.realpath(__file__))
+file = os.path.join(cwd, 'requirements.txt')
 
-setuptools.setup(
-    name="robusta",
-    version="0.0.1",
-    author="Bogdan Gromov",
+with open(file) as f:
+    dependencies = list(map(lambda x: x.replace("\n", ""), f.readlines()))
+
+with open("README.md", 'r') as f:
+    long_description = f.read()
+
+setup(
+    name='robusta',
+    author='Bogdan Gromov',
     author_email="uberkinder@yandex.com",
     description="Robusta ML Framework",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/pypa/sampleproject",
+    install_requires=dependencies,
     packages=setuptools.find_packages(),
-    classifiers=[
-        "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: MIT License",
-        "Operating System :: OS Independent",
-    ],
+    include_package_data=True,
     python_requires='>=3.6',
+    classifiers=[
+        'Intended Audience :: Science',
+
+        'License :: OSI Approved :: MIT License',
+
+        'Natural Language :: English',
+
+        'Operating System :: OS Independent',
+
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.6',
+
+        'Topic :: Data Science :: Machine Learning',
+    ]
 )
