@@ -3,7 +3,7 @@ import optuna
 import pandas as pd
 from termcolor import colored
 
-from robusta.utils import logmsg, secfmt
+from ..utils import logmsg, secfmt
 
 
 def _print_last(opt: optuna.Trial):

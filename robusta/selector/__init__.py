@@ -9,6 +9,15 @@ from .genetic import GeneticSelector, GroupGeneticSelector
 from .random import RandomSelector, GroupRandomSelector
 from .greed import GreedSelector, GroupGreedSelector
 
+from ._plot import _plot_progress, _plot_subset
+from ._subset import FeatureSubset
+from ._verbose import _print_last
+from .base import (
+    _WrappedSelector,
+    _WrappedGroupSelector,
+    _Selector,
+    _check_k_features,
+)
 
 __all__ = [
     'GroupExhaustiveSelector', 'ExhaustiveSelector',
@@ -20,4 +29,12 @@ __all__ = [
     'GroupRFE', 'RFE',
     'GroupSAS', 'SAS',
     'SelectFromModel',
+    '_plot_progress',
+    '_plot_subset',
+    'FeatureSubset',
+    '_print_last',
+    '_WrappedSelector',
+    '_WrappedGroupSelector',
+    '_Selector',
+    '_check_k_features'
 ]

@@ -4,7 +4,7 @@ import pandas as pd
 from sklearn.base import BaseEstimator
 from sklearn.exceptions import NotFittedError
 
-from robusta.utils import all_subsets
+from ..utils import all_subsets
 from . import _WrappedSelector, _WrappedGroupSelector
 
 

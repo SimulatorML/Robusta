@@ -15,9 +15,9 @@ from sklearn.base import (
 from sklearn.model_selection import check_cv
 from sklearn.utils.metaestimators import _BaseComposition
 
-from robusta.crossval import _check_avg, _avg_preds
-from robusta.crossval import _predict
-from robusta.crossval import crossval
+from crossval import _check_avg, _avg_preds
+from crossval import _predict
+from crossval import crossval
 
 
 class StackingTransformer(_BaseComposition, TransformerMixin):

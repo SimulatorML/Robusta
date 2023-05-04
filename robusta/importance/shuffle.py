@@ -9,8 +9,8 @@ from sklearn.base import (
 from sklearn.utils.random import check_random_state
 from tqdm import tqdm_notebook as tqdm
 
-from . import get_importance
-from .. import crossval
+from .importance import get_importance
+from ..crossval import crossval
 
 
 def _shuffle_data(

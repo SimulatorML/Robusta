@@ -7,7 +7,7 @@ from sklearn.exceptions import NotFittedError
 from sklearn.model_selection import check_cv
 
 from . import _Selector
-from robusta.importance import get_importance
+from ..importance import get_importance
 
 
 class SelectFromModel(_Selector):

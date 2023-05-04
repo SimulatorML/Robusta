@@ -38,9 +38,9 @@ def all_estimators(type_filter: List[str] = None) -> dict:
         type_filter = ["regressor", "classifier"]
     for _, row in ESTIMATORS.iterrows():
         if (
-            not type_filter
-            or (row.type == type_filter)
-            or (row.type and row.type in type_filter)
+                not type_filter
+                or (row.type == type_filter)
+                or (row.type and row.type in type_filter)
         ):
             yield row.to_dict()
 
@@ -62,7 +62,7 @@ def all_transformers():
 
 
 def get_estimator(
-    estimator: BaseEstimator, estimator_type: Optional[str] = None, **params
+        estimator: BaseEstimator, estimator_type: Optional[str] = None, **params
 ) -> object:
     """
     Get model instance by name (if model is string, otherwise return model).

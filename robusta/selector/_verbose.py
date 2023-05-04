@@ -1,7 +1,7 @@
 import numpy as np
 from termcolor import colored
 
-from robusta.utils import logmsg, secfmt
+from ..utils import logmsg, secfmt
 
 
 def _print_last(fs: object):

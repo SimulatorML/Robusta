@@ -8,7 +8,7 @@ from sklearn.utils.random import check_random_state
 
 from . import _WrappedGroupSelector, _WrappedSelector
 from . import _plot_progress, _plot_subset
-from robusta.utils import logmsg, get_ranks, secfmt
+from ..utils import logmsg, get_ranks, secfmt
 
 
 def cxUniform(

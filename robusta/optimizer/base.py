@@ -9,8 +9,8 @@ from sklearn.base import BaseEstimator, clone
 
 from . import _plot_progress
 from . import _print_last
-from robusta.crossval import crossval_score
-from robusta.testing import extract_param_space
+from ..crossval import crossval_score
+from ..testing import extract_param_space
 
 
 class BaseOptimizer(BaseEstimator):

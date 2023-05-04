@@ -1,11 +1,15 @@
-from .caruana import *
-from .blend import *
-from .nng import *
+from .blend import (
+    BlendRegressor,
+    check_avg_type,
+)
+from .caruana import CaruanaRegressor
+from .nng import NNGRegressor
+from .nng import non_negative_garotte
 
 __all__ = [
-    'NNGRegressor',
     'BlendRegressor',
-    'BlendClassifier',
+    'check_avg_type',
     'CaruanaRegressor',
-    'CaruanaClassifier',
+    'NNGRegressor',
+    'non_negative_garotte',
 ]

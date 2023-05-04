@@ -1,15 +1,19 @@
-from ._column_transformer import *
-from ._feature_union import *
-from ._pipeline import *
-from ._target import *
-
+from ._column_transformer import (
+    ColumnTransformer,
+    make_column_transformer,
+)
+from ._feature_union import (
+    FeatureUnion,
+    make_union,
+)
+from ._pipeline import Pipeline
+from ._target import TransformedTargetRegressor
 
 __all__ = [
-    'Pipeline',
-    'make_pipeline',
     'ColumnTransformer',
     'make_column_transformer',
     'FeatureUnion',
     'make_union',
-    'TransformedTargetRegressor',
+    'Pipeline',
+    'TransformedTargetRegressor'
 ]

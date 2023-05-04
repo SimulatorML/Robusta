@@ -5,7 +5,7 @@ import pandas as pd
 from sklearn.base import clone, ClassifierMixin, BaseEstimator
 from sklearn.utils.metaestimators import _BaseComposition, if_delegate_has_method
 
-from robusta.utils import logmsg
+from ..utils import logmsg
 
 
 class PseudoLabeling(_BaseComposition, ClassifierMixin):

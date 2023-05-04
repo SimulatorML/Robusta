@@ -1,18 +1,19 @@
-from .sklearn import *
-from .divided import *
-from .supervised import *
-
+from .base import OutlierDetector
+from .divided import DividedOutlierDetector
+from .sklearn import (
+    OneClassSVM,
+    RobustCovariance,
+    LocalOutlierFactor,
+    IsolationForest,
+)
+from .supervised import SupervisedOutlierDetector
 
 __all__ = [
-    # Sklearn Outlier Detectors
+    'OutlierDetector',
+    'DividedOutlierDetector',
+    'OneClassSVM',
     'RobustCovariance',
     'LocalOutlierFactor',
     'IsolationForest',
-    'OneClassSVM',
-
-    # Divided Outlier Detector (KmeansSVM & etc)
-    'DividedOutlierDetector',
-
-    # Supervised Outlier Detector
-    'SupervisedOutlierDetector',
+    'SupervisedOutlierDetector'
 ]

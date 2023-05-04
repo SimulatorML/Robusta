@@ -7,7 +7,7 @@ from sklearn.exceptions import NotFittedError
 from sklearn.utils.random import check_random_state
 
 from . import _WrappedSelector, _WrappedGroupSelector, _check_k_features
-from robusta.utils import logmsg
+from ..utils import logmsg
 
 
 class GreedSelector(_WrappedSelector):
