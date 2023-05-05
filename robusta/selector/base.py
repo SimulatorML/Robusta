@@ -10,7 +10,7 @@ from sklearn.exceptions import NotFittedError
 from . import _plot_progress, _plot_subset
 from . import FeatureSubset
 from . import _print_last
-from robusta.crossval import crossval
+from ..crossval import crossval
 
 
 class _Selector(BaseEstimator, TransformerMixin):

@@ -6,7 +6,7 @@ from sklearn.base import BaseEstimator
 from sklearn.exceptions import NotFittedError
 
 from . import _WrappedSelector, _WrappedGroupSelector
-from robusta.importance import (
+from ..importance import (
     PermutationImportance,
     GroupPermutationImportance,
     ShuffleTargetImportance,

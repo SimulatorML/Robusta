@@ -3,7 +3,7 @@ from typing import Union, Callable
 import pandas as pd
 from sklearn.base import clone, BaseEstimator
 
-from . import OutlierDetector
+from .base import OutlierDetector
 
 
 class SupervisedOutlierDetector(OutlierDetector):

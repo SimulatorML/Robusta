@@ -1,10 +1,8 @@
-from robusta.preprocessing.category import *
-from robusta.preprocessing.numeric import *
-from robusta.preprocessing.base import *
-from robusta.pipeline import *
-
-
-
+from pipeline._pipeline import make_pipeline
+from preprocessing.category import *
+from preprocessing.numeric import *
+from preprocessing.base import *
+from pipeline import *
 
 mem_reduce_pipe = FeatureUnion([
     ('numeric', make_pipeline(
@@ -15,8 +13,6 @@ mem_reduce_pipe = FeatureUnion([
         TypeSelector('object'),
     )),
 ])
-
-
 
 prep_pipe = make_pipeline(
     FeatureUnion([

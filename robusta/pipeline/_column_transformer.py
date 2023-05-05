@@ -5,7 +5,7 @@ from sklearn.base import TransformerMixin, clone
 from sklearn.pipeline import _name_estimators
 from sklearn.utils.metaestimators import _BaseComposition
 
-from robusta.preprocessing import Identity, ColumnSelector
+from ..preprocessing import Identity, ColumnSelector
 
 
 class ColumnTransformer(_BaseComposition, TransformerMixin):

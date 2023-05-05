@@ -10,7 +10,7 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.utils.multiclass import type_of_target
 
 from . import ColumnFilter
-from robusta.utils import all_subsets
+from ..utils import all_subsets
 
 
 class LabelEncoder1D(BaseEstimator, TransformerMixin):
