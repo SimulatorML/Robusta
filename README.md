@@ -55,7 +55,7 @@ pip install -e git+https://github.com/uberkinder/robusta.git
 
 ## Modules
 
-In this section, we detail some robusta available functionality. More examples are offered in the Jupyter notebooks [here](https://github.com/nikneural/robust/tree/master/cookbook). Another good resource is the [tests](https://github.com/nikneural/robust/tree/master/tests).
+In this section, we detail some robusta available functionality. More examples are offered in the Jupyter notebooks [here](https://github.com/uberkinder/Robusta/tree/master/examples). Another good resource is the [tests](https://github.com/uberkinder/Robusta/tree/master/tests).
 
 ### Validation Classes
 
