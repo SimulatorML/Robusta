@@ -101,12 +101,12 @@ def get_estimator(
 
         # check if pair is in ESTIMATORS
         if not (name_mask & type_mask).any():
-            raise ValueError(f"Coluld not find ('{name}', '{estimator_type}') pair")
+            raise ValueError(f"Coluld not find ('{type_mask}', '{estimator_type}') pair")
         else:
             estimator = ESTIMATORS[name_mask & type_mask]["class"].iloc[0](**params)
             return estimator
 
-    elif hasattr(name, "fit"):
+    elif hasattr(estimator, "fit"):
         return estimator.set_params(**params)
 
     else:
