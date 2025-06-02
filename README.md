@@ -1,5 +1,5 @@
 <!-- content -->
-Developed by students of the [Simulator ML (Karpov.Courses)](https://karpov.courses/simulator-ml)
+Developed by Bogdan Pechenkin
 
 **Robusta ML Framework** is an extension of the Scikit-learn library that provides additional features and capabilities for data processing and building machine learning models.
 
